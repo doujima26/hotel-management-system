@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERD - Hệ thống Quản lý Khách sạn</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 32px 48px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #8892b0;
+            font-weight: 300;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px 24px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-item .number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-item .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8892b0;
+            margin-top: 4px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .controls button {
+            padding: 8px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #ccd6f6;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .controls button:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .controls button.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .diagram-container {
+            padding: 32px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .mermaid {
+            max-width: 100%;
+        }
+
+        .mermaid svg {
+            max-width: none !important;
+        }
+
+        .legend {
+            padding: 24px 48px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ccd6f6;
+            margin-bottom: 16px;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot-users { background: #667eea; }
+        .dot-hotel { background: #f093fb; }
+        .dot-room { background: #4ecdc4; }
+        .dot-booking { background: #ff6b6b; }
+        .dot-service { background: #ffd93d; }
+        .dot-staff { background: #6bcb77; }
+        .dot-review { background: #ee5a24; }
+        .dot-promo { background: #c44dff; }
+
+        .hidden { display: none; }
+
+        /* Override Mermaid dark theme colors */
+        .mermaid .entityBox { fill: #1e1e30 !important; stroke: #444 !important; }
+        .mermaid .entityLabel { fill: #e0e0e0 !important; }
+
+        /* ===== TABLE ANALYSIS STYLES ===== */
+        .analysis-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 48px 32px;
+        }
+        .analysis-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .group-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ccd6f6;
+            margin: 40px 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .group-title .badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .badge-users { background: rgba(102,126,234,0.2); color: #667eea; }
+        .badge-hotel { background: rgba(240,147,251,0.2); color: #f093fb; }
+        .badge-room { background: rgba(78,205,196,0.2); color: #4ecdc4; }
+        .badge-booking { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .badge-service { background: rgba(255,217,61,0.2); color: #ffd93d; }
+        .badge-staff { background: rgba(107,203,119,0.2); color: #6bcb77; }
+        .badge-review { background: rgba(238,90,36,0.2); color: #ee5a24; }
+        .badge-promo { background: rgba(196,77,255,0.2); color: #c44dff; }
+
+        .table-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .table-card:hover { border-color: rgba(102,126,234,0.3); }
+        .table-card-header {
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .table-card-header h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .table-card-header .purpose {
+            font-size: 12px;
+            color: #8892b0;
+            font-weight: 400;
+            margin-left: 12px;
+        }
+        .table-card-body { padding: 16px 20px; }
+        .col-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .col-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: #8892b0;
+            font-weight: 500;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .col-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: #ccd6f6;
+        }
+        .col-table tr:last-child td { border-bottom: none; }
+        .col-table .col-name { color: #4ecdc4; font-family: monospace; font-size: 13px; }
+        .col-table .col-type { color: #f093fb; font-family: monospace; font-size: 12px; }
+        .col-table .col-constraint { font-size: 11px; }
+        .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 3px; }
+        .tag-pk { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .tag-fk { background: rgba(102,126,234,0.2); color: #667eea; }
+        .tag-uk { background: rgba(255,217,61,0.2); color: #ffd93d; }
+        .tag-nn { background: rgba(107,203,119,0.15); color: #6bcb77; }
+
+        .rel-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: rgba(102,126,234,0.06);
+            border-left: 3px solid #667eea;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .rel-box strong { color: #667eea; }
+        .note-box {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(255,217,61,0.06);
+            border-left: 3px solid #ffd93d;
+            border-radius: 0 8px 8px 0;
+            font-size: 12px;
+            color: #ccd6f6;
+        }
+
+        .rel-summary {
+            margin-top: 48px;
+        }
+        .rel-summary h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ccd6f6;
+            margin-bottom: 16px;
+        }
+        .rel-summary table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 32px;
+        }
+        .rel-summary th {
+            text-align: left;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.04);
+            color: #8892b0;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rel-summary td {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: #ccd6f6;
+        }
+        .rel-summary td code {
+            background: rgba(102,126,234,0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #667eea;
+        }
+        .flow-diagram { margin-top: 40px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 ERD - Hệ thống Quản lý Nghiệp vụ Khách sạn</h1>
+        <p>Entity Relationship Diagram • PostgreSQL • 21 bảng • 9 nhóm chức năng</p>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="number">21</div>
+                <div class="label">Bảng</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">9</div>
+                <div class="label">ENUM Types</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">4</div>
+                <div class="label">Vai trò</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">17</div>
+                <div class="label">Indexes</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="active" onclick="showDiagram('full')">📊 Toàn bộ ERD</button>
+        <button onclick="showDiagram('core')">🏨 Lõi (Hotel-Room)</button>
+        <button onclick="showDiagram('booking')">📋 Đặt phòng & Thanh toán</button>
+        <button onclick="showDiagram('staff')">👤 Nhân sự & Dịch vụ</button>
+    </div>
+
+    <!-- FULL ERD -->
+    <div id="diagram-full" class="diagram-container">
+        <pre class="mermaid">
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR email UK
+        VARCHAR password_hash
+        VARCHAR full_name
+        VARCHAR phone
+        TEXT avatar_url
+        ENUM role "super_admin|admin|staff|user"
+        BOOLEAN is_active
+        BOOLEAN is_verified
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    hotels {
+        UUID id PK
+        UUID owner_id FK,UK "users.id (1 admin=1 hotel)"
+        VARCHAR name
+        TEXT description
+        TEXT address
+        VARCHAR city
+        VARCHAR district
+        DECIMAL latitude
+        DECIMAL longitude
+        VARCHAR phone
+        VARCHAR email
+        SMALLINT star_rating "CHECK 1-5"
+        ENUM status "pending|approved|rejected|suspended"
+        TEXT rejection_reason
+        DECIMAL avg_rating "denormalized"
+        INTEGER total_reviews "denormalized"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    hotel_images {
+        UUID id PK
+        UUID hotel_id FK "hotels.id CASCADE"
+        TEXT image_url
+        BOOLEAN is_primary
+        INTEGER sort_order
+        TIMESTAMPTZ created_at
+    }
+
+    room_types {
+        UUID id PK
+        UUID hotel_id FK "hotels.id"
+        VARCHAR name
+        TEXT description
+        DECIMAL base_price "CHECK gt 0"
+        INTEGER max_guests "CHECK gt 0"
+        DECIMAL area_sqm
+        VARCHAR bed_type
+        INTEGER total_rooms "CHECK gt 0"
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    room_type_images {
+        UUID id PK
+        UUID room_type_id FK "room_types.id CASCADE"
+        TEXT image_url
+        BOOLEAN is_primary
+        INTEGER sort_order
+        TIMESTAMPTZ created_at
+    }
+
+    rooms {
+        UUID id PK
+        UUID room_type_id FK "room_types.id"
+        VARCHAR room_number UK
+        INTEGER floor
+        ENUM status "available|occupied|cleaning|maintenance"
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    amenities {
+        UUID id PK
+        VARCHAR name UK
+        VARCHAR icon
+        VARCHAR category
+        TIMESTAMPTZ created_at
+    }
+
+    room_type_amenities {
+        UUID room_type_id PK,FK "room_types.id"
+        UUID amenity_id PK,FK "amenities.id"
+    }
+
+    bookings {
+        UUID id PK
+        VARCHAR booking_code UK
+        UUID user_id FK "users.id"
+        UUID hotel_id FK "hotels.id"
+        DATE check_in_date
+        DATE check_out_date "CHECK gt check_in"
+        INTEGER num_guests "CHECK gt 0"
+        DECIMAL total_room_price
+        DECIMAL total_service_price
+        DECIMAL discount_amount
+        DECIMAL total_amount
+        ENUM status "pending|confirmed|checked_in|checked_out|cancelled|no_show"
+        TEXT cancellation_reason
+        TIMESTAMPTZ cancelled_at
+        UUID cancelled_by FK "users.id"
+        UUID promotion_id FK "promotions.id"
+        TEXT special_requests
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    booking_rooms {
+        UUID id PK
+        UUID booking_id FK "bookings.id CASCADE"
+        UUID room_type_id FK "room_types.id"
+        UUID room_id FK "rooms.id NULLABLE"
+        INTEGER quantity "CHECK gt 0"
+        DECIMAL price_per_night "snapshot"
+        INTEGER num_nights "CHECK gt 0"
+        DECIMAL subtotal
+    }
+
+    payments {
+        UUID id PK
+        UUID booking_id FK "bookings.id"
+        DECIMAL amount
+        ENUM payment_method "zalopay|momo|credit_card|bank_transfer"
+        ENUM payment_status "pending|completed|failed|refunded"
+        VARCHAR transaction_id
+        JSONB payment_gateway_response
+        TIMESTAMPTZ paid_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    invoices {
+        UUID id PK
+        VARCHAR invoice_number UK
+        UUID booking_id FK,UK "bookings.id (1:1)"
+        UUID payment_id FK "payments.id"
+        UUID user_id FK "users.id"
+        UUID hotel_id FK "hotels.id"
+        DECIMAL total_room_price
+        DECIMAL total_service_price
+        DECIMAL discount_amount
+        DECIMAL total_amount
+        TIMESTAMPTZ issued_at
+        TIMESTAMPTZ created_at
+    }
+
+    hotel_services {
+        UUID id PK
+        UUID hotel_id FK "hotels.id CASCADE"
+        VARCHAR name
+        TEXT description
+        DECIMAL price "CHECK gt 0"
+        VARCHAR unit
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    booking_services {
+        UUID id PK
+        UUID booking_id FK "bookings.id CASCADE"
+        UUID service_id FK "hotel_services.id"
+        INTEGER quantity "CHECK gt 0"
+        DECIMAL unit_price "snapshot"
+        DECIMAL subtotal
+        TIMESTAMPTZ used_at
+        TIMESTAMPTZ created_at
+    }
+
+    staff_members {
+        UUID id PK
+        UUID user_id FK "users.id"
+        UUID hotel_id FK "hotels.id"
+        VARCHAR position
+        BOOLEAN is_active
+        DATE hired_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    staff_schedules {
+        UUID id PK
+        UUID staff_id FK "staff_members.id CASCADE"
+        DATE shift_date
+        ENUM shift_type "morning|afternoon|night"
+        TIME start_time
+        TIME end_time
+        TEXT notes
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    check_in_outs {
+        UUID id PK
+        UUID booking_id FK "bookings.id"
+        UUID staff_id FK "staff_members.id"
+        ENUM type "check_in|check_out"
+        TIMESTAMPTZ performed_at
+        TEXT notes
+        TIMESTAMPTZ created_at
+    }
+
+    room_status_logs {
+        UUID id PK
+        UUID room_id FK "rooms.id CASCADE"
+        VARCHAR previous_status
+        VARCHAR new_status
+        UUID changed_by FK "users.id"
+        TIMESTAMPTZ changed_at
+        TEXT reason
+    }
+
+    reviews {
+        UUID id PK
+        UUID user_id FK "users.id"
+        UUID hotel_id FK "hotels.id"
+        UUID booking_id FK "bookings.id"
+        SMALLINT rating "CHECK 1-5"
+        TEXT comment
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    favorites {
+        UUID id PK
+        UUID user_id FK "users.id CASCADE"
+        UUID hotel_id FK "hotels.id CASCADE"
+        TIMESTAMPTZ created_at
+    }
+
+    promotions {
+        UUID id PK
+        UUID hotel_id FK "hotels.id CASCADE"
+        VARCHAR name
+        TEXT description
+        ENUM discount_type "percentage|fixed_amount"
+        DECIMAL discount_value "CHECK gt 0"
+        DECIMAL min_booking_amount
+        DECIMAL max_discount_amount
+        DATE start_date
+        DATE end_date "CHECK gte start"
+        INTEGER usage_limit
+        INTEGER used_count
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    %% ===== RELATIONSHIPS =====
+    users ||--o| hotels : "owns (1:1)"
+    users ||--o{ staff_members : "is staff"
+    users ||--o{ bookings : "books"
+    users ||--o{ reviews : "writes"
+    users ||--o{ favorites : "saves"
+
+    hotels ||--o{ hotel_images : "has images"
+    hotels ||--o{ room_types : "has room types"
+    hotels ||--o{ staff_members : "employs"
+    hotels ||--o{ hotel_services : "offers"
+    hotels ||--o{ promotions : "runs"
+    hotels ||--o{ reviews : "receives"
+    hotels ||--o{ favorites : "favorited"
+
+    room_types ||--o{ rooms : "categorizes"
+    room_types ||--o{ room_type_amenities : "has amenities"
+    room_types ||--o{ room_type_images : "has images"
+    room_types ||--o{ booking_rooms : "booked as"
+
+    amenities ||--o{ room_type_amenities : "linked"
+
+    rooms ||--o{ room_status_logs : "status tracked"
+
+    bookings ||--o{ booking_rooms : "contains rooms"
+    bookings ||--o{ booking_services : "uses services"
+    bookings ||--o{ payments : "paid by"
+    bookings ||--o| invoices : "generates invoice"
+    bookings ||--o{ check_in_outs : "checked by staff"
+
+    hotel_services ||--o{ booking_services : "used in"
+
+    staff_members ||--o{ staff_schedules : "scheduled"
+    staff_members ||--o{ check_in_outs : "performs"
+        </pre>
+    </div>
+
+    <!-- CORE: Hotel-Room -->
+    <div id="diagram-core" class="diagram-container hidden">
+        <pre class="mermaid">
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR email UK
+        VARCHAR full_name
+        ENUM role "super_admin|admin|staff|user"
+        BOOLEAN is_active
+    }
+
+    hotels {
+        UUID id PK
+        UUID owner_id FK,UK "1 admin = 1 hotel"
+        VARCHAR name
+        VARCHAR city
+        ENUM status "pending|approved|rejected|suspended"
+        DECIMAL avg_rating
+    }
+
+    hotel_images {
+        UUID id PK
+        UUID hotel_id FK
+        TEXT image_url
+        BOOLEAN is_primary
+    }
+
+    room_types {
+        UUID id PK
+        UUID hotel_id FK
+        VARCHAR name
+        DECIMAL base_price
+        INTEGER max_guests
+        VARCHAR bed_type
+        INTEGER total_rooms
+    }
+
+    room_type_images {
+        UUID id PK
+        UUID room_type_id FK
+        TEXT image_url
+        BOOLEAN is_primary
+    }
+
+    rooms {
+        UUID id PK
+        UUID room_type_id FK
+        VARCHAR room_number UK
+        INTEGER floor
+        ENUM status "available|occupied|cleaning|maintenance"
+    }
+
+    amenities {
+        UUID id PK
+        VARCHAR name UK
+        VARCHAR icon
+        VARCHAR category
+    }
+
+    room_type_amenities {
+        UUID room_type_id PK,FK
+        UUID amenity_id PK,FK
+    }
+
+    room_status_logs {
+        UUID id PK
+        UUID room_id FK
+        VARCHAR previous_status
+        VARCHAR new_status
+        TIMESTAMPTZ changed_at
+    }
+
+    users ||--o| hotels : "owns (1:1)"
+    hotels ||--o{ hotel_images : "has"
+    hotels ||--o{ room_types : "has"
+    room_types ||--o{ rooms : "categorizes"
+    room_types ||--o{ room_type_images : "has"
+    room_types ||--o{ room_type_amenities : "has"
+    amenities ||--o{ room_type_amenities : "linked"
+    rooms ||--o{ room_status_logs : "tracked"
+        </pre>
+    </div>
+
+    <!-- BOOKING & PAYMENT -->
+    <div id="diagram-booking" class="diagram-container hidden">
+        <pre class="mermaid">
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR email UK
+        VARCHAR full_name
+    }
+
+    hotels {
+        UUID id PK
+        VARCHAR name
+    }
+
+    room_types {
+        UUID id PK
+        VARCHAR name
+        DECIMAL base_price
+    }
+
+    rooms {
+        UUID id PK
+        VARCHAR room_number
+        ENUM status
+    }
+
+    promotions {
+        UUID id PK
+        UUID hotel_id FK
+        VARCHAR name
+        ENUM discount_type
+        DECIMAL discount_value
+        DATE start_date
+        DATE end_date
+    }
+
+    bookings {
+        UUID id PK
+        VARCHAR booking_code UK
+        UUID user_id FK
+        UUID hotel_id FK
+        DATE check_in_date
+        DATE check_out_date
+        INTEGER num_guests
+        DECIMAL total_amount
+        ENUM status "pending|confirmed|checked_in|checked_out|cancelled|no_show"
+        UUID promotion_id FK
+    }
+
+    booking_rooms {
+        UUID id PK
+        UUID booking_id FK
+        UUID room_type_id FK
+        UUID room_id FK "assigned at check-in"
+        DECIMAL price_per_night "snapshot"
+        INTEGER num_nights
+        DECIMAL subtotal
+    }
+
+    payments {
+        UUID id PK
+        UUID booking_id FK
+        DECIMAL amount
+        ENUM payment_method "zalopay|momo|credit_card|bank_transfer"
+        ENUM payment_status "pending|completed|failed|refunded"
+        VARCHAR transaction_id
+        JSONB payment_gateway_response
+    }
+
+    invoices {
+        UUID id PK
+        VARCHAR invoice_number UK
+        UUID booking_id FK,UK "1 booking = 1 invoice"
+        UUID payment_id FK
+        DECIMAL total_amount
+        TIMESTAMPTZ issued_at
+    }
+
+    users ||--o{ bookings : "books"
+    hotels ||--o{ bookings : "receives"
+    hotels ||--o{ promotions : "runs"
+    bookings ||--o{ booking_rooms : "contains"
+    bookings ||--o{ payments : "paid by"
+    bookings ||--o| invoices : "auto generates"
+    booking_rooms }o--|| room_types : "type"
+    booking_rooms }o--o| rooms : "assigned"
+    bookings }o--o| promotions : "applies"
+        </pre>
+    </div>
+
+    <!-- STAFF & SERVICES -->
+    <div id="diagram-staff" class="diagram-container hidden">
+        <pre class="mermaid">
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR full_name
+        ENUM role "staff"
+    }
+
+    hotels {
+        UUID id PK
+        VARCHAR name
+    }
+
+    staff_members {
+        UUID id PK
+        UUID user_id FK
+        UUID hotel_id FK
+        VARCHAR position
+        BOOLEAN is_active
+        DATE hired_at
+    }
+
+    staff_schedules {
+        UUID id PK
+        UUID staff_id FK
+        DATE shift_date
+        ENUM shift_type "morning|afternoon|night"
+        TIME start_time
+        TIME end_time
+    }
+
+    check_in_outs {
+        UUID id PK
+        UUID booking_id FK
+        UUID staff_id FK
+        ENUM type "check_in|check_out"
+        TIMESTAMPTZ performed_at
+    }
+
+    bookings {
+        UUID id PK
+        VARCHAR booking_code
+        ENUM status
+    }
+
+    hotel_services {
+        UUID id PK
+        UUID hotel_id FK
+        VARCHAR name
+        DECIMAL price
+        VARCHAR unit
+    }
+
+    booking_services {
+        UUID id PK
+        UUID booking_id FK
+        UUID service_id FK
+        INTEGER quantity
+        DECIMAL unit_price "snapshot"
+        DECIMAL subtotal
+    }
+
+    reviews {
+        UUID id PK
+        UUID user_id FK
+        UUID hotel_id FK
+        UUID booking_id FK
+        SMALLINT rating "1-5"
+        TEXT comment
+    }
+
+    favorites {
+        UUID id PK
+        UUID user_id FK
+        UUID hotel_id FK
+    }
+
+    users ||--o{ staff_members : "is staff"
+    users ||--o{ reviews : "writes"
+    users ||--o{ favorites : "saves"
+    hotels ||--o{ staff_members : "employs"
+    hotels ||--o{ hotel_services : "offers"
+    hotels ||--o{ reviews : "receives"
+    hotels ||--o{ favorites : "favorited"
+    staff_members ||--o{ staff_schedules : "scheduled"
+    staff_members ||--o{ check_in_outs : "performs"
+    bookings ||--o{ check_in_outs : "checked"
+    bookings ||--o{ booking_services : "uses"
+    hotel_services ||--o{ booking_services : "used in"
+        </pre>
+    </div>
+
+    <div class="legend">
+        <h3>📌 Chú thích nhóm chức năng</h3>
+        <div class="legend-grid">
+            <div class="legend-item"><span class="legend-dot dot-users"></span> <strong>users</strong> — Người dùng & Phân quyền (4 vai trò)</div>
+            <div class="legend-item"><span class="legend-dot dot-hotel"></span> <strong>hotels, hotel_images</strong> — Quản lý Khách sạn</div>
+            <div class="legend-item"><span class="legend-dot dot-room"></span> <strong>room_types, rooms, amenities</strong> — Quản lý Phòng & Tiện nghi</div>
+            <div class="legend-item"><span class="legend-dot dot-booking"></span> <strong>bookings, booking_rooms</strong> — Đặt phòng</div>
+            <div class="legend-item"><span class="legend-dot dot-booking"></span> <strong>payments, invoices</strong> — Thanh toán & Hóa đơn</div>
+            <div class="legend-item"><span class="legend-dot dot-service"></span> <strong>hotel_services, booking_services</strong> — Dịch vụ đi kèm</div>
+            <div class="legend-item"><span class="legend-dot dot-staff"></span> <strong>staff_members, staff_schedules, check_in_outs</strong> — Nhân sự</div>
+            <div class="legend-item"><span class="legend-dot dot-review"></span> <strong>reviews, favorites</strong> — Đánh giá & Yêu thích</div>
+            <div class="legend-item"><span class="legend-dot dot-promo"></span> <strong>promotions</strong> — Khuyến mãi</div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            er: {
+                diagramPadding: 30,
+                layoutDirection: 'TB',
+                minEntityWidth: 180,
+                minEntityHeight: 30,
+                entityPadding: 15,
+                useMaxWidth: false
+            },
+            themeVariables: {
+                primaryColor: '#1e1e30',
+                primaryTextColor: '#e0e0e0',
+                primaryBorderColor: '#444',
+                lineColor: '#667eea',
+                secondaryColor: '#16213e',
+                tertiaryColor: '#0f3460',
+                fontSize: '13px'
+            }
+        });
+
+        function showDiagram(type) {
+            document.querySelectorAll('.diagram-container').forEach(el => el.classList.add('hidden'));
+            document.getElementById('diagram-' + type).classList.remove('hidden');
+
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

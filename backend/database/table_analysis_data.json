@@ -1,0 +1,1367 @@
+{
+ "tables": [
+  {
+   "name": "users",
+   "desc": "Quản lý tất cả người dùng (Super Admin, Admin, Staff, User)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID người dùng"
+    ],
+    [
+     "email",
+     "VARCHAR(255), UNIQUE, NOT NULL",
+     "Email đăng nhập"
+    ],
+    [
+     "password_hash",
+     "VARCHAR(255), NOT NULL",
+     "Mật khẩu đã mã hóa"
+    ],
+    [
+     "full_name",
+     "VARCHAR(255), NOT NULL",
+     "Họ và tên"
+    ],
+    [
+     "phone",
+     "VARCHAR(20)",
+     "Số điện thoại"
+    ],
+    [
+     "avatar_url",
+     "TEXT",
+     "Ảnh đại diện"
+    ],
+    [
+     "role",
+     "ENUM(super_admin, admin, staff, user)",
+     "Vai trò"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Khóa/mở khóa"
+    ],
+    [
+     "is_verified",
+     "BOOLEAN, DEFAULT false",
+     "Xác thực email"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "→ hotels (1:1) — Admin sở hữu khách sạn",
+    "→ staff_members (1:N) — Là nhân viên",
+    "→ bookings (1:N) — Đặt phòng",
+    "→ reviews (1:N) — Viết đánh giá",
+    "→ favorites (1:N) — Lưu yêu thích"
+   ]
+  },
+  {
+   "name": "hotels",
+   "desc": "Khách sạn do Admin đăng ký. 1 Admin = 1 Hotel. Cần Super Admin duyệt",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID khách sạn"
+    ],
+    [
+     "owner_id",
+     "UUID, FK → users.id, UNIQUE",
+     "Admin sở hữu (1:1)"
+    ],
+    [
+     "name",
+     "VARCHAR(255), NOT NULL",
+     "Tên khách sạn"
+    ],
+    [
+     "description",
+     "TEXT",
+     "Mô tả giới thiệu"
+    ],
+    [
+     "address",
+     "TEXT, NOT NULL",
+     "Địa chỉ chi tiết"
+    ],
+    [
+     "city",
+     "VARCHAR(100), NOT NULL",
+     "Thành phố (tìm kiếm)"
+    ],
+    [
+     "district",
+     "VARCHAR(100)",
+     "Quận/huyện"
+    ],
+    [
+     "latitude",
+     "DECIMAL(10,8)",
+     "Vĩ độ"
+    ],
+    [
+     "longitude",
+     "DECIMAL(11,8)",
+     "Kinh độ"
+    ],
+    [
+     "phone",
+     "VARCHAR(20)",
+     "SĐT khách sạn"
+    ],
+    [
+     "email",
+     "VARCHAR(255)",
+     "Email khách sạn"
+    ],
+    [
+     "star_rating",
+     "SMALLINT, CHECK(1-5)",
+     "Hạng sao"
+    ],
+    [
+     "status",
+     "ENUM(pending, approved, rejected, suspended)",
+     "Trạng thái duyệt"
+    ],
+    [
+     "rejection_reason",
+     "TEXT",
+     "Lý do từ chối"
+    ],
+    [
+     "avg_rating",
+     "DECIMAL(3,2), DEFAULT 0",
+     "Điểm TB (denormalized, trigger)"
+    ],
+    [
+     "total_reviews",
+     "INTEGER, DEFAULT 0",
+     "Tổng đánh giá (denormalized)"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← users (N:1) — Thuộc 1 Admin",
+    "→ hotel_images (1:N)",
+    "→ room_types (1:N)",
+    "→ staff_members (1:N)",
+    "→ hotel_services (1:N)",
+    "→ promotions (1:N)",
+    "→ reviews (1:N)",
+    "→ favorites (1:N)"
+   ]
+  },
+  {
+   "name": "hotel_images",
+   "desc": "Hình ảnh khách sạn (gallery)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID ảnh"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id, CASCADE",
+     "Khách sạn"
+    ],
+    [
+     "image_url",
+     "TEXT, NOT NULL",
+     "URL ảnh"
+    ],
+    [
+     "is_primary",
+     "BOOLEAN, DEFAULT false",
+     "Ảnh chính"
+    ],
+    [
+     "sort_order",
+     "INTEGER, DEFAULT 0",
+     "Thứ tự hiển thị"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "← hotels (N:1) — Thuộc 1 khách sạn"
+   ]
+  },
+  {
+   "name": "room_types",
+   "desc": "Loại phòng (Standard, Deluxe, Suite...) với giá cơ bản",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID loại phòng"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id",
+     "Thuộc khách sạn nào"
+    ],
+    [
+     "name",
+     "VARCHAR(255), NOT NULL",
+     "Tên loại phòng"
+    ],
+    [
+     "description",
+     "TEXT",
+     "Mô tả"
+    ],
+    [
+     "base_price",
+     "DECIMAL(12,2), NOT NULL, CHECK>0",
+     "Giá cơ bản/đêm"
+    ],
+    [
+     "max_guests",
+     "INTEGER, NOT NULL, CHECK>0",
+     "Số khách tối đa"
+    ],
+    [
+     "area_sqm",
+     "DECIMAL(6,2)",
+     "Diện tích (m²)"
+    ],
+    [
+     "bed_type",
+     "VARCHAR(100)",
+     "Loại giường"
+    ],
+    [
+     "total_rooms",
+     "INTEGER, NOT NULL, CHECK>0",
+     "Tổng số phòng"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Đang hoạt động"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← hotels (N:1)",
+    "→ rooms (1:N) — Phòng vật lý",
+    "→ room_type_images (1:N)",
+    "→ room_type_amenities (N:N)",
+    "→ booking_rooms (1:N)"
+   ]
+  },
+  {
+   "name": "room_type_images",
+   "desc": "Hình ảnh chi tiết cho từng loại phòng",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID ảnh"
+    ],
+    [
+     "room_type_id",
+     "UUID, FK → room_types.id, CASCADE",
+     "Loại phòng"
+    ],
+    [
+     "image_url",
+     "TEXT, NOT NULL",
+     "URL ảnh"
+    ],
+    [
+     "is_primary",
+     "BOOLEAN, DEFAULT false",
+     "Ảnh chính"
+    ],
+    [
+     "sort_order",
+     "INTEGER, DEFAULT 0",
+     "Thứ tự"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "← room_types (N:1)"
+   ]
+  },
+  {
+   "name": "rooms",
+   "desc": "Phòng vật lý — theo dõi trạng thái real-time (trống/có khách/dọn dẹp)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID phòng"
+    ],
+    [
+     "room_type_id",
+     "UUID, FK → room_types.id",
+     "Thuộc loại phòng"
+    ],
+    [
+     "room_number",
+     "VARCHAR(20), NOT NULL",
+     "Số phòng"
+    ],
+    [
+     "floor",
+     "INTEGER",
+     "Tầng"
+    ],
+    [
+     "status",
+     "ENUM(available, occupied, cleaning, maintenance)",
+     "Trạng thái phòng"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Đang hoạt động"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← room_types (N:1)",
+    "→ room_status_logs (1:N) — Lịch sử trạng thái",
+    "→ booking_rooms.room_id (1:N) — Gán khi check-in"
+   ],
+   "note": "UNIQUE(room_type_id, room_number). Tách khỏi room_types để theo dõi trạng thái từng phòng vật lý."
+  },
+  {
+   "name": "amenities",
+   "desc": "Danh mục tiện nghi dùng chung (WiFi, hồ bơi, máy lạnh...)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID tiện nghi"
+    ],
+    [
+     "name",
+     "VARCHAR(100), NOT NULL, UNIQUE",
+     "Tên tiện nghi"
+    ],
+    [
+     "icon",
+     "VARCHAR(100)",
+     "Icon hiển thị"
+    ],
+    [
+     "category",
+     "VARCHAR(50)",
+     "Nhóm (phòng tắm, chung...)"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "→ room_type_amenities (N:N với room_types)"
+   ]
+  },
+  {
+   "name": "room_type_amenities",
+   "desc": "Bảng trung gian N:N giữa loại phòng và tiện nghi",
+   "cols": [
+    [
+     "room_type_id",
+     "UUID, FK → room_types.id, CASCADE",
+     "Loại phòng (Composite PK)"
+    ],
+    [
+     "amenity_id",
+     "UUID, FK → amenities.id, CASCADE",
+     "Tiện nghi (Composite PK)"
+    ]
+   ],
+   "rels": [
+    "← room_types (N:1)",
+    "← amenities (N:1)"
+   ],
+   "note": "Composite PK (room_type_id, amenity_id). VD: Phòng Deluxe có WiFi + hồ bơi → 2 bản ghi."
+  },
+  {
+   "name": "promotions",
+   "desc": "Chương trình khuyến mãi, giảm giá do Admin cấu hình",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id, CASCADE",
+     "Khách sạn"
+    ],
+    [
+     "name",
+     "VARCHAR(255), NOT NULL",
+     "Tên chương trình"
+    ],
+    [
+     "description",
+     "TEXT",
+     "Mô tả"
+    ],
+    [
+     "discount_type",
+     "ENUM(percentage, fixed_amount)",
+     "Loại giảm giá"
+    ],
+    [
+     "discount_value",
+     "DECIMAL(12,2), NOT NULL, CHECK>0",
+     "Giá trị giảm"
+    ],
+    [
+     "min_booking_amount",
+     "DECIMAL(12,2)",
+     "Đơn tối thiểu"
+    ],
+    [
+     "max_discount_amount",
+     "DECIMAL(12,2)",
+     "Giảm tối đa"
+    ],
+    [
+     "start_date",
+     "DATE, NOT NULL",
+     "Ngày bắt đầu"
+    ],
+    [
+     "end_date",
+     "DATE, NOT NULL",
+     "Ngày kết thúc"
+    ],
+    [
+     "usage_limit",
+     "INTEGER",
+     "Giới hạn lượt dùng"
+    ],
+    [
+     "used_count",
+     "INTEGER, DEFAULT 0",
+     "Đã dùng"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Đang hoạt động"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← hotels (N:1)",
+    "→ bookings.promotion_id (1:N)"
+   ],
+   "note": "CHECK(end_date >= start_date)"
+  },
+  {
+   "name": "bookings",
+   "desc": "Đơn đặt phòng — bảng trung tâm của hệ thống",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID đơn đặt"
+    ],
+    [
+     "booking_code",
+     "VARCHAR(20), UNIQUE, NOT NULL",
+     "Mã đặt phòng"
+    ],
+    [
+     "user_id",
+     "UUID, FK → users.id",
+     "Khách đặt"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id",
+     "Khách sạn"
+    ],
+    [
+     "check_in_date",
+     "DATE, NOT NULL",
+     "Ngày nhận phòng"
+    ],
+    [
+     "check_out_date",
+     "DATE, NOT NULL",
+     "Ngày trả phòng"
+    ],
+    [
+     "num_guests",
+     "INTEGER, NOT NULL, CHECK>0",
+     "Số lượng khách"
+    ],
+    [
+     "total_room_price",
+     "DECIMAL(12,2), NOT NULL",
+     "Tổng tiền phòng"
+    ],
+    [
+     "total_service_price",
+     "DECIMAL(12,2), DEFAULT 0",
+     "Tổng tiền dịch vụ"
+    ],
+    [
+     "discount_amount",
+     "DECIMAL(12,2), DEFAULT 0",
+     "Số tiền giảm giá"
+    ],
+    [
+     "total_amount",
+     "DECIMAL(12,2), NOT NULL",
+     "Tổng tiền cuối cùng"
+    ],
+    [
+     "status",
+     "ENUM(pending, confirmed, checked_in, checked_out, cancelled, no_show)",
+     "Trạng thái đơn"
+    ],
+    [
+     "cancellation_reason",
+     "TEXT",
+     "Lý do hủy"
+    ],
+    [
+     "cancelled_at",
+     "TIMESTAMPTZ",
+     "Thời điểm hủy"
+    ],
+    [
+     "cancelled_by",
+     "UUID, FK → users.id",
+     "Người hủy (user/admin)"
+    ],
+    [
+     "promotion_id",
+     "UUID, FK → promotions.id",
+     "Khuyến mãi áp dụng"
+    ],
+    [
+     "special_requests",
+     "TEXT",
+     "Yêu cầu đặc biệt"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← users (N:1) — Người đặt",
+    "← hotels (N:1)",
+    "→ booking_rooms (1:N)",
+    "→ booking_services (1:N)",
+    "→ payments (1:N)",
+    "→ invoices (1:1)",
+    "→ check_in_outs (1:N)",
+    "→ reviews (1:N)",
+    "← promotions (N:1)"
+   ],
+   "note": "CHECK(check_out_date > check_in_date). Cần overlap checking chống trùng lịch."
+  },
+  {
+   "name": "booking_rooms",
+   "desc": "Chi tiết phòng trong đơn đặt (1 booking đặt nhiều loại phòng)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id, CASCADE",
+     "Đơn đặt"
+    ],
+    [
+     "room_type_id",
+     "UUID, FK → room_types.id",
+     "Loại phòng đặt"
+    ],
+    [
+     "room_id",
+     "UUID, FK → rooms.id, NULLABLE",
+     "Phòng cụ thể (gán khi check-in)"
+    ],
+    [
+     "quantity",
+     "INTEGER, DEFAULT 1, CHECK>0",
+     "Số lượng phòng"
+    ],
+    [
+     "price_per_night",
+     "DECIMAL(12,2), NOT NULL",
+     "Snapshot giá tại thời điểm đặt"
+    ],
+    [
+     "num_nights",
+     "INTEGER, NOT NULL, CHECK>0",
+     "Số đêm"
+    ],
+    [
+     "subtotal",
+     "DECIMAL(12,2), NOT NULL",
+     "Thành tiền"
+    ]
+   ],
+   "rels": [
+    "← bookings (N:1)",
+    "← room_types (N:1)",
+    "← rooms (N:1, nullable)"
+   ],
+   "note": "price_per_night là snapshot giá → không bị ảnh hưởng khi admin đổi giá sau."
+  },
+  {
+   "name": "payments",
+   "desc": "Thanh toán online (ZaloPay, MoMo, Credit Card, Bank Transfer)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID thanh toán"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id",
+     "Đơn đặt"
+    ],
+    [
+     "amount",
+     "DECIMAL(12,2), NOT NULL",
+     "Số tiền"
+    ],
+    [
+     "payment_method",
+     "ENUM(zalopay, momo, credit_card, bank_transfer)",
+     "Phương thức"
+    ],
+    [
+     "payment_status",
+     "ENUM(pending, completed, failed, refunded)",
+     "Trạng thái"
+    ],
+    [
+     "transaction_id",
+     "VARCHAR(255)",
+     "Mã giao dịch từ cổng TT"
+    ],
+    [
+     "payment_gateway_response",
+     "JSONB",
+     "Response từ cổng thanh toán"
+    ],
+    [
+     "paid_at",
+     "TIMESTAMPTZ",
+     "Thời điểm thanh toán"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← bookings (N:1)",
+    "→ invoices (1:1)"
+   ],
+   "note": "Khi payment_status = completed → hệ thống tự động tạo invoices."
+  },
+  {
+   "name": "invoices",
+   "desc": "Hóa đơn — tự động tạo sau thanh toán thành công",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID hóa đơn"
+    ],
+    [
+     "invoice_number",
+     "VARCHAR(30), UNIQUE, NOT NULL",
+     "Số hóa đơn"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id, UNIQUE",
+     "Đơn đặt (1 booking = 1 invoice)"
+    ],
+    [
+     "payment_id",
+     "UUID, FK → payments.id",
+     "Thanh toán liên quan"
+    ],
+    [
+     "user_id",
+     "UUID, FK → users.id",
+     "Khách hàng"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id",
+     "Khách sạn"
+    ],
+    [
+     "total_room_price",
+     "DECIMAL(12,2), NOT NULL",
+     "Tổng tiền phòng"
+    ],
+    [
+     "total_service_price",
+     "DECIMAL(12,2), DEFAULT 0",
+     "Tổng tiền dịch vụ"
+    ],
+    [
+     "discount_amount",
+     "DECIMAL(12,2), DEFAULT 0",
+     "Giảm giá"
+    ],
+    [
+     "total_amount",
+     "DECIMAL(12,2), NOT NULL",
+     "Tổng cộng cuối"
+    ],
+    [
+     "issued_at",
+     "TIMESTAMPTZ, NOT NULL",
+     "Ngày xuất hóa đơn"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "← bookings (1:1, UNIQUE)",
+    "← payments (N:1)",
+    "← users (N:1)",
+    "← hotels (N:1)"
+   ]
+  },
+  {
+   "name": "hotel_services",
+   "desc": "Dịch vụ đi kèm khách sạn (giặt ủi, massage, đưa đón sân bay...)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID dịch vụ"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id, CASCADE",
+     "Khách sạn"
+    ],
+    [
+     "name",
+     "VARCHAR(255), NOT NULL",
+     "Tên dịch vụ"
+    ],
+    [
+     "description",
+     "TEXT",
+     "Mô tả"
+    ],
+    [
+     "price",
+     "DECIMAL(12,2), NOT NULL, CHECK>0",
+     "Giá dịch vụ"
+    ],
+    [
+     "unit",
+     "VARCHAR(50)",
+     "Đơn vị (lần, kg, chuyến...)"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Đang hoạt động"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← hotels (N:1)",
+    "→ booking_services (1:N)"
+   ]
+  },
+  {
+   "name": "booking_services",
+   "desc": "Dịch vụ khách hàng sử dụng trong booking",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id, CASCADE",
+     "Đơn đặt"
+    ],
+    [
+     "service_id",
+     "UUID, FK → hotel_services.id",
+     "Dịch vụ"
+    ],
+    [
+     "quantity",
+     "INTEGER, DEFAULT 1, CHECK>0",
+     "Số lượng"
+    ],
+    [
+     "unit_price",
+     "DECIMAL(12,2), NOT NULL",
+     "Snapshot giá tại thời điểm sử dụng"
+    ],
+    [
+     "subtotal",
+     "DECIMAL(12,2), NOT NULL",
+     "Thành tiền"
+    ],
+    [
+     "used_at",
+     "TIMESTAMPTZ",
+     "Thời điểm sử dụng"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "← bookings (N:1)",
+    "← hotel_services (N:1)"
+   ]
+  },
+  {
+   "name": "staff_members",
+   "desc": "Liên kết nhân viên với khách sạn. Staff bắt buộc gắn 1 hotel",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID nhân viên"
+    ],
+    [
+     "user_id",
+     "UUID, FK → users.id",
+     "Tài khoản người dùng"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id",
+     "Khách sạn làm việc"
+    ],
+    [
+     "position",
+     "VARCHAR(100), NOT NULL",
+     "Chức vụ (Lễ tân, Housekeeping...)"
+    ],
+    [
+     "is_active",
+     "BOOLEAN, DEFAULT true",
+     "Đang làm việc"
+    ],
+    [
+     "hired_at",
+     "DATE",
+     "Ngày vào làm"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← users (N:1)",
+    "← hotels (N:1)",
+    "→ staff_schedules (1:N)",
+    "→ check_in_outs (1:N)"
+   ],
+   "note": "UNIQUE(user_id, hotel_id)"
+  },
+  {
+   "name": "staff_schedules",
+   "desc": "Ca làm việc (ca trực) của nhân viên",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "staff_id",
+     "UUID, FK → staff_members.id, CASCADE",
+     "Nhân viên"
+    ],
+    [
+     "shift_date",
+     "DATE, NOT NULL",
+     "Ngày ca trực"
+    ],
+    [
+     "shift_type",
+     "ENUM(morning, afternoon, night)",
+     "Ca (sáng, chiều, tối)"
+    ],
+    [
+     "start_time",
+     "TIME, NOT NULL",
+     "Giờ bắt đầu"
+    ],
+    [
+     "end_time",
+     "TIME, NOT NULL",
+     "Giờ kết thúc"
+    ],
+    [
+     "notes",
+     "TEXT",
+     "Ghi chú"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← staff_members (N:1)"
+   ]
+  },
+  {
+   "name": "check_in_outs",
+   "desc": "Nghiệp vụ check-in/check-out do Staff thực hiện",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id",
+     "Đơn đặt"
+    ],
+    [
+     "staff_id",
+     "UUID, FK → staff_members.id",
+     "Nhân viên thực hiện"
+    ],
+    [
+     "type",
+     "ENUM(check_in, check_out)",
+     "Loại thao tác"
+    ],
+    [
+     "performed_at",
+     "TIMESTAMPTZ, NOT NULL",
+     "Thời điểm thực hiện"
+    ],
+    [
+     "notes",
+     "TEXT",
+     "Ghi chú"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ]
+   ],
+   "rels": [
+    "← bookings (N:1)",
+    "← staff_members (N:1)"
+   ]
+  },
+  {
+   "name": "room_status_logs",
+   "desc": "Audit trail — lịch sử thay đổi trạng thái phòng (trigger tự động)",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "room_id",
+     "UUID, FK → rooms.id, CASCADE",
+     "Phòng"
+    ],
+    [
+     "previous_status",
+     "VARCHAR(20)",
+     "Trạng thái cũ"
+    ],
+    [
+     "new_status",
+     "VARCHAR(20), NOT NULL",
+     "Trạng thái mới"
+    ],
+    [
+     "changed_by",
+     "UUID, FK → users.id",
+     "Người thay đổi"
+    ],
+    [
+     "changed_at",
+     "TIMESTAMPTZ",
+     "Thời điểm"
+    ],
+    [
+     "reason",
+     "TEXT",
+     "Lý do thay đổi"
+    ]
+   ],
+   "rels": [
+    "← rooms (N:1)",
+    "← users (N:1, nullable)"
+   ]
+  },
+  {
+   "name": "reviews",
+   "desc": "Đánh giá, chấm điểm khách sạn sau khi lưu trú",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID đánh giá"
+    ],
+    [
+     "user_id",
+     "UUID, FK → users.id",
+     "Người đánh giá"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id",
+     "Khách sạn"
+    ],
+    [
+     "booking_id",
+     "UUID, FK → bookings.id",
+     "Đơn đặt liên quan"
+    ],
+    [
+     "rating",
+     "SMALLINT, NOT NULL, CHECK(1-5)",
+     "Điểm (1-5 sao)"
+    ],
+    [
+     "comment",
+     "TEXT",
+     "Nhận xét"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày tạo"
+    ],
+    [
+     "updated_at",
+     "TIMESTAMPTZ",
+     "Ngày cập nhật"
+    ]
+   ],
+   "rels": [
+    "← users (N:1)",
+    "← hotels (N:1)",
+    "← bookings (N:1)"
+   ],
+   "note": "UNIQUE(user_id, booking_id). Trigger tự động cập nhật hotels.avg_rating."
+  },
+  {
+   "name": "favorites",
+   "desc": "Danh sách khách sạn yêu thích của User",
+   "cols": [
+    [
+     "id",
+     "UUID, PK",
+     "ID"
+    ],
+    [
+     "user_id",
+     "UUID, FK → users.id, CASCADE",
+     "Người dùng"
+    ],
+    [
+     "hotel_id",
+     "UUID, FK → hotels.id, CASCADE",
+     "Khách sạn yêu thích"
+    ],
+    [
+     "created_at",
+     "TIMESTAMPTZ",
+     "Ngày thêm"
+    ]
+   ],
+   "rels": [
+    "← users (N:1)",
+    "← hotels (N:1)"
+   ],
+   "note": "UNIQUE(user_id, hotel_id) — tránh trùng lặp."
+  }
+ ],
+ "rels_11": [
+  [
+   "users",
+   "hotels",
+   "hotels.owner_id UNIQUE",
+   "RESTRICT"
+  ],
+  [
+   "bookings",
+   "invoices",
+   "invoices.booking_id UNIQUE",
+   "RESTRICT"
+  ]
+ ],
+ "rels_1n": [
+  [
+   "hotels",
+   "hotel_images",
+   "hotel_id",
+   "CASCADE"
+  ],
+  [
+   "hotels",
+   "room_types",
+   "hotel_id",
+   "RESTRICT"
+  ],
+  [
+   "hotels",
+   "staff_members",
+   "hotel_id",
+   "RESTRICT"
+  ],
+  [
+   "hotels",
+   "hotel_services",
+   "hotel_id",
+   "CASCADE"
+  ],
+  [
+   "hotels",
+   "promotions",
+   "hotel_id",
+   "CASCADE"
+  ],
+  [
+   "hotels",
+   "reviews",
+   "hotel_id",
+   "RESTRICT"
+  ],
+  [
+   "hotels",
+   "favorites",
+   "hotel_id",
+   "CASCADE"
+  ],
+  [
+   "room_types",
+   "rooms",
+   "room_type_id",
+   "RESTRICT"
+  ],
+  [
+   "room_types",
+   "room_type_images",
+   "room_type_id",
+   "CASCADE"
+  ],
+  [
+   "room_types",
+   "booking_rooms",
+   "room_type_id",
+   "RESTRICT"
+  ],
+  [
+   "rooms",
+   "room_status_logs",
+   "room_id",
+   "CASCADE"
+  ],
+  [
+   "users",
+   "bookings",
+   "user_id",
+   "RESTRICT"
+  ],
+  [
+   "users",
+   "reviews",
+   "user_id",
+   "RESTRICT"
+  ],
+  [
+   "users",
+   "favorites",
+   "user_id",
+   "CASCADE"
+  ],
+  [
+   "users",
+   "staff_members",
+   "user_id",
+   "RESTRICT"
+  ],
+  [
+   "bookings",
+   "booking_rooms",
+   "booking_id",
+   "CASCADE"
+  ],
+  [
+   "bookings",
+   "booking_services",
+   "booking_id",
+   "CASCADE"
+  ],
+  [
+   "bookings",
+   "payments",
+   "booking_id",
+   "RESTRICT"
+  ],
+  [
+   "bookings",
+   "check_in_outs",
+   "booking_id",
+   "RESTRICT"
+  ],
+  [
+   "bookings",
+   "reviews",
+   "booking_id",
+   "RESTRICT"
+  ],
+  [
+   "staff_members",
+   "staff_schedules",
+   "staff_id",
+   "CASCADE"
+  ],
+  [
+   "staff_members",
+   "check_in_outs",
+   "staff_id",
+   "RESTRICT"
+  ],
+  [
+   "hotel_services",
+   "booking_services",
+   "service_id",
+   "RESTRICT"
+  ]
+ ],
+ "rels_nn": [
+  [
+   "room_types",
+   "amenities",
+   "room_type_amenities",
+   "(room_type_id, amenity_id)"
+  ]
+ ]
+}

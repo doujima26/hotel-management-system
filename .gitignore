@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# env
+.env
+venv/
+.venv/
+
+# python
+__pycache__/
+*.pyc
+
+# build
+dist/
+build/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+AGENTS.md
+*.docx
+*.png
+*.bkp
