@@ -25,5 +25,4 @@ AGENTS.md
 *.docx
 *.png
 *.bkp
-backend/database/erd.html
-backend/database/table_analysis_data.json
+
