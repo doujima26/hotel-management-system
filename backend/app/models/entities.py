@@ -7,11 +7,12 @@ from app.core.enums import BookingStatus, HotelStatus, PaymentStatus, UserRole
 from app.db.session import Base
 
 
+# Tra danh sach gia tri enum de map dung voi enum trong PostgreSQL.
 def enum_values(enum_cls):
-    # Task: Persist enum .value to PostgreSQL enum columns.
     return [member.value for member in enum_cls]
 
 
+# Model bang users.
 class User(Base):
     __tablename__ = "users"
 
@@ -32,6 +33,7 @@ class User(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang hotels.
 class Hotel(Base):
     __tablename__ = "hotels"
 
@@ -59,6 +61,7 @@ class Hotel(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang hotel_images.
 class HotelImage(Base):
     __tablename__ = "hotel_images"
 
@@ -70,6 +73,7 @@ class HotelImage(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang room_types.
 class RoomType(Base):
     __tablename__ = "room_types"
 
@@ -87,6 +91,7 @@ class RoomType(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang room_type_images.
 class RoomTypeImage(Base):
     __tablename__ = "room_type_images"
 
@@ -98,6 +103,7 @@ class RoomTypeImage(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang rooms.
 class Room(Base):
     __tablename__ = "rooms"
     __table_args__ = (UniqueConstraint("room_type_id", "room_number", name="uq_room_type_room_number"),)
@@ -112,6 +118,7 @@ class Room(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang amenities.
 class Amenity(Base):
     __tablename__ = "amenities"
 
@@ -122,6 +129,7 @@ class Amenity(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang room_type_amenities.
 class RoomTypeAmenity(Base):
     __tablename__ = "room_type_amenities"
 
@@ -129,6 +137,7 @@ class RoomTypeAmenity(Base):
     amenity_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("amenities.id", ondelete="CASCADE"), primary_key=True)
 
 
+# Model bang promotions.
 class Promotion(Base):
     __tablename__ = "promotions"
     __table_args__ = (CheckConstraint("end_date >= start_date", name="ck_promotions_dates"),)
@@ -150,6 +159,7 @@ class Promotion(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang bookings.
 class Booking(Base):
     __tablename__ = "bookings"
     __table_args__ = (CheckConstraint("check_out_date > check_in_date", name="ck_bookings_dates"),)
@@ -179,6 +189,7 @@ class Booking(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang booking_rooms.
 class BookingRoom(Base):
     __tablename__ = "booking_rooms"
 
@@ -192,6 +203,7 @@ class BookingRoom(Base):
     subtotal: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
 
 
+# Model bang payments.
 class Payment(Base):
     __tablename__ = "payments"
 
@@ -211,6 +223,7 @@ class Payment(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang invoices.
 class Invoice(Base):
     __tablename__ = "invoices"
 
@@ -228,6 +241,7 @@ class Invoice(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang hotel_services.
 class HotelService(Base):
     __tablename__ = "hotel_services"
 
@@ -242,6 +256,7 @@ class HotelService(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang booking_services.
 class BookingService(Base):
     __tablename__ = "booking_services"
 
@@ -255,6 +270,7 @@ class BookingService(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang staff_members.
 class StaffMember(Base):
     __tablename__ = "staff_members"
     __table_args__ = (UniqueConstraint("user_id", "hotel_id", name="uq_staff_member"),)
@@ -269,6 +285,7 @@ class StaffMember(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang staff_schedules.
 class StaffSchedule(Base):
     __tablename__ = "staff_schedules"
 
@@ -283,6 +300,7 @@ class StaffSchedule(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang check_in_outs.
 class CheckInOut(Base):
     __tablename__ = "check_in_outs"
 
@@ -295,6 +313,7 @@ class CheckInOut(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang room_status_logs.
 class RoomStatusLog(Base):
     __tablename__ = "room_status_logs"
 
@@ -307,6 +326,7 @@ class RoomStatusLog(Base):
     reason: Mapped[str | None] = mapped_column(Text)
 
 
+# Model bang reviews.
 class Review(Base):
     __tablename__ = "reviews"
     __table_args__ = (UniqueConstraint("user_id", "booking_id", name="uq_review_user_booking"),)
@@ -321,6 +341,7 @@ class Review(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang favorites.
 class Favorite(Base):
     __tablename__ = "favorites"
     __table_args__ = (UniqueConstraint("user_id", "hotel_id", name="uq_favorite_user_hotel"),)

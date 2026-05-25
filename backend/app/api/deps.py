@@ -8,9 +8,11 @@ from app.db.session import get_db
 from app.models.entities import User
 from app.repositories.user_repository import get_user_by_id
 
+# Khoi tao co che Bearer token cho endpoint bao mat.
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
+# Lay nguoi dung hien tai tu access token.
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -44,6 +46,7 @@ def get_current_user(
     return user
 
 
+# Tao dependency kiem tra quyen theo role.
 def require_roles(*roles: UserRole):
     def checker(current_user: User = Depends(get_current_user)) -> User:
         allowed = {role.value for role in roles}
@@ -55,4 +58,3 @@ def require_roles(*roles: UserRole):
         return current_user
 
     return checker
-

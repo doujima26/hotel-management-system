@@ -7,6 +7,7 @@ from app.repositories.user_repository import create_user, get_user_by_email
 from app.schemas.auth import LoginRequest, RegisterRequest
 
 
+# Xu ly nghiep vu dang ky tai khoan.
 def register_user(db: Session, payload: RegisterRequest):
     existing = get_user_by_email(db, payload.email)
     if existing:
@@ -35,6 +36,7 @@ def register_user(db: Session, payload: RegisterRequest):
     }
 
 
+# Xu ly nghiep vu dang nhap va cap token.
 def login_user(db: Session, payload: LoginRequest):
     user = get_user_by_email(db, payload.email)
     if not user or not verify_password(payload.password, user.password_hash):
@@ -69,4 +71,3 @@ def login_user(db: Session, payload: LoginRequest):
             "role": user.role,
         },
     }
-

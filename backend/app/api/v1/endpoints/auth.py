@@ -13,18 +13,21 @@ from app.services.auth_service import login_user, register_user
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+# Xu ly dang ky tai khoan moi.
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     data = register_user(db, payload)
     return ok(data, "Dang ky thanh cong")
 
 
+# Xu ly dang nhap va cap token.
 @router.post("/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     data = login_user(db, payload)
     return ok(data, "Dang nhap thanh cong")
 
 
+# Tao access token moi tu refresh token.
 @router.post("/refresh")
 def refresh_token(payload: RefreshTokenRequest):
     token_payload = decode_token(payload.refresh_token)
@@ -43,6 +46,7 @@ def refresh_token(payload: RefreshTokenRequest):
     return ok({"access_token": access_token, "token_type": "bearer"}, "Refresh token thanh cong")
 
 
+# Tra thong tin nguoi dung dang dang nhap.
 @router.get("/me")
 def me(current_user: User = Depends(get_current_user)):
     return ok(

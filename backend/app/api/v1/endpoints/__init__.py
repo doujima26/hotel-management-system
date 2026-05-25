@@ -1,2 +1,1 @@
-"""API v1 endpoint modules."""
-
+# Gom cac module endpoint cua API v1.
