@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
+from passlib.context import CryptContext
 
 from app.core.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_token(subject: str, token_type: str, expires_minutes: int) -> str:
@@ -20,3 +23,11 @@ def decode_token(token: str) -> dict:
         return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
         raise ValueError('Invalid token') from exc
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
