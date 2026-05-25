@@ -7,6 +7,11 @@ from app.core.enums import BookingStatus, HotelStatus, PaymentStatus, UserRole
 from app.db.session import Base
 
 
+def enum_values(enum_cls):
+    # Task: Persist enum .value to PostgreSQL enum columns.
+    return [member.value for member in enum_cls]
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -16,7 +21,11 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
     avatar_url: Mapped[str | None] = mapped_column(Text)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), nullable=False, default=UserRole.USER)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, name="user_role", values_callable=enum_values),
+        nullable=False,
+        default=UserRole.USER,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -38,7 +47,11 @@ class Hotel(Base):
     phone: Mapped[str | None] = mapped_column(String(20))
     email: Mapped[str | None] = mapped_column(String(255))
     star_rating: Mapped[int | None] = mapped_column(Integer)
-    status: Mapped[HotelStatus] = mapped_column(Enum(HotelStatus, name="hotel_status"), nullable=False, default=HotelStatus.PENDING)
+    status: Mapped[HotelStatus] = mapped_column(
+        Enum(HotelStatus, name="hotel_status", values_callable=enum_values),
+        nullable=False,
+        default=HotelStatus.PENDING,
+    )
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     avg_rating: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=0)
     total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -152,7 +165,11 @@ class Booking(Base):
     total_service_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     discount_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    status: Mapped[BookingStatus] = mapped_column(Enum(BookingStatus, name="booking_status"), nullable=False, default=BookingStatus.PENDING)
+    status: Mapped[BookingStatus] = mapped_column(
+        Enum(BookingStatus, name="booking_status", values_callable=enum_values),
+        nullable=False,
+        default=BookingStatus.PENDING,
+    )
     cancellation_reason: Mapped[str | None] = mapped_column(Text)
     cancelled_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True))
     cancelled_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"))
@@ -182,7 +199,11 @@ class Payment(Base):
     booking_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("bookings.id", ondelete="RESTRICT"), nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
-    payment_status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus, name="payment_status"), nullable=False, default=PaymentStatus.PENDING)
+    payment_status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, name="payment_status", values_callable=enum_values),
+        nullable=False,
+        default=PaymentStatus.PENDING,
+    )
     transaction_id: Mapped[str | None] = mapped_column(String(255))
     payment_gateway_response: Mapped[dict | None] = mapped_column(JSONB)
     paid_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True))
