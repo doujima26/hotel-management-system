@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import create_token, hash_password, verify_password
-from app.repositories.user_repository import create_user, get_user_by_email
-from app.schemas.auth import LoginRequest, RegisterRequest
+from app.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, RegisterRequest
 
 
 # Xu ly nghiep vu dang ky tai khoan.
@@ -71,3 +71,31 @@ def login_user(db: Session, payload: LoginRequest):
             "role": user.role,
         },
     }
+
+
+# Xu ly nghiep vu doi mat khau cho nguoi dung dang dang nhap.
+def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nguoi dung khong ton tai",
+        )
+
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mat khau hien tai khong dung",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mat khau moi phai khac mat khau hien tai",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    db.add(user)
+    db.commit()
+
+    return {"user_id": user.id}

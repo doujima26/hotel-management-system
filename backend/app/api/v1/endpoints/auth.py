@@ -7,8 +7,8 @@ from app.core.response import ok
 from app.core.security import create_token, decode_token
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.auth import LoginRequest, RefreshTokenRequest, RegisterRequest
-from app.services.auth_service import login_user, register_user
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, RefreshTokenRequest, RegisterRequest
+from app.services.auth_service import change_password, login_user, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -60,3 +60,14 @@ def me(current_user: User = Depends(get_current_user)):
         },
         "Thong tin nguoi dung",
     )
+
+
+# Xu ly doi mat khau cho nguoi dung da dang nhap.
+@router.post("/change-password")
+def change_password_endpoint(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = change_password(db, current_user.id, payload)
+    return ok(data, "Doi mat khau thanh cong")

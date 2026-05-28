@@ -21,3 +21,9 @@ class LoginRequest(BaseModel):
 # Schema du lieu dau vao cho refresh token.
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+# Schema du lieu dau vao cho doi mat khau.
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
