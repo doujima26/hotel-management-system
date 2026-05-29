@@ -7,8 +7,15 @@ from app.core.response import ok
 from app.core.security import create_token, decode_token
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.auth import ChangePasswordRequest, LoginRequest, RefreshTokenRequest, RegisterRequest
-from app.services.auth_service import change_password, login_user, register_user
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RefreshTokenRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+)
+from app.services.auth_service import change_password, forgot_password, login_user, register_user, reset_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -71,3 +78,17 @@ def change_password_endpoint(
 ):
     data = change_password(db, current_user.id, payload)
     return ok(data, "Doi mat khau thanh cong")
+
+
+# Xu ly cap OTP mock cho luong quen mat khau.
+@router.post("/forgot-password")
+def forgot_password_endpoint(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    data = forgot_password(db, payload)
+    return ok(data, "Neu email ton tai, OTP da duoc gui")
+
+
+# Xu ly dat lai mat khau bang OTP.
+@router.post("/reset-password")
+def reset_password_endpoint(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    data = reset_password(db, payload)
+    return ok(data, "Dat lai mat khau thanh cong")

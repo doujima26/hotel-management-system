@@ -27,3 +27,15 @@ class RefreshTokenRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=8, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+
+# Schema du lieu dau vao cho quen mat khau.
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+# Schema du lieu dau vao cho dat lai mat khau bang OTP.
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=8, max_length=128)

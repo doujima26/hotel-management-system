@@ -1,10 +1,19 @@
+import secrets
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import create_token, hash_password, verify_password
 from app.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
-from app.schemas.auth import ChangePasswordRequest, LoginRequest, RegisterRequest
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+)
+from app.services.password_reset_store import create_otp, delete_otp, verify_otp
 
 
 # Xu ly nghiep vu dang ky tai khoan.
@@ -97,5 +106,45 @@ def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
     user.password_hash = hash_password(payload.new_password)
     db.add(user)
     db.commit()
+
+    return {"user_id": user.id}
+
+
+# Tao OTP mock cho luong quen mat khau.
+def forgot_password(db: Session, payload: ForgotPasswordRequest):
+    user = get_user_by_email(db, payload.email)
+    if not user:
+        return {"email": payload.email, "otp_mock": None}
+
+    otp_code = f"{secrets.randbelow(1_000_000):06d}"
+    create_otp(payload.email, otp_code, expires_minutes=10)
+    return {"email": payload.email, "otp_mock": otp_code}
+
+
+# Dat lai mat khau bang OTP da cap.
+def reset_password(db: Session, payload: ResetPasswordRequest):
+    user = get_user_by_email(db, payload.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nguoi dung khong ton tai",
+        )
+
+    if not verify_otp(payload.email, payload.otp):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP khong hop le hoac da het han",
+        )
+
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mat khau moi phai khac mat khau hien tai",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    db.add(user)
+    db.commit()
+    delete_otp(payload.email)
 
     return {"user_id": user.id}
