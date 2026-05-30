@@ -39,3 +39,14 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     otp: str = Field(min_length=6, max_length=6)
     new_password: str = Field(min_length=8, max_length=128)
+
+
+# Schema du lieu dau vao cho gui OTP xac thuc tai khoan.
+class SendVerifyOtpRequest(BaseModel):
+    email: EmailStr
+
+
+# Schema du lieu dau vao cho xac thuc tai khoan bang OTP.
+class VerifyAccountRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=6, max_length=6)

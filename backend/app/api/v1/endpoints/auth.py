@@ -14,8 +14,18 @@ from app.schemas.auth import (
     RefreshTokenRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    SendVerifyOtpRequest,
+    VerifyAccountRequest,
 )
-from app.services.auth_service import change_password, forgot_password, login_user, register_user, reset_password
+from app.services.auth_service import (
+    change_password,
+    forgot_password,
+    login_user,
+    register_user,
+    reset_password,
+    send_verify_otp,
+    verify_account,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -92,3 +102,17 @@ def forgot_password_endpoint(payload: ForgotPasswordRequest, db: Session = Depen
 def reset_password_endpoint(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     data = reset_password(db, payload)
     return ok(data, "Dat lai mat khau thanh cong")
+
+
+# Xu ly gui OTP mock de xac thuc tai khoan.
+@router.post("/send-verify-otp")
+def send_verify_otp_endpoint(payload: SendVerifyOtpRequest, db: Session = Depends(get_db)):
+    data = send_verify_otp(db, payload)
+    return ok(data, "Neu email ton tai, OTP xac thuc da duoc gui")
+
+
+# Xu ly xac thuc tai khoan va cap nhat trang thai verify.
+@router.post("/verify-account")
+def verify_account_endpoint(payload: VerifyAccountRequest, db: Session = Depends(get_db)):
+    data = verify_account(db, payload)
+    return ok(data, "Xac thuc tai khoan thanh cong")
