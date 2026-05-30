@@ -37,6 +37,8 @@ def register_user(db: Session, payload: RegisterRequest):
         is_active=True,
         is_verified=False,
     )
+    otp_code = f"{secrets.randbelow(1_000_000):06d}"
+    create_otp(payload.email, otp_code, expires_minutes=10, purpose="verify")
     return {
         "id": user.id,
         "email": user.email,
@@ -44,6 +46,7 @@ def register_user(db: Session, payload: RegisterRequest):
         "role": user.role,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
+        "otp_mock": otp_code,
     }
 
 
@@ -59,6 +62,11 @@ def login_user(db: Session, payload: LoginRequest):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tai khoan da bi khoa",
+        )
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tai khoan chua xac thuc. Vui long xac thuc OTP truoc khi dang nhap",
         )
 
     access_token = create_token(

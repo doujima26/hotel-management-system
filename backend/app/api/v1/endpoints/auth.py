@@ -34,7 +34,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     data = register_user(db, payload)
-    return ok(data, "Dang ky thanh cong")
+    return ok(data, "Dang ky thanh cong, vui long xac thuc OTP")
 
 
 # Xu ly dang nhap va cap token.
