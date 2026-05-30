@@ -13,6 +13,7 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     SendVerifyOtpRequest,
+    SetUserActiveRequest,
     VerifyAccountRequest,
 )
 from app.services.password_reset_store import create_otp, delete_otp, verify_otp
@@ -198,3 +199,23 @@ def verify_account(db: Session, payload: VerifyAccountRequest):
     delete_otp(payload.email, purpose="verify")
 
     return {"user_id": user.id, "is_verified": user.is_verified}
+
+
+# Khoa hoac mo tai khoan nguoi dung boi super admin.
+def set_user_active(db: Session, user_id: int, payload: SetUserActiveRequest):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nguoi dung khong ton tai",
+        )
+
+    user.is_active = payload.is_active
+    db.add(user)
+    db.commit()
+
+    return {
+        "user_id": user.id,
+        "email": user.email,
+        "is_active": user.is_active,
+    }

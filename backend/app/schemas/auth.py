@@ -50,3 +50,8 @@ class SendVerifyOtpRequest(BaseModel):
 class VerifyAccountRequest(BaseModel):
     email: EmailStr
     otp: str = Field(min_length=6, max_length=6)
+
+
+# Schema du lieu dau vao cho khoa mo tai khoan nguoi dung.
+class SetUserActiveRequest(BaseModel):
+    is_active: bool
