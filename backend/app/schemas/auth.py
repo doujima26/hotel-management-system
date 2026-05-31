@@ -55,3 +55,21 @@ class VerifyAccountRequest(BaseModel):
 # Schema du lieu dau vao cho khoa mo tai khoan nguoi dung.
 class SetUserActiveRequest(BaseModel):
     is_active: bool
+
+
+# Schema du lieu dau vao cho admin dang ky khach san.
+class CreateHotelRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=255)
+    description: str | None = None
+    address: str = Field(min_length=5)
+    city: str = Field(min_length=2, max_length=100)
+    district: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
+    email: EmailStr | None = None
+    star_rating: int | None = Field(default=None, ge=1, le=5)
+
+
+# Schema du lieu dau vao cho super admin duyet khach san.
+class ReviewHotelRequest(BaseModel):
+    action: str = Field(pattern="^(approved|rejected|suspended)$")
+    rejection_reason: str | None = None

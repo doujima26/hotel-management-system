@@ -21,10 +21,9 @@ build/
 .DS_Store
 Thumbs.db
 
-AGENTS.md
+
 *.docx
 *.png
 *.bkp
-PROJECT_STRUCTURE.md
-PLAN.md
+
 
