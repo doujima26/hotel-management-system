@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
-from app.core.enums import UserRole
+from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, Room, RoomType, User
@@ -35,6 +36,11 @@ def create_room_type(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ban chi duoc quan ly khach san cua minh",
+        )
+    if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
         )
 
     room_type = RoomType(
@@ -108,7 +114,7 @@ def create_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    room_type = db.query(RoomType).filter(RoomType.id == payload.room_type_id).first()
+    room_type = db.query(RoomType).filter(RoomType.id == payload.room_type_id).with_for_update().first()
     if not room_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -120,6 +126,18 @@ def create_room(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ban chi duoc quan ly khach san cua minh",
+        )
+    if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
+        )
+
+    current_rooms = db.query(func.count(Room.id)).filter(Room.room_type_id == payload.room_type_id).scalar() or 0
+    if current_rooms >= room_type.total_rooms:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Da dat toi da so phong cua loai phong nay",
         )
 
     room = Room(
@@ -186,4 +204,12 @@ def list_rooms(
         }
         for item in rooms
     ]
-    return ok(data, "Danh sach phong vat ly")
+    return ok(
+        {
+            "items": data,
+            "current_rooms": len(data),
+            "max_rooms": room_type.total_rooms,
+            "remaining_rooms": max(room_type.total_rooms - len(data), 0),
+        },
+        "Danh sach phong vat ly",
+    )
