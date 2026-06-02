@@ -121,9 +121,11 @@ class Room(Base):
 # Model bang amenities.
 class Amenity(Base):
     __tablename__ = "amenities"
+    __table_args__ = (UniqueConstraint("hotel_id", "name", name="uq_amenities_hotel_name"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     icon: Mapped[str | None] = mapped_column(String(100))
     category: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

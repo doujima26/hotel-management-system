@@ -235,6 +235,7 @@ def create_amenity(
         )
 
     amenity = Amenity(
+        hotel_id=hotel.id,
         name=payload.name,
         icon=payload.icon,
         category=payload.category,
@@ -253,6 +254,7 @@ def create_amenity(
     return ok(
         {
             "id": amenity.id,
+            "hotel_id": amenity.hotel_id,
             "name": amenity.name,
             "icon": amenity.icon,
             "category": amenity.category,
@@ -265,12 +267,25 @@ def create_amenity(
 @router.get("/amenities")
 def list_amenities(
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    amenities = db.query(Amenity).order_by(Amenity.name.asc()).all()
+    hotel = db.query(Hotel).filter(Hotel.owner_id == current_user.id).first()
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin chua dang ky khach san",
+        )
+    if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
+        )
+
+    amenities = db.query(Amenity).filter(Amenity.hotel_id == hotel.id).order_by(Amenity.name.asc()).all()
     data = [
         {
             "id": item.id,
+            "hotel_id": item.hotel_id,
             "name": item.name,
             "icon": item.icon,
             "category": item.category,
@@ -301,12 +316,22 @@ def assign_amenity_to_room_type(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ban chi duoc quan ly khach san cua minh",
         )
+    if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
+        )
 
     amenity = db.query(Amenity).filter(Amenity.id == amenity_id).first()
     if not amenity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tien nghi khong ton tai",
+        )
+    if amenity.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tien nghi khong thuoc khach san cua ban",
         )
 
     existing_link = (
@@ -367,6 +392,7 @@ def list_room_type_amenities(
     data = [
         {
             "id": item.id,
+            "hotel_id": item.hotel_id,
             "name": item.name,
             "icon": item.icon,
             "category": item.category,

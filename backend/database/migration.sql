@@ -146,14 +146,16 @@ CREATE TABLE rooms (
 COMMENT ON TABLE rooms IS 'Phòng vật lý - tách khỏi room_types để theo dõi trạng thái';
 
 -- -------------------------------------------------------
--- 7. amenities - Danh mục tiện nghi
+-- 7. amenities - Danh mục tiện nghi theo khách sạn
 -- -------------------------------------------------------
 CREATE TABLE amenities (
     id          BIGSERIAL PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL UNIQUE,
+    hotel_id    BIGINT NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+    name        VARCHAR(100) NOT NULL,
     icon        VARCHAR(100),
     category    VARCHAR(50),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(hotel_id, name)
 );
 
 -- -------------------------------------------------------
@@ -395,6 +397,7 @@ CREATE INDEX idx_bookings_user ON bookings(user_id);
 -- Phòng
 CREATE INDEX idx_rooms_status ON rooms(status);
 CREATE INDEX idx_rooms_room_type ON rooms(room_type_id);
+CREATE INDEX idx_amenities_hotel ON amenities(hotel_id);
 
 -- Loại phòng theo giá
 CREATE INDEX idx_room_types_hotel_price ON room_types(hotel_id, base_price);

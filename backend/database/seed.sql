@@ -78,11 +78,11 @@ seeded_rooms AS (
 room_201 AS (SELECT id FROM seeded_rooms WHERE room_number = '201'),
 
 seeded_amenities AS (
-    INSERT INTO amenities (name, icon, category)
+    INSERT INTO amenities (hotel_id, name, icon, category)
     VALUES
-        ('Free WiFi', 'wifi', 'general'),
-        ('Air Conditioner', 'snowflake', 'room'),
-        ('Sea View', 'waves', 'view')
+        ((SELECT id FROM seeded_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM seeded_hotel), 'Air Conditioner', 'snowflake', 'room'),
+        ((SELECT id FROM seeded_hotel), 'Sea View', 'waves', 'view')
     RETURNING id, name
 ),
 wifi AS (SELECT id FROM seeded_amenities WHERE name = 'Free WiFi'),
