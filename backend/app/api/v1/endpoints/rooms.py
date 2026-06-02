@@ -220,8 +220,20 @@ def list_rooms(
 def create_amenity(
     payload: CreateAmenityRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
+    hotel = db.query(Hotel).filter(Hotel.owner_id == current_user.id).first()
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin chua dang ky khach san nen khong duoc tao tien nghi",
+        )
+    if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
+        )
+
     amenity = Amenity(
         name=payload.name,
         icon=payload.icon,
