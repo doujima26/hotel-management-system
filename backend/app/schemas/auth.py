@@ -92,3 +92,10 @@ class CreateRoomRequest(BaseModel):
     room_type_id: int = Field(gt=0)
     room_number: str = Field(min_length=1, max_length=20)
     floor: int | None = None
+
+
+# Schema du lieu dau vao cho tao tien nghi.
+class CreateAmenityRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    icon: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=50)

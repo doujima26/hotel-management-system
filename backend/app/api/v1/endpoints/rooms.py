@@ -7,8 +7,8 @@ from app.api.deps import require_roles
 from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
-from app.models.entities import Hotel, Room, RoomType, User
-from app.schemas.auth import CreateRoomRequest, CreateRoomTypeRequest
+from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity, User
+from app.schemas.auth import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -213,3 +213,152 @@ def list_rooms(
         },
         "Danh sach phong vat ly",
     )
+
+
+# Admin tao tien nghi moi cho he thong.
+@router.post("/amenities")
+def create_amenity(
+    payload: CreateAmenityRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    amenity = Amenity(
+        name=payload.name,
+        icon=payload.icon,
+        category=payload.category,
+    )
+    db.add(amenity)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tien nghi da ton tai",
+        ) from exc
+    db.refresh(amenity)
+
+    return ok(
+        {
+            "id": amenity.id,
+            "name": amenity.name,
+            "icon": amenity.icon,
+            "category": amenity.category,
+        },
+        "Tao tien nghi thanh cong",
+    )
+
+
+# Admin xem danh sach tien nghi.
+@router.get("/amenities")
+def list_amenities(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    amenities = db.query(Amenity).order_by(Amenity.name.asc()).all()
+    data = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "icon": item.icon,
+            "category": item.category,
+        }
+        for item in amenities
+    ]
+    return ok(data, "Danh sach tien nghi")
+
+
+# Admin gan tien nghi vao loai phong cua khach san minh.
+@router.post("/room-types/{room_type_id}/amenities/{amenity_id}")
+def assign_amenity_to_room_type(
+    room_type_id: int,
+    amenity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    room_type = db.query(RoomType).filter(RoomType.id == room_type_id).first()
+    if not room_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loai phong khong ton tai",
+        )
+
+    hotel = db.query(Hotel).filter(Hotel.id == room_type.hotel_id).first()
+    if not hotel or hotel.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly khach san cua minh",
+        )
+
+    amenity = db.query(Amenity).filter(Amenity.id == amenity_id).first()
+    if not amenity:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tien nghi khong ton tai",
+        )
+
+    existing_link = (
+        db.query(RoomTypeAmenity)
+        .filter(
+            RoomTypeAmenity.room_type_id == room_type_id,
+            RoomTypeAmenity.amenity_id == amenity_id,
+        )
+        .first()
+    )
+    if existing_link:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tien nghi da duoc gan vao loai phong",
+        )
+
+    link = RoomTypeAmenity(room_type_id=room_type_id, amenity_id=amenity_id)
+    db.add(link)
+    db.commit()
+
+    return ok(
+        {
+            "room_type_id": room_type_id,
+            "amenity_id": amenity_id,
+        },
+        "Gan tien nghi vao loai phong thanh cong",
+    )
+
+
+# Admin xem danh sach tien nghi cua loai phong.
+@router.get("/room-types/{room_type_id}/amenities")
+def list_room_type_amenities(
+    room_type_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    room_type = db.query(RoomType).filter(RoomType.id == room_type_id).first()
+    if not room_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loai phong khong ton tai",
+        )
+
+    hotel = db.query(Hotel).filter(Hotel.id == room_type.hotel_id).first()
+    if not hotel or hotel.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly khach san cua minh",
+        )
+
+    amenities = (
+        db.query(Amenity)
+        .join(RoomTypeAmenity, RoomTypeAmenity.amenity_id == Amenity.id)
+        .filter(RoomTypeAmenity.room_type_id == room_type_id)
+        .order_by(Amenity.name.asc())
+        .all()
+    )
+    data = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "icon": item.icon,
+            "category": item.category,
+        }
+        for item in amenities
+    ]
+    return ok(data, "Danh sach tien nghi cua loai phong")
