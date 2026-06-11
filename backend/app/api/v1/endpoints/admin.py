@@ -6,7 +6,7 @@ from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, User
-from app.schemas.auth import ReviewHotelRequest, SetUserActiveRequest
+from app.schemas.admin import ReviewHotelRequest, SetUserActiveRequest
 from app.services.auth_service import set_user_active
 
 router = APIRouter(prefix="/admin", tags=["admin"])

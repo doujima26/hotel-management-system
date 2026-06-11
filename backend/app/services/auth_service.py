@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import create_token, hash_password, verify_password
 from app.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
+from app.schemas.admin import SetUserActiveRequest
 from app.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -13,7 +14,6 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     SendVerifyOtpRequest,
-    SetUserActiveRequest,
     VerifyAccountRequest,
 )
 from app.services.password_reset_store import create_otp, delete_otp, verify_otp

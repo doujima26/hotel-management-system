@@ -8,7 +8,7 @@ from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity, User
-from app.schemas.auth import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
+from app.schemas.rooms import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 

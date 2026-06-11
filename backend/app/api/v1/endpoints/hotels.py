@@ -6,7 +6,7 @@ from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, HotelService, Promotion, User
-from app.schemas.auth import (
+from app.schemas.hotels import (
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
