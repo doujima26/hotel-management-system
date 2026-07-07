@@ -5,35 +5,43 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.enums import HotelStatus
-from app.models.entities import Amenity, Hotel, Room, RoomType, User
+from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeImage, User
 from app.repositories.room_repository import (
     count_rooms_by_room_type,
     create_amenity_record,
     create_room_record,
     create_room_type_amenity_link,
+    create_room_type_image_record,
     create_room_type_record,
+    delete_room_type_image_record,
     get_amenity_by_id,
     get_hotel_by_id,
     get_hotel_by_owner,
     get_room_type_amenity_link,
     get_room_type_by_id,
     get_room_type_by_id_for_update,
+    get_room_type_image_by_id,
     list_amenity_records,
     list_room_records,
     list_room_type_amenity_records,
     list_room_type_availability,
+    list_room_type_image_records,
     list_room_type_records,
+    set_room_type_image_primary,
 )
 from app.schemas.rooms import (
     AmenityResponse,
     CreateAmenityRequest,
     CreateRoomRequest,
+    CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
+    DeleteRoomTypeImageResponse,
     RoomAvailabilityResponse,
     RoomListResponse,
     RoomResponse,
     RoomTypeAmenityLinkResponse,
     RoomTypeAvailabilityResponse,
+    RoomTypeImageResponse,
     RoomTypeResponse,
 )
 
@@ -41,6 +49,11 @@ from app.schemas.rooms import (
 # Chuyen loai phong thanh du lieu tra ve.
 def serialize_room_type(room_type: RoomType) -> dict:
     return RoomTypeResponse.model_validate(room_type).model_dump(mode="json")
+
+
+# Chuyen anh loai phong thanh du lieu tra ve.
+def serialize_room_type_image(image: RoomTypeImage) -> dict:
+    return RoomTypeImageResponse.model_validate(image).model_dump(mode="json")
 
 
 # Chuyen phong vat ly thanh du lieu tra ve.
@@ -264,3 +277,56 @@ def get_room_availability(
         check_out=check_out,
         items=items,
     ).model_dump(mode="json")
+
+
+# Xu ly them anh cho loai phong.
+def create_room_type_image(
+    db: Session,
+    current_user: User,
+    room_type_id: int,
+    payload: CreateRoomTypeImageRequest,
+) -> dict:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user)
+    image = create_room_type_image_record(db, room_type_id, payload)
+    return serialize_room_type_image(image)
+
+
+# Xu ly lay danh sach anh cua loai phong.
+def list_room_type_images(db: Session, current_user: User, room_type_id: int) -> list[dict]:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user)
+    images = list_room_type_image_records(db, room_type_id)
+    return [serialize_room_type_image(item) for item in images]
+
+
+# Kiem tra anh thuoc loai phong cua khach san admin hien tai.
+def _get_owned_room_type_image(db: Session, current_user: User, room_type_id: int, image_id: int) -> RoomTypeImage:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user)
+    image = get_room_type_image_by_id(db, image_id)
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Anh khong ton tai",
+        )
+    if image.room_type_id != room_type_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Anh khong thuoc loai phong nay",
+        )
+    return image
+
+
+# Xu ly xoa anh loai phong.
+def delete_room_type_image(db: Session, current_user: User, room_type_id: int, image_id: int) -> dict:
+    image = _get_owned_room_type_image(db, current_user, room_type_id, image_id)
+    delete_room_type_image_record(db, image)
+    return DeleteRoomTypeImageResponse(id=image_id).model_dump(mode="json")
+
+
+# Xu ly dat anh dai dien cho loai phong.
+def set_primary_room_type_image(db: Session, current_user: User, room_type_id: int, image_id: int) -> dict:
+    image = _get_owned_room_type_image(db, current_user, room_type_id, image_id)
+    image = set_room_type_image_primary(db, room_type_id, image)
+    return serialize_room_type_image(image)

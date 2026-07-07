@@ -97,3 +97,25 @@ class RoomAvailabilityResponse(BaseModel):
     check_in: date
     check_out: date
     items: list[RoomTypeAvailabilityResponse]
+
+
+# Schema du lieu dau vao cho them anh loai phong.
+class CreateRoomTypeImageRequest(BaseModel):
+    image_url: str = Field(min_length=1, max_length=2048)
+    is_primary: bool = False
+
+
+# Schema du lieu tra ve anh loai phong.
+class RoomTypeImageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    room_type_id: int
+    image_url: str
+    is_primary: bool
+    sort_order: int
+
+
+# Schema du lieu tra ve sau khi xoa anh loai phong.
+class DeleteRoomTypeImageResponse(BaseModel):
+    id: int

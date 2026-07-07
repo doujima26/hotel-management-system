@@ -4,9 +4,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import RoomStatus
-from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity
+from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
 from app.repositories.booking_repository import booked_quantity_subquery
-from app.schemas.rooms import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
+from app.schemas.rooms import (
+    CreateAmenityRequest,
+    CreateRoomRequest,
+    CreateRoomTypeImageRequest,
+    CreateRoomTypeRequest,
+)
 
 
 # Lay khach san theo id.
@@ -156,3 +161,58 @@ def list_room_type_amenity_records(db: Session, room_type_id: int) -> list[Ameni
         .order_by(Amenity.name.asc())
         .all()
     )
+
+
+# Tao anh moi cho loai phong.
+def create_room_type_image_record(db: Session, room_type_id: int, payload: CreateRoomTypeImageRequest) -> RoomTypeImage:
+    if payload.is_primary:
+        db.query(RoomTypeImage).filter(
+            RoomTypeImage.room_type_id == room_type_id,
+            RoomTypeImage.is_primary.is_(True),
+        ).update({"is_primary": False})
+
+    max_sort_order = db.query(func.max(RoomTypeImage.sort_order)).filter(RoomTypeImage.room_type_id == room_type_id).scalar()
+    image = RoomTypeImage(
+        room_type_id=room_type_id,
+        image_url=payload.image_url,
+        is_primary=payload.is_primary,
+        sort_order=(max_sort_order or 0) + 1,
+    )
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image
+
+
+# Lay danh sach anh theo loai phong.
+def list_room_type_image_records(db: Session, room_type_id: int) -> list[RoomTypeImage]:
+    return (
+        db.query(RoomTypeImage)
+        .filter(RoomTypeImage.room_type_id == room_type_id)
+        .order_by(RoomTypeImage.sort_order.asc())
+        .all()
+    )
+
+
+# Lay anh loai phong theo id.
+def get_room_type_image_by_id(db: Session, image_id: int) -> RoomTypeImage | None:
+    return db.query(RoomTypeImage).filter(RoomTypeImage.id == image_id).first()
+
+
+# Xoa anh loai phong.
+def delete_room_type_image_record(db: Session, image: RoomTypeImage) -> None:
+    db.delete(image)
+    db.commit()
+
+
+# Dat mot anh lam anh dai dien va bo dai dien cac anh con lai.
+def set_room_type_image_primary(db: Session, room_type_id: int, image: RoomTypeImage) -> RoomTypeImage:
+    db.query(RoomTypeImage).filter(
+        RoomTypeImage.room_type_id == room_type_id,
+        RoomTypeImage.id != image.id,
+    ).update({"is_primary": False})
+    image.is_primary = True
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image

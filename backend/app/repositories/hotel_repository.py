@@ -4,9 +4,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelStatus
-from app.models.entities import Hotel, HotelService, Promotion, RoomType
+from app.models.entities import Hotel, HotelImage, HotelService, Promotion, RoomType
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
+    CreateHotelImageRequest,
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
@@ -155,3 +156,53 @@ def save_promotion(db: Session, promotion: Promotion) -> Promotion:
     db.commit()
     db.refresh(promotion)
     return promotion
+
+
+# Tao anh moi cho khach san.
+def create_hotel_image_record(db: Session, hotel_id: int, payload: CreateHotelImageRequest) -> HotelImage:
+    if payload.is_primary:
+        db.query(HotelImage).filter(
+            HotelImage.hotel_id == hotel_id,
+            HotelImage.is_primary.is_(True),
+        ).update({"is_primary": False})
+
+    max_sort_order = db.query(func.max(HotelImage.sort_order)).filter(HotelImage.hotel_id == hotel_id).scalar()
+    image = HotelImage(
+        hotel_id=hotel_id,
+        image_url=payload.image_url,
+        is_primary=payload.is_primary,
+        sort_order=(max_sort_order or 0) + 1,
+    )
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image
+
+
+# Lay danh sach anh theo khach san.
+def list_hotel_image_records(db: Session, hotel_id: int) -> list[HotelImage]:
+    return db.query(HotelImage).filter(HotelImage.hotel_id == hotel_id).order_by(HotelImage.sort_order.asc()).all()
+
+
+# Lay anh khach san theo id.
+def get_hotel_image_by_id(db: Session, image_id: int) -> HotelImage | None:
+    return db.query(HotelImage).filter(HotelImage.id == image_id).first()
+
+
+# Xoa anh khach san.
+def delete_hotel_image_record(db: Session, image: HotelImage) -> None:
+    db.delete(image)
+    db.commit()
+
+
+# Dat mot anh lam anh dai dien va bo dai dien cac anh con lai.
+def set_hotel_image_primary(db: Session, hotel_id: int, image: HotelImage) -> HotelImage:
+    db.query(HotelImage).filter(
+        HotelImage.hotel_id == hotel_id,
+        HotelImage.id != image.id,
+    ).update({"is_primary": False})
+    image.is_primary = True
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image

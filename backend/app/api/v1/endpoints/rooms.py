@@ -8,17 +8,26 @@ from app.core.enums import UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.rooms import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
+from app.schemas.rooms import (
+    CreateAmenityRequest,
+    CreateRoomRequest,
+    CreateRoomTypeImageRequest,
+    CreateRoomTypeRequest,
+)
 from app.services.room_service import (
     assign_amenity_to_room_type as assign_amenity_to_room_type_action,
     create_amenity as create_amenity_action,
     create_room as create_room_action,
     create_room_type as create_room_type_action,
+    create_room_type_image as create_room_type_image_action,
+    delete_room_type_image as delete_room_type_image_action,
     get_room_availability as get_room_availability_action,
     list_amenities as list_amenities_action,
     list_room_type_amenities as list_room_type_amenities_action,
+    list_room_type_images as list_room_type_images_action,
     list_room_types as list_room_types_action,
     list_rooms as list_rooms_action,
+    set_primary_room_type_image as set_primary_room_type_image_action,
 )
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
@@ -129,3 +138,50 @@ def list_room_type_amenities(
 ):
     data = list_room_type_amenities_action(db, current_user, room_type_id)
     return ok(data, "Danh sach tien nghi cua loai phong")
+
+
+# Admin them anh cho loai phong cua khach san minh.
+@router.post("/room-types/{room_type_id}/images")
+def create_room_type_image(
+    room_type_id: int,
+    payload: CreateRoomTypeImageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = create_room_type_image_action(db, current_user, room_type_id, payload)
+    return ok(data, "Them anh loai phong thanh cong")
+
+
+# Admin xem danh sach anh cua loai phong.
+@router.get("/room-types/{room_type_id}/images")
+def list_room_type_images(
+    room_type_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = list_room_type_images_action(db, current_user, room_type_id)
+    return ok(data, "Danh sach anh loai phong")
+
+
+# Admin xoa anh cua loai phong.
+@router.delete("/room-types/{room_type_id}/images/{image_id}")
+def delete_room_type_image(
+    room_type_id: int,
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_room_type_image_action(db, current_user, room_type_id, image_id)
+    return ok(data, "Xoa anh loai phong thanh cong")
+
+
+# Admin dat anh dai dien cho loai phong.
+@router.patch("/room-types/{room_type_id}/images/{image_id}/primary")
+def set_primary_room_type_image(
+    room_type_id: int,
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = set_primary_room_type_image_action(db, current_user, room_type_id, image_id)
+    return ok(data, "Dat anh dai dien thanh cong")

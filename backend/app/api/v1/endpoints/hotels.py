@@ -9,6 +9,7 @@ from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.hotels import (
+    CreateHotelImageRequest,
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
@@ -17,11 +18,15 @@ from app.schemas.hotels import (
 )
 from app.services.hotel_service import (
     create_hotel as create_hotel_action,
+    create_hotel_image as create_hotel_image_action,
     create_hotel_service as create_hotel_service_action,
     create_promotion as create_promotion_service_action,
+    delete_hotel_image as delete_hotel_image_action,
+    list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
     search_hotels as search_hotels_action,
+    set_primary_hotel_image as set_primary_hotel_image_action,
     update_hotel_service as update_hotel_service_action,
     update_promotion as update_promotion_service_action,
 )
@@ -133,3 +138,46 @@ def update_promotion(
 ):
     data = update_promotion_service_action(db, current_user, promotion_id, payload)
     return ok(data, "Cap nhat khuyen mai thanh cong")
+
+
+# Admin them anh cho khach san cua minh.
+@router.post("/images")
+def create_hotel_image(
+    payload: CreateHotelImageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = create_hotel_image_action(db, current_user, payload)
+    return ok(data, "Them anh khach san thanh cong")
+
+
+# Admin xem danh sach anh cua khach san minh.
+@router.get("/images")
+def list_hotel_images(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = list_hotel_images_action(db, current_user)
+    return ok(data, "Danh sach anh khach san")
+
+
+# Admin xoa anh cua khach san minh.
+@router.delete("/images/{image_id}")
+def delete_hotel_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_hotel_image_action(db, current_user, image_id)
+    return ok(data, "Xoa anh khach san thanh cong")
+
+
+# Admin dat anh dai dien cho khach san minh.
+@router.patch("/images/{image_id}/primary")
+def set_primary_hotel_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = set_primary_hotel_image_action(db, current_user, image_id)
+    return ok(data, "Dat anh dai dien thanh cong")

@@ -4,25 +4,33 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelStatus
-from app.models.entities import Hotel, HotelService, Promotion, User
+from app.models.entities import Hotel, HotelImage, HotelService, Promotion, User
 from app.repositories.hotel_repository import (
+    create_hotel_image_record,
     create_hotel_record,
     create_hotel_service_record,
     create_promotion_record,
+    delete_hotel_image_record,
     get_hotel_by_owner,
+    get_hotel_image_by_id,
     get_hotel_service_by_id,
     get_hotel_service_by_name,
     get_promotion_by_id,
+    list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
     save_hotel_service,
     save_promotion,
     search_hotel_records,
+    set_hotel_image_primary,
 )
 from app.schemas.hotels import (
+    CreateHotelImageRequest,
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
+    DeleteHotelImageResponse,
+    HotelImageResponse,
     HotelResponse,
     HotelSearchItemResponse,
     HotelSearchResponse,
@@ -41,6 +49,11 @@ def serialize_hotel(hotel: Hotel) -> dict:
 # Chuyen dich vu khach san thanh du lieu tra ve.
 def serialize_hotel_service(service: HotelService) -> dict:
     return HotelServiceResponse.model_validate(service).model_dump(mode="json")
+
+
+# Chuyen anh khach san thanh du lieu tra ve.
+def serialize_hotel_image(image: HotelImage) -> dict:
+    return HotelImageResponse.model_validate(image).model_dump(mode="json")
 
 
 # Chuyen khuyen mai thanh du lieu tra ve.
@@ -232,3 +245,48 @@ def search_hotels(
         total=total,
         total_pages=total_pages,
     ).model_dump(mode="json")
+
+
+# Xu ly them anh cho khach san cua admin.
+def create_hotel_image(db: Session, current_user: User, payload: CreateHotelImageRequest) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    image = create_hotel_image_record(db, hotel.id, payload)
+    return serialize_hotel_image(image)
+
+
+# Xu ly lay danh sach anh cua khach san admin.
+def list_hotel_images(db: Session, current_user: User) -> list[dict]:
+    hotel = get_approved_admin_hotel(db, current_user)
+    images = list_hotel_image_records(db, hotel.id)
+    return [serialize_hotel_image(item) for item in images]
+
+
+# Kiem tra anh thuoc khach san cua admin hien tai.
+def _get_owned_hotel_image(db: Session, current_user: User, image_id: int) -> HotelImage:
+    hotel = get_approved_admin_hotel(db, current_user)
+    image = get_hotel_image_by_id(db, image_id)
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Anh khong ton tai",
+        )
+    if image.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly anh cua khach san minh",
+        )
+    return image
+
+
+# Xu ly xoa anh khach san.
+def delete_hotel_image(db: Session, current_user: User, image_id: int) -> dict:
+    image = _get_owned_hotel_image(db, current_user, image_id)
+    delete_hotel_image_record(db, image)
+    return DeleteHotelImageResponse(id=image_id).model_dump(mode="json")
+
+
+# Xu ly dat anh dai dien cho khach san.
+def set_primary_hotel_image(db: Session, current_user: User, image_id: int) -> dict:
+    image = _get_owned_hotel_image(db, current_user, image_id)
+    image = set_hotel_image_primary(db, image.hotel_id, image)
+    return serialize_hotel_image(image)
