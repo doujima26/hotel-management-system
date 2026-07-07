@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -19,6 +21,7 @@ from app.services.hotel_service import (
     create_promotion as create_promotion_service_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
+    search_hotels as search_hotels_action,
     update_hotel_service as update_hotel_service_action,
     update_promotion as update_promotion_service_action,
 )
@@ -30,6 +33,29 @@ router = APIRouter(prefix="/hotels", tags=["hotels"])
 @router.get("")
 def hotels_ping():
     return ok({"module": "hotels"}, "Hotels module ready")
+
+
+# Khach tim kiem khach san cong khai theo thanh pho va tinh trang phong trong.
+@router.get("/search")
+def search_hotels_endpoint(
+    city: str | None = Query(default=None, min_length=1, max_length=100),
+    check_in: date | None = Query(default=None),
+    check_out: date | None = Query(default=None),
+    num_guests: int | None = Query(default=None, gt=0),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    data = search_hotels_action(
+        db,
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+        page=page,
+        page_size=page_size,
+    )
+    return ok(data, "Danh sach khach san")
 
 
 # Admin dang ky khach san moi de cho super admin duyet.

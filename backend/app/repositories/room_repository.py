@@ -1,7 +1,11 @@
+from datetime import date
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.enums import RoomStatus
 from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity
+from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.rooms import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
 
 
@@ -60,7 +64,7 @@ def create_room_record(db: Session, payload: CreateRoomRequest) -> Room:
         room_type_id=payload.room_type_id,
         room_number=payload.room_number,
         floor=payload.floor,
-        status="available",
+        status=RoomStatus.AVAILABLE,
         is_active=True,
     )
     db.add(room)
@@ -72,6 +76,31 @@ def create_room_record(db: Session, payload: CreateRoomRequest) -> Room:
 # Lay danh sach phong vat ly theo loai phong.
 def list_room_records(db: Session, room_type_id: int) -> list[Room]:
     return db.query(Room).filter(Room.room_type_id == room_type_id).all()
+
+
+# Lay tinh trang phong trong cua tung loai phong trong khach san theo khoang ngay.
+def list_room_type_availability(
+    db: Session,
+    hotel_id: int,
+    check_in: date,
+    check_out: date,
+    num_guests: int | None,
+) -> list[tuple[RoomType, int, int]]:
+    booked_subquery = booked_quantity_subquery(db, check_in, check_out)
+    query = (
+        db.query(RoomType, func.coalesce(booked_subquery.c.booked_quantity, 0).label("booked_rooms"))
+        .outerjoin(booked_subquery, booked_subquery.c.room_type_id == RoomType.id)
+        .filter(RoomType.hotel_id == hotel_id, RoomType.is_active.is_(True))
+    )
+    if num_guests:
+        query = query.filter(RoomType.max_guests >= num_guests)
+
+    results = []
+    for room_type, booked_rooms in query.order_by(RoomType.base_price.asc()).all():
+        booked = int(booked_rooms)
+        available = max(room_type.total_rooms - booked, 0)
+        results.append((room_type, booked, available))
+    return results
 
 
 # Tao tien nghi cho khach san.

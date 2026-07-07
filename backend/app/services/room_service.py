@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -19,45 +21,36 @@ from app.repositories.room_repository import (
     list_amenity_records,
     list_room_records,
     list_room_type_amenity_records,
+    list_room_type_availability,
     list_room_type_records,
 )
-from app.schemas.rooms import CreateAmenityRequest, CreateRoomRequest, CreateRoomTypeRequest
+from app.schemas.rooms import (
+    AmenityResponse,
+    CreateAmenityRequest,
+    CreateRoomRequest,
+    CreateRoomTypeRequest,
+    RoomAvailabilityResponse,
+    RoomListResponse,
+    RoomResponse,
+    RoomTypeAmenityLinkResponse,
+    RoomTypeAvailabilityResponse,
+    RoomTypeResponse,
+)
 
 
 # Chuyen loai phong thanh du lieu tra ve.
 def serialize_room_type(room_type: RoomType) -> dict:
-    return {
-        "id": room_type.id,
-        "hotel_id": room_type.hotel_id,
-        "name": room_type.name,
-        "base_price": float(room_type.base_price),
-        "max_guests": room_type.max_guests,
-        "total_rooms": room_type.total_rooms,
-        "is_active": room_type.is_active,
-    }
+    return RoomTypeResponse.model_validate(room_type).model_dump(mode="json")
 
 
 # Chuyen phong vat ly thanh du lieu tra ve.
 def serialize_room(room: Room) -> dict:
-    return {
-        "id": room.id,
-        "room_type_id": room.room_type_id,
-        "room_number": room.room_number,
-        "floor": room.floor,
-        "status": room.status,
-        "is_active": room.is_active,
-    }
+    return RoomResponse.model_validate(room).model_dump(mode="json")
 
 
 # Chuyen tien nghi thanh du lieu tra ve.
 def serialize_amenity(amenity: Amenity) -> dict:
-    return {
-        "id": amenity.id,
-        "hotel_id": amenity.hotel_id,
-        "name": amenity.name,
-        "icon": amenity.icon,
-        "category": amenity.category,
-    }
+    return AmenityResponse.model_validate(amenity).model_dump(mode="json")
 
 
 # Kiem tra admin co quyen quan ly khach san.
@@ -164,13 +157,13 @@ def list_rooms(db: Session, current_user: User, room_type_id: int) -> dict:
     validate_room_type_owner(db, room_type, current_user)
 
     rooms = list_room_records(db, room_type_id)
-    items = [serialize_room(item) for item in rooms]
-    return {
-        "items": items,
-        "current_rooms": len(items),
-        "max_rooms": room_type.total_rooms,
-        "remaining_rooms": max(room_type.total_rooms - len(items), 0),
-    }
+    items = [RoomResponse.model_validate(item) for item in rooms]
+    return RoomListResponse(
+        items=items,
+        current_rooms=len(items),
+        max_rooms=room_type.total_rooms,
+        remaining_rooms=max(room_type.total_rooms - len(items), 0),
+    ).model_dump(mode="json")
 
 
 # Xu ly tao tien nghi cho khach san.
@@ -221,10 +214,7 @@ def assign_amenity_to_room_type(db: Session, current_user: User, room_type_id: i
         )
 
     create_room_type_amenity_link(db, room_type_id, amenity_id)
-    return {
-        "room_type_id": room_type_id,
-        "amenity_id": amenity_id,
-    }
+    return RoomTypeAmenityLinkResponse(room_type_id=room_type_id, amenity_id=amenity_id).model_dump(mode="json")
 
 
 # Xu ly lay danh sach tien nghi cua loai phong.
@@ -233,3 +223,44 @@ def list_room_type_amenities(db: Session, current_user: User, room_type_id: int)
     validate_room_type_owner(db, room_type, current_user)
     amenities = list_room_type_amenity_records(db, room_type_id)
     return [serialize_amenity(item) for item in amenities]
+
+
+# Xu ly tra cuu phong trong cong khai theo loai phong va khoang ngay.
+def get_room_availability(
+    db: Session,
+    hotel_id: int,
+    check_in: date,
+    check_out: date,
+    num_guests: int | None,
+) -> dict:
+    if check_out <= check_in:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay tra phong phai sau ngay nhan phong",
+        )
+
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel or hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khach san khong ton tai hoac chua duoc duyet",
+        )
+
+    rows = list_room_type_availability(db, hotel_id, check_in, check_out, num_guests)
+    items = [
+        RoomTypeAvailabilityResponse(
+            room_type_id=room_type.id,
+            name=room_type.name,
+            base_price=float(room_type.base_price),
+            max_guests=room_type.max_guests,
+            total_rooms=room_type.total_rooms,
+            available_rooms=available_rooms,
+        )
+        for room_type, _booked_rooms, available_rooms in rows
+    ]
+    return RoomAvailabilityResponse(
+        hotel_id=hotel_id,
+        check_in=check_in,
+        check_out=check_out,
+        items=items,
+    ).model_dump(mode="json")

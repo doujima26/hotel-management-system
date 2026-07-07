@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.enums import UserRole
 
@@ -50,3 +50,73 @@ class SendVerifyOtpRequest(BaseModel):
 class VerifyAccountRequest(BaseModel):
     email: EmailStr
     otp: str = Field(min_length=6, max_length=6)
+
+
+# Schema du lieu tra ve thong tin co ban cua nguoi dung.
+class UserPublicResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    is_active: bool
+    is_verified: bool
+
+
+# Schema du lieu tra ve sau khi dang ky tai khoan (kem OTP mock de test).
+class RegisterResponse(UserPublicResponse):
+    otp_mock: str
+
+
+# Schema thong tin nguoi dung rut gon kem trong ket qua dang nhap.
+class LoginUserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    full_name: str
+    role: UserRole
+
+
+# Schema du lieu tra ve sau khi dang nhap thanh cong.
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    user: LoginUserResponse
+
+
+# Schema du lieu tra ve sau khi lam moi access token.
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+
+# Schema du lieu tra ve sau khi doi mat khau.
+class ChangePasswordResponse(BaseModel):
+    user_id: int
+
+
+# Schema du lieu tra ve cho luong quen mat khau.
+class ForgotPasswordResponse(BaseModel):
+    email: EmailStr
+    otp_mock: str | None = None
+
+
+# Schema du lieu tra ve sau khi dat lai mat khau.
+class ResetPasswordResponse(BaseModel):
+    user_id: int
+
+
+# Schema du lieu tra ve cho luong gui OTP xac thuc tai khoan.
+class SendVerifyOtpResponse(BaseModel):
+    email: EmailStr
+    otp_mock: str | None = None
+    is_verified: bool | None = None
+
+
+# Schema du lieu tra ve sau khi xac thuc tai khoan.
+class VerifyAccountResponse(BaseModel):
+    user_id: int
+    is_verified: bool

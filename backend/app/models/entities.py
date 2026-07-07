@@ -3,7 +3,17 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from app.core.enums import BookingStatus, HotelStatus, PaymentStatus, UserRole
+from app.core.enums import (
+    BookingStatus,
+    CheckType,
+    DiscountType,
+    HotelStatus,
+    PaymentMethod,
+    PaymentStatus,
+    RoomStatus,
+    ShiftType,
+    UserRole,
+)
 from app.db.session import Base
 
 
@@ -112,7 +122,11 @@ class Room(Base):
     room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="RESTRICT"), nullable=False)
     room_number: Mapped[str] = mapped_column(String(20), nullable=False)
     floor: Mapped[int | None] = mapped_column(Integer)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="available")
+    status: Mapped[RoomStatus] = mapped_column(
+        Enum(RoomStatus, name="room_status", values_callable=enum_values),
+        nullable=False,
+        default=RoomStatus.AVAILABLE,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -148,7 +162,10 @@ class Promotion(Base):
     hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    discount_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    discount_type: Mapped[DiscountType] = mapped_column(
+        Enum(DiscountType, name="discount_type", values_callable=enum_values),
+        nullable=False,
+    )
     discount_value: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     min_booking_amount: Mapped[float | None] = mapped_column(Numeric(12, 2))
     max_discount_amount: Mapped[float | None] = mapped_column(Numeric(12, 2))
@@ -212,7 +229,10 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     booking_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("bookings.id", ondelete="RESTRICT"), nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
+    payment_method: Mapped[PaymentMethod] = mapped_column(
+        Enum(PaymentMethod, name="payment_method", values_callable=enum_values),
+        nullable=False,
+    )
     payment_status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus, name="payment_status", values_callable=enum_values),
         nullable=False,
@@ -294,7 +314,10 @@ class StaffSchedule(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     staff_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("staff_members.id", ondelete="CASCADE"), nullable=False)
     shift_date: Mapped[Date] = mapped_column(Date, nullable=False)
-    shift_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    shift_type: Mapped[ShiftType] = mapped_column(
+        Enum(ShiftType, name="shift_type", values_callable=enum_values),
+        nullable=False,
+    )
     start_time: Mapped[Time] = mapped_column(Time, nullable=False)
     end_time: Mapped[Time] = mapped_column(Time, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
@@ -309,7 +332,10 @@ class CheckInOut(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     booking_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("bookings.id", ondelete="RESTRICT"), nullable=False)
     staff_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("staff_members.id", ondelete="RESTRICT"), nullable=False)
-    type: Mapped[str] = mapped_column(String(20), nullable=False)
+    type: Mapped[CheckType] = mapped_column(
+        Enum(CheckType, name="check_type", values_callable=enum_values),
+        nullable=False,
+    )
     performed_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

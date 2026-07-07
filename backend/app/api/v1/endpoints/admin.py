@@ -6,7 +6,7 @@ from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, User
-from app.schemas.admin import ReviewHotelRequest, SetUserActiveRequest
+from app.schemas.admin import ReviewHotelRequest, ReviewHotelResponse, SetUserActiveRequest
 from app.services.auth_service import set_user_active
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -55,11 +55,9 @@ def review_hotel_endpoint(
     db.commit()
     db.refresh(hotel)
 
-    return ok(
-        {
-            "id": hotel.id,
-            "status": hotel.status,
-            "rejection_reason": hotel.rejection_reason,
-        },
-        "Cap nhat trang thai duyet khach san thanh cong",
-    )
+    data = ReviewHotelResponse(
+        id=hotel.id,
+        status=hotel.status,
+        rejection_reason=hotel.rejection_reason,
+    ).model_dump(mode="json")
+    return ok(data, "Cap nhat trang thai duyet khach san thanh cong")

@@ -1,7 +1,11 @@
+from datetime import date
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus
-from app.models.entities import Hotel, HotelService, Promotion
+from app.core.enums import DiscountType, HotelStatus
+from app.models.entities import Hotel, HotelService, Promotion, RoomType
+from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
     CreateHotelRequest,
     CreateHotelServiceRequest,
@@ -32,6 +36,46 @@ def create_hotel_record(db: Session, owner_id: int, payload: CreateHotelRequest)
     db.commit()
     db.refresh(hotel)
     return hotel
+
+
+# Tim kiem khach san da duyet theo thanh pho va tinh trang phong trong trong khoang ngay.
+def search_hotel_records(
+    db: Session,
+    *,
+    city: str | None,
+    check_in: date | None,
+    check_out: date | None,
+    num_guests: int | None,
+    page: int,
+    page_size: int,
+) -> tuple[list[Hotel], int]:
+    query = db.query(Hotel).filter(Hotel.status == HotelStatus.APPROVED)
+
+    if city:
+        query = query.filter(Hotel.city.ilike(f"%{city}%"))
+
+    if check_in and check_out:
+        booked_subquery = booked_quantity_subquery(db, check_in, check_out)
+        available_hotel_ids = (
+            db.query(RoomType.hotel_id)
+            .outerjoin(booked_subquery, booked_subquery.c.room_type_id == RoomType.id)
+            .filter(
+                RoomType.is_active.is_(True),
+                (RoomType.total_rooms - func.coalesce(booked_subquery.c.booked_quantity, 0)) > 0,
+            )
+        )
+        if num_guests:
+            available_hotel_ids = available_hotel_ids.filter(RoomType.max_guests >= num_guests)
+        query = query.filter(Hotel.id.in_(available_hotel_ids.distinct().scalar_subquery()))
+
+    total = query.count()
+    hotels = (
+        query.order_by(Hotel.avg_rating.desc(), Hotel.id.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return hotels, total
 
 
 # Lay dich vu theo ten trong khach san.
@@ -84,7 +128,7 @@ def create_promotion_record(db: Session, hotel_id: int, payload: CreatePromotion
         hotel_id=hotel_id,
         name=payload.name,
         description=payload.description,
-        discount_type=payload.discount_type,
+        discount_type=DiscountType(payload.discount_type),
         discount_value=payload.discount_value,
         min_booking_amount=payload.min_booking_amount,
         max_discount_amount=payload.max_discount_amount,

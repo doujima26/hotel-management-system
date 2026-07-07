@@ -1,7 +1,9 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus
+from app.core.enums import DiscountType, HotelStatus
 from app.models.entities import Hotel, HotelService, Promotion, User
 from app.repositories.hotel_repository import (
     create_hotel_record,
@@ -15,11 +17,17 @@ from app.repositories.hotel_repository import (
     list_promotion_records,
     save_hotel_service,
     save_promotion,
+    search_hotel_records,
 )
 from app.schemas.hotels import (
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
+    HotelResponse,
+    HotelSearchItemResponse,
+    HotelSearchResponse,
+    HotelServiceResponse,
+    PromotionResponse,
     UpdateHotelServiceRequest,
     UpdatePromotionRequest,
 )
@@ -27,46 +35,17 @@ from app.schemas.hotels import (
 
 # Chuyen khach san thanh du lieu tra ve.
 def serialize_hotel(hotel: Hotel) -> dict:
-    return {
-        "id": hotel.id,
-        "owner_id": hotel.owner_id,
-        "name": hotel.name,
-        "city": hotel.city,
-        "status": hotel.status,
-        "rejection_reason": hotel.rejection_reason,
-    }
+    return HotelResponse.model_validate(hotel).model_dump(mode="json")
 
 
 # Chuyen dich vu khach san thanh du lieu tra ve.
 def serialize_hotel_service(service: HotelService) -> dict:
-    return {
-        "id": service.id,
-        "hotel_id": service.hotel_id,
-        "name": service.name,
-        "description": service.description,
-        "price": float(service.price),
-        "unit": service.unit,
-        "is_active": service.is_active,
-    }
+    return HotelServiceResponse.model_validate(service).model_dump(mode="json")
 
 
 # Chuyen khuyen mai thanh du lieu tra ve.
 def serialize_promotion(promotion: Promotion) -> dict:
-    return {
-        "id": promotion.id,
-        "hotel_id": promotion.hotel_id,
-        "name": promotion.name,
-        "description": promotion.description,
-        "discount_type": promotion.discount_type,
-        "discount_value": float(promotion.discount_value),
-        "min_booking_amount": float(promotion.min_booking_amount) if promotion.min_booking_amount is not None else None,
-        "max_discount_amount": float(promotion.max_discount_amount) if promotion.max_discount_amount is not None else None,
-        "start_date": promotion.start_date,
-        "end_date": promotion.end_date,
-        "usage_limit": promotion.usage_limit,
-        "used_count": promotion.used_count,
-        "is_active": promotion.is_active,
-    }
+    return PromotionResponse.model_validate(promotion).model_dump(mode="json")
 
 
 # Lay khach san da duoc duyet cua admin hien tai.
@@ -197,6 +176,8 @@ def update_promotion(
         )
 
     update_data = payload.model_dump(exclude_unset=True)
+    if "discount_type" in update_data:
+        update_data["discount_type"] = DiscountType(update_data["discount_type"])
     for field, value in update_data.items():
         setattr(promotion, field, value)
 
@@ -209,3 +190,45 @@ def update_promotion(
 
     promotion = save_promotion(db, promotion)
     return serialize_promotion(promotion)
+
+
+# Xu ly tim kiem khach san cong khai theo thanh pho va tinh trang phong trong.
+def search_hotels(
+    db: Session,
+    *,
+    city: str | None,
+    check_in: date | None,
+    check_out: date | None,
+    num_guests: int | None,
+    page: int,
+    page_size: int,
+) -> dict:
+    if bool(check_in) != bool(check_out):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phai cung cap ca check_in va check_out",
+        )
+    if check_in and check_out and check_out <= check_in:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay tra phong phai sau ngay nhan phong",
+        )
+
+    hotels, total = search_hotel_records(
+        db,
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+        page=page,
+        page_size=page_size,
+    )
+    items = [HotelSearchItemResponse.model_validate(hotel) for hotel in hotels]
+    total_pages = (total + page_size - 1) // page_size if total else 0
+    return HotelSearchResponse(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=total_pages,
+    ).model_dump(mode="json")

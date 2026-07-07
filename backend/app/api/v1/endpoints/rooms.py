@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,7 @@ from app.services.room_service import (
     create_amenity as create_amenity_action,
     create_room as create_room_action,
     create_room_type as create_room_type_action,
+    get_room_availability as get_room_availability_action,
     list_amenities as list_amenities_action,
     list_room_type_amenities as list_room_type_amenities_action,
     list_room_types as list_room_types_action,
@@ -25,6 +28,19 @@ router = APIRouter(prefix="/rooms", tags=["rooms"])
 @router.get("")
 def rooms_ping():
     return ok({"module": "rooms"}, "Rooms module ready")
+
+
+# Khach tra cuu phong trong cong khai theo khach san va khoang ngay.
+@router.get("/availability")
+def room_availability_endpoint(
+    hotel_id: int = Query(gt=0),
+    check_in: date = Query(...),
+    check_out: date = Query(...),
+    num_guests: int | None = Query(default=None, gt=0),
+    db: Session = Depends(get_db),
+):
+    data = get_room_availability_action(db, hotel_id, check_in, check_out, num_guests)
+    return ok(data, "Danh sach phong trong")
 
 
 # Admin tao loai phong cho khach san cua minh.

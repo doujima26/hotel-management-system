@@ -12,9 +12,11 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     RefreshTokenRequest,
+    RefreshTokenResponse,
     RegisterRequest,
     ResetPasswordRequest,
     SendVerifyOtpRequest,
+    UserPublicResponse,
     VerifyAccountRequest,
 )
 from app.services.auth_service import (
@@ -47,7 +49,13 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 # Tao access token moi tu refresh token.
 @router.post("/refresh")
 def refresh_token(payload: RefreshTokenRequest):
-    token_payload = decode_token(payload.refresh_token)
+    try:
+        token_payload = decode_token(payload.refresh_token)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token khong hop le",
+        ) from exc
     if token_payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,23 +68,15 @@ def refresh_token(payload: RefreshTokenRequest):
         token_type="access",
         expires_minutes=settings.access_token_expire_minutes,
     )
-    return ok({"access_token": access_token, "token_type": "bearer"}, "Refresh token thanh cong")
+    data = RefreshTokenResponse(access_token=access_token, token_type="bearer").model_dump(mode="json")
+    return ok(data, "Refresh token thanh cong")
 
 
 # Tra thong tin nguoi dung dang dang nhap.
 @router.get("/me")
 def me(current_user: User = Depends(get_current_user)):
-    return ok(
-        {
-            "id": current_user.id,
-            "email": current_user.email,
-            "full_name": current_user.full_name,
-            "role": current_user.role,
-            "is_active": current_user.is_active,
-            "is_verified": current_user.is_verified,
-        },
-        "Thong tin nguoi dung",
-    )
+    data = UserPublicResponse.model_validate(current_user).model_dump(mode="json")
+    return ok(data, "Thong tin nguoi dung")
 
 
 # Xu ly doi mat khau cho nguoi dung da dang nhap.
