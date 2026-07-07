@@ -61,6 +61,18 @@ class UpdatePromotionRequest(BaseModel):
     is_active: bool | None = None
 
 
+# Schema du lieu dau vao cho cap nhat thong tin khach san.
+class UpdateHotelRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    description: str | None = None
+    address: str | None = Field(default=None, min_length=5)
+    city: str | None = Field(default=None, min_length=2, max_length=100)
+    district: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
+    email: EmailStr | None = None
+    star_rating: int | None = Field(default=None, ge=1, le=5)
+
+
 # Schema du lieu tra ve thong tin khach san (phia admin quan ly).
 class HotelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -68,7 +80,15 @@ class HotelResponse(BaseModel):
     id: int
     owner_id: int
     name: str
+    description: str | None = None
+    address: str
     city: str
+    district: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    star_rating: int | None = None
+    avg_rating: float
+    total_reviews: int
     status: HotelStatus
     rejection_reason: str | None = None
 
@@ -148,3 +168,19 @@ class HotelImageResponse(BaseModel):
 # Schema du lieu tra ve sau khi xoa anh khach san.
 class DeleteHotelImageResponse(BaseModel):
     id: int
+
+
+# Schema du lieu tra ve chi tiet khach san cong khai (cho khach hang).
+class HotelDetailResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    address: str
+    city: str
+    district: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    star_rating: int | None = None
+    avg_rating: float
+    total_reviews: int
+    images: list[HotelImageResponse]

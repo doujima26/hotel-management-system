@@ -11,6 +11,7 @@ from app.repositories.hotel_repository import (
     create_hotel_service_record,
     create_promotion_record,
     delete_hotel_image_record,
+    get_hotel_by_id,
     get_hotel_by_owner,
     get_hotel_image_by_id,
     get_hotel_service_by_id,
@@ -19,6 +20,7 @@ from app.repositories.hotel_repository import (
     list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
+    save_hotel,
     save_hotel_service,
     save_promotion,
     search_hotel_records,
@@ -30,12 +32,14 @@ from app.schemas.hotels import (
     CreateHotelServiceRequest,
     CreatePromotionRequest,
     DeleteHotelImageResponse,
+    HotelDetailResponse,
     HotelImageResponse,
     HotelResponse,
     HotelSearchItemResponse,
     HotelSearchResponse,
     HotelServiceResponse,
     PromotionResponse,
+    UpdateHotelRequest,
     UpdateHotelServiceRequest,
     UpdatePromotionRequest,
 )
@@ -54,6 +58,24 @@ def serialize_hotel_service(service: HotelService) -> dict:
 # Chuyen anh khach san thanh du lieu tra ve.
 def serialize_hotel_image(image: HotelImage) -> dict:
     return HotelImageResponse.model_validate(image).model_dump(mode="json")
+
+
+# Chuyen khach san va anh thanh du lieu chi tiet cong khai.
+def serialize_hotel_detail(hotel: Hotel, images: list[HotelImage]) -> dict:
+    return HotelDetailResponse(
+        id=hotel.id,
+        name=hotel.name,
+        description=hotel.description,
+        address=hotel.address,
+        city=hotel.city,
+        district=hotel.district,
+        phone=hotel.phone,
+        email=hotel.email,
+        star_rating=hotel.star_rating,
+        avg_rating=float(hotel.avg_rating),
+        total_reviews=hotel.total_reviews,
+        images=[HotelImageResponse.model_validate(image) for image in images],
+    ).model_dump(mode="json")
 
 
 # Chuyen khuyen mai thanh du lieu tra ve.
@@ -102,6 +124,36 @@ def create_hotel(db: Session, current_user: User, payload: CreateHotelRequest) -
 
     hotel = create_hotel_record(db, current_user.id, payload)
     return serialize_hotel(hotel)
+
+
+# Xu ly cap nhat thong tin khach san cua admin.
+def update_hotel(db: Session, current_user: User, payload: UpdateHotelRequest) -> dict:
+    hotel = get_hotel_by_owner(db, current_user.id)
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin chua dang ky khach san",
+        )
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(hotel, field, value)
+
+    hotel = save_hotel(db, hotel)
+    return serialize_hotel(hotel)
+
+
+# Xu ly lay chi tiet khach san cong khai cho khach hang.
+def get_hotel_detail(db: Session, hotel_id: int) -> dict:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel or hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khach san khong ton tai hoac chua duoc duyet",
+        )
+
+    images = list_hotel_image_records(db, hotel.id)
+    return serialize_hotel_detail(hotel, images)
 
 
 # Xu ly tao dich vu khach san.

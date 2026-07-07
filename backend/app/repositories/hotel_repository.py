@@ -19,6 +19,11 @@ def get_hotel_by_owner(db: Session, owner_id: int) -> Hotel | None:
     return db.query(Hotel).filter(Hotel.owner_id == owner_id).first()
 
 
+# Lay khach san theo id.
+def get_hotel_by_id(db: Session, hotel_id: int) -> Hotel | None:
+    return db.query(Hotel).filter(Hotel.id == hotel_id).first()
+
+
 # Tao khach san moi.
 def create_hotel_record(db: Session, owner_id: int, payload: CreateHotelRequest) -> Hotel:
     hotel = Hotel(
@@ -33,6 +38,14 @@ def create_hotel_record(db: Session, owner_id: int, payload: CreateHotelRequest)
         star_rating=payload.star_rating,
         status=HotelStatus.PENDING,
     )
+    db.add(hotel)
+    db.commit()
+    db.refresh(hotel)
+    return hotel
+
+
+# Luu thay doi khach san.
+def save_hotel(db: Session, hotel: Hotel) -> Hotel:
     db.add(hotel)
     db.commit()
     db.refresh(hotel)

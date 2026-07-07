@@ -13,6 +13,7 @@ from app.schemas.hotels import (
     CreateHotelRequest,
     CreateHotelServiceRequest,
     CreatePromotionRequest,
+    UpdateHotelRequest,
     UpdateHotelServiceRequest,
     UpdatePromotionRequest,
 )
@@ -22,11 +23,13 @@ from app.services.hotel_service import (
     create_hotel_service as create_hotel_service_action,
     create_promotion as create_promotion_service_action,
     delete_hotel_image as delete_hotel_image_action,
+    get_hotel_detail as get_hotel_detail_action,
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
     search_hotels as search_hotels_action,
     set_primary_hotel_image as set_primary_hotel_image_action,
+    update_hotel as update_hotel_action,
     update_hotel_service as update_hotel_service_action,
     update_promotion as update_promotion_service_action,
 )
@@ -72,6 +75,17 @@ def create_hotel(
 ):
     data = create_hotel_action(db, current_user, payload)
     return ok(data, "Dang ky khach san thanh cong, cho duyet")
+
+
+# Admin cap nhat thong tin khach san cua minh.
+@router.patch("")
+def update_hotel(
+    payload: UpdateHotelRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = update_hotel_action(db, current_user, payload)
+    return ok(data, "Cap nhat thong tin khach san thanh cong")
 
 
 # Admin tao dich vu cho khach san cua minh.
@@ -181,3 +195,13 @@ def set_primary_hotel_image(
 ):
     data = set_primary_hotel_image_action(db, current_user, image_id)
     return ok(data, "Dat anh dai dien thanh cong")
+
+
+# Khach xem chi tiet 1 khach san cong khai. Dat cuoi file de khong nuot cac route co dinh o tren.
+@router.get("/{hotel_id}")
+def get_hotel_detail(
+    hotel_id: int,
+    db: Session = Depends(get_db),
+):
+    data = get_hotel_detail_action(db, hotel_id)
+    return ok(data, "Chi tiet khach san")
