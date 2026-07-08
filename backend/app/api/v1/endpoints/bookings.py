@@ -12,6 +12,7 @@ from app.services.booking_service import (
     get_booking_detail as get_booking_detail_action,
     list_my_bookings as list_my_bookings_action,
 )
+from app.services.payment_service import get_invoice_by_booking as get_invoice_by_booking_action
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -46,3 +47,14 @@ def get_booking_detail(
 ):
     data = get_booking_detail_action(db, current_user, booking_id)
     return ok(data, "Chi tiet booking")
+
+
+# Khach xem hoa don cua booking minh.
+@router.get("/{booking_id}/invoice")
+def get_booking_invoice(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = get_invoice_by_booking_action(db, current_user, booking_id)
+    return ok(data, "Hoa don booking")

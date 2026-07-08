@@ -97,6 +97,11 @@ def get_booking_by_id(db: Session, booking_id: int) -> Booking | None:
     return db.query(Booking).filter(Booking.id == booking_id).first()
 
 
+# Lay booking theo id va khoa row de thanh toan an toan, tranh thanh toan trung.
+def get_booking_by_id_for_update(db: Session, booking_id: int) -> Booking | None:
+    return db.query(Booking).filter(Booking.id == booking_id).with_for_update().first()
+
+
 # Lay danh sach dong phong theo booking.
 def list_booking_rooms(db: Session, booking_id: int) -> list[BookingRoom]:
     return db.query(BookingRoom).filter(BookingRoom.booking_id == booking_id).all()
