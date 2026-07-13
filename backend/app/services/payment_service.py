@@ -12,6 +12,7 @@ from app.repositories.payment_repository import (
     create_invoice_record,
     create_payment_record,
     get_invoice_by_booking_id,
+    get_payment_by_booking_id,
     get_payment_by_id,
 )
 from app.schemas.payments import InvoiceResponse, PayBookingRequest, PayBookingResponse, PaymentResponse
@@ -46,7 +47,14 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
     if booking.status != BookingStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking da duoc thanh toan hoac khong con hop le de thanh toan",
+            detail="Booking khong con hop le de thanh toan",
+        )
+    # Booking van giu PENDING sau khi thanh toan (cho Admin xac nhan), nen phai
+    # kiem tra rieng da co Payment chua, khong the chi dua vao booking.status.
+    if get_payment_by_booking_id(db, booking.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking da duoc thanh toan",
         )
 
     try:
