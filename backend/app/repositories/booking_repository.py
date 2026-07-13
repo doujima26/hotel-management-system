@@ -110,3 +110,11 @@ def list_booking_rooms(db: Session, booking_id: int) -> list[BookingRoom]:
 # Lay danh sach booking cua nguoi dung, moi nhat truoc.
 def list_bookings_by_user(db: Session, user_id: int) -> list[Booking]:
     return db.query(Booking).filter(Booking.user_id == user_id).order_by(Booking.created_at.desc()).all()
+
+
+# Lay danh sach booking theo khach san, loc theo trang thai neu co, moi nhat truoc.
+def list_bookings_by_hotel(db: Session, hotel_id: int, status_filter: BookingStatus | None) -> list[Booking]:
+    query = db.query(Booking).filter(Booking.hotel_id == hotel_id)
+    if status_filter:
+        query = query.filter(Booking.status == status_filter)
+    return query.order_by(Booking.created_at.desc()).all()

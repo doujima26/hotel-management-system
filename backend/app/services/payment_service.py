@@ -29,7 +29,8 @@ def _generate_transaction_id() -> str:
     return f"MOCK-{secrets.token_hex(8)}"
 
 
-# Xu ly thanh toan mock cho 1 booking, tao kem hoa don, cap nhat booking sang confirmed.
+# Xu ly thanh toan mock cho 1 booking, tao kem hoa don. Booking van giu PENDING
+# cho den khi Admin xac nhan hoa don (booking_service.confirm_booking).
 def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> dict:
     booking = get_booking_by_id_for_update(db, payload.booking_id)
     if not booking:
@@ -69,9 +70,6 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
             discount_amount=float(booking.discount_amount),
             total_amount=float(booking.total_amount),
         )
-
-        booking.status = BookingStatus.CONFIRMED
-        db.add(booking)
 
         db.commit()
     except IntegrityError as exc:

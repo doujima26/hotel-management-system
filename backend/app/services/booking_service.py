@@ -5,19 +5,23 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus
+from app.core.enums import BookingStatus, HotelStatus
 from app.models.entities import Booking, BookingRoom, User
 from app.repositories.booking_repository import (
     create_booking_record,
     create_booking_room_record,
     get_booked_quantity_for_room_type,
     get_booking_by_id,
+    get_booking_by_id_for_update,
     list_booking_rooms,
+    list_bookings_by_hotel,
     list_bookings_by_user,
 )
 from app.repositories.hotel_repository import get_hotel_by_id
+from app.repositories.payment_repository import get_invoice_by_booking_id
 from app.repositories.room_repository import get_room_type_by_id_for_update
 from app.schemas.bookings import BookingResponse, BookingRoomResponse, CreateBookingRequest
+from app.services.hotel_service import get_approved_admin_hotel
 
 
 # Sinh ma booking dang BK-YYYYMMDD-xxxxxx.
@@ -145,6 +149,48 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ban chi duoc xem booking cua minh",
         )
+
+    rooms = list_booking_rooms(db, booking.id)
+    return serialize_booking(booking, rooms)
+
+
+# Xu ly Admin xem danh sach booking cua khach san minh, co the loc theo trang thai.
+def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingStatus | None) -> list[dict]:
+    hotel = get_approved_admin_hotel(db, current_user)
+    bookings = list_bookings_by_hotel(db, hotel.id, status_filter)
+    return [serialize_booking(booking, list_booking_rooms(db, booking.id)) for booking in bookings]
+
+
+# Xu ly Admin xac nhan hoa don: booking phai da thanh toan va dang cho xac nhan.
+# Sau khi xac nhan, he thong (mock) tu dong gui email thong bao cho khach.
+def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    booking = get_booking_by_id_for_update(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking khong ton tai",
+        )
+    if booking.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc xac nhan booking cua khach san minh",
+        )
+    if booking.status != BookingStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking khong o trang thai cho xac nhan",
+        )
+    if not get_invoice_by_booking_id(db, booking.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking chua thanh toan, khong the xac nhan",
+        )
+
+    booking.status = BookingStatus.CONFIRMED
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
 
     rooms = list_booking_rooms(db, booking.id)
     return serialize_booking(booking, rooms)
