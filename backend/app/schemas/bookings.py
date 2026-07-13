@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,6 +19,11 @@ class CreateBookingRequest(BaseModel):
     num_guests: int = Field(gt=0)
     rooms: list[BookingRoomItem] = Field(min_length=1)
     special_requests: str | None = None
+
+
+# Schema du lieu dau vao cho huy booking.
+class CancelBookingRequest(BaseModel):
+    cancellation_reason: str | None = None
 
 
 # Schema du lieu tra ve 1 dong phong trong booking.
@@ -46,4 +51,6 @@ class BookingResponse(BaseModel):
     total_amount: float
     status: BookingStatus
     special_requests: str | None = None
+    cancellation_reason: str | None = None
+    cancelled_at: datetime | None = None
     rooms: list[BookingRoomResponse]

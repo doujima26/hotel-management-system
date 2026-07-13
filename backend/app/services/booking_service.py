@@ -1,11 +1,11 @@
 import secrets
-from datetime import date
+from datetime import date, datetime, time, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, HotelStatus
+from app.core.enums import BookingStatus, HotelStatus, PaymentStatus
 from app.models.entities import Booking, BookingRoom, User
 from app.repositories.booking_repository import (
     create_booking_record,
@@ -18,10 +18,16 @@ from app.repositories.booking_repository import (
     list_bookings_by_user,
 )
 from app.repositories.hotel_repository import get_hotel_by_id
-from app.repositories.payment_repository import get_invoice_by_booking_id
+from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
 from app.repositories.room_repository import get_room_type_by_id_for_update
-from app.schemas.bookings import BookingResponse, BookingRoomResponse, CreateBookingRequest
+from app.schemas.bookings import BookingResponse, BookingRoomResponse, CancelBookingRequest, CreateBookingRequest
 from app.services.hotel_service import get_approved_admin_hotel
+
+# So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
+_MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
+
+# Cac trang thai booking con duoc phep huy.
+_CANCELLABLE_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
 
 
 # Sinh ma booking dang BK-YYYYMMDD-xxxxxx.
@@ -46,6 +52,8 @@ def serialize_booking(booking: Booking, rooms: list[BookingRoom]) -> dict:
         total_amount=float(booking.total_amount),
         status=booking.status,
         special_requests=booking.special_requests,
+        cancellation_reason=booking.cancellation_reason,
+        cancelled_at=booking.cancelled_at,
         rooms=[BookingRoomResponse.model_validate(room) for room in rooms],
     ).model_dump(mode="json")
 
@@ -189,6 +197,54 @@ def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
 
     booking.status = BookingStatus.CONFIRMED
     db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    rooms = list_booking_rooms(db, booking.id)
+    return serialize_booking(booking, rooms)
+
+
+# Xu ly khach tu huy booking cua minh (UC 4.8). Chi huy duoc khi con cach gio nhan
+# phong toi thieu 24h va booking dang pending/confirmed. Neu da thanh toan, danh
+# dau payment sang refunded (mock, chua co cong thanh toan that). Phong tu dong
+# duoc nha lai vi booked_quantity_subquery da loai tru booking cancelled.
+def cancel_booking(db: Session, current_user: User, booking_id: int, payload: CancelBookingRequest) -> dict:
+    booking = get_booking_by_id_for_update(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking khong ton tai",
+        )
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc huy booking cua minh",
+        )
+    if booking.status not in _CANCELLABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking khong o trang thai co the huy",
+        )
+
+    checkin_start = datetime.combine(booking.check_in_date, time.min)
+    hours_until_checkin = (checkin_start - datetime.now()).total_seconds() / 3600
+    if hours_until_checkin < _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Da qua han huy mien phi, phai huy truoc it nhat 24 gio so voi ngay nhan phong",
+        )
+
+    booking.status = BookingStatus.CANCELLED
+    booking.cancellation_reason = payload.cancellation_reason
+    booking.cancelled_at = datetime.now(timezone.utc)
+    booking.cancelled_by = current_user.id
+    db.add(booking)
+
+    payment = get_payment_by_booking_id(db, booking.id)
+    if payment and payment.payment_status == PaymentStatus.COMPLETED:
+        payment.payment_status = PaymentStatus.REFUNDED
+        db.add(payment)
+
     db.commit()
     db.refresh(booking)
 

@@ -65,6 +65,11 @@ def get_payment_by_id(db: Session, payment_id: int) -> Payment | None:
     return db.query(Payment).filter(Payment.id == payment_id).first()
 
 
+# Lay payment theo booking_id.
+def get_payment_by_booking_id(db: Session, booking_id: int) -> Payment | None:
+    return db.query(Payment).filter(Payment.booking_id == booking_id).first()
+
+
 # Lay invoice theo booking_id.
 def get_invoice_by_booking_id(db: Session, booking_id: int) -> Invoice | None:
     return db.query(Invoice).filter(Invoice.booking_id == booking_id).first()

@@ -6,8 +6,9 @@ from app.core.enums import BookingStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.bookings import CreateBookingRequest
+from app.schemas.bookings import CancelBookingRequest, CreateBookingRequest
 from app.services.booking_service import (
+    cancel_booking as cancel_booking_action,
     confirm_booking as confirm_booking_action,
     create_booking as create_booking_action,
     get_booking_detail as get_booking_detail_action,
@@ -83,3 +84,15 @@ def get_booking_invoice(
 ):
     data = get_invoice_by_booking_action(db, current_user, booking_id)
     return ok(data, "Hoa don booking")
+
+
+# Khach tu huy booking cua minh (con cach gio nhan phong toi thieu 24h).
+@router.patch("/{booking_id}/cancel")
+def cancel_booking(
+    booking_id: int,
+    payload: CancelBookingRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = cancel_booking_action(db, current_user, booking_id, payload)
+    return ok(data, "Huy booking thanh cong")
