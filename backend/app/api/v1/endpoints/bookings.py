@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.bookings import CancelBookingRequest, CreateBookingRequest
 from app.services.booking_service import (
+    admin_cancel_booking as admin_cancel_booking_action,
     cancel_booking as cancel_booking_action,
     confirm_booking as confirm_booking_action,
     create_booking as create_booking_action,
@@ -62,6 +63,18 @@ def confirm_booking(
 ):
     data = confirm_booking_action(db, current_user, booking_id)
     return ok(data, "Xac nhan don dat phong thanh cong, da gui email thong bao toi khach")
+
+
+# Admin huy booking thay khach (vd no-show, overbooking), khong ap chinh sach 24h.
+@router.patch("/{booking_id}/admin-cancel")
+def admin_cancel_booking(
+    booking_id: int,
+    payload: CancelBookingRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = admin_cancel_booking_action(db, current_user, booking_id, payload)
+    return ok(data, "Huy booking thanh cong")
 
 
 # Khach xem chi tiet 1 booking cua minh. Dat cuoi file de khong nuot route "/hotel".

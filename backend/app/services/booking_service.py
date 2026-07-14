@@ -204,10 +204,31 @@ def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
     return serialize_booking(booking, rooms)
 
 
+# Chuyen booking sang cancelled va hoan tien (mock) neu da thanh toan. Dung chung
+# cho ca khach tu huy va Admin huy ho, sau khi moi ben da tu kiem tra quyen/chinh
+# sach rieng. Phong tu dong duoc nha lai vi booked_quantity_subquery da loai tru
+# booking cancelled.
+def _apply_cancellation(db: Session, booking: Booking, current_user: User, cancellation_reason: str | None) -> dict:
+    booking.status = BookingStatus.CANCELLED
+    booking.cancellation_reason = cancellation_reason
+    booking.cancelled_at = datetime.now(timezone.utc)
+    booking.cancelled_by = current_user.id
+    db.add(booking)
+
+    payment = get_payment_by_booking_id(db, booking.id)
+    if payment and payment.payment_status == PaymentStatus.COMPLETED:
+        payment.payment_status = PaymentStatus.REFUNDED
+        db.add(payment)
+
+    db.commit()
+    db.refresh(booking)
+
+    rooms = list_booking_rooms(db, booking.id)
+    return serialize_booking(booking, rooms)
+
+
 # Xu ly khach tu huy booking cua minh (UC 4.8). Chi huy duoc khi con cach gio nhan
-# phong toi thieu 24h va booking dang pending/confirmed. Neu da thanh toan, danh
-# dau payment sang refunded (mock, chua co cong thanh toan that). Phong tu dong
-# duoc nha lai vi booked_quantity_subquery da loai tru booking cancelled.
+# phong toi thieu 24h va booking dang pending/confirmed.
 def cancel_booking(db: Session, current_user: User, booking_id: int, payload: CancelBookingRequest) -> dict:
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
@@ -234,19 +255,29 @@ def cancel_booking(db: Session, current_user: User, booking_id: int, payload: Ca
             detail="Da qua han huy mien phi, phai huy truoc it nhat 24 gio so voi ngay nhan phong",
         )
 
-    booking.status = BookingStatus.CANCELLED
-    booking.cancellation_reason = payload.cancellation_reason
-    booking.cancelled_at = datetime.now(timezone.utc)
-    booking.cancelled_by = current_user.id
-    db.add(booking)
+    return _apply_cancellation(db, booking, current_user, payload.cancellation_reason)
 
-    payment = get_payment_by_booking_id(db, booking.id)
-    if payment and payment.payment_status == PaymentStatus.COMPLETED:
-        payment.payment_status = PaymentStatus.REFUNDED
-        db.add(payment)
 
-    db.commit()
-    db.refresh(booking)
+# Xu ly Admin huy booking thay khach (UC 6.2 - "xu ly huy phong tu phia khach
+# san"), vd no-show hoac overbooking. Khong ap chinh sach 24h nhu khach tu huy,
+# ap dung cho ca booking dang cho xac nhan lan da xac nhan.
+def admin_cancel_booking(db: Session, current_user: User, booking_id: int, payload: CancelBookingRequest) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    booking = get_booking_by_id_for_update(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking khong ton tai",
+        )
+    if booking.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc huy booking cua khach san minh",
+        )
+    if booking.status not in _CANCELLABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking khong o trang thai co the huy",
+        )
 
-    rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return _apply_cancellation(db, booking, current_user, payload.cancellation_reason)
