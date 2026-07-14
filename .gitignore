@@ -26,4 +26,7 @@ Thumbs.db
 *.png
 *.bkp
 
+# test files
+backend/tests/
+
 
