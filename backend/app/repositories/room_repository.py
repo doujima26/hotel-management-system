@@ -63,6 +63,22 @@ def count_rooms_by_room_type(db: Session, room_type_id: int) -> int:
     return db.query(func.count(Room.id)).filter(Room.room_type_id == room_type_id).scalar() or 0
 
 
+# Lay phong vat ly theo id va khoa dong de gan phong khi check-in an toan.
+def get_room_by_id_for_update(db: Session, room_id: int) -> Room | None:
+    return db.query(Room).filter(Room.id == room_id).with_for_update().first()
+
+
+# Lay danh sach phong vat ly kem ten loai phong theo khach san, dung cho so do phong.
+def list_rooms_with_type_by_hotel(db: Session, hotel_id: int) -> list[tuple[Room, RoomType]]:
+    return (
+        db.query(Room, RoomType)
+        .join(RoomType, RoomType.id == Room.room_type_id)
+        .filter(RoomType.hotel_id == hotel_id)
+        .order_by(Room.floor.asc().nullslast(), Room.room_number.asc())
+        .all()
+    )
+
+
 # Tao phong vat ly moi.
 def create_room_record(db: Session, payload: CreateRoomRequest) -> Room:
     room = Room(

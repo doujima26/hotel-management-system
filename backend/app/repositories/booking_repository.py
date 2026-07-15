@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus
-from app.models.entities import Booking, BookingRoom
+from app.models.entities import Booking, BookingRoom, BookingRoomUnit
 
 # Cac trang thai booking khong con chiem giu phong.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
@@ -68,7 +68,8 @@ def create_booking_record(
     return booking
 
 
-# Tao dong phong cho booking. Khong commit ngay, xem create_booking_record.
+# Tao dong phong cho booking kem du so suat phong (booking_room_units, room_id
+# de trong, gan luc check-in). Khong commit ngay, xem create_booking_record.
 def create_booking_room_record(
     db: Session,
     *,
@@ -89,7 +90,22 @@ def create_booking_room_record(
     )
     db.add(booking_room)
     db.flush()
+
+    for _ in range(quantity):
+        db.add(BookingRoomUnit(booking_room_id=booking_room.id, room_id=None))
+    db.flush()
+
     return booking_room
+
+
+# Lay danh sach suat phong (booking_room_units) theo booking, kem thong tin dong booking_room.
+def list_booking_room_units(db: Session, booking_id: int) -> list[BookingRoomUnit]:
+    return (
+        db.query(BookingRoomUnit)
+        .join(BookingRoom, BookingRoom.id == BookingRoomUnit.booking_room_id)
+        .filter(BookingRoom.booking_id == booking_id)
+        .all()
+    )
 
 
 # Lay booking theo id.

@@ -21,7 +21,7 @@ from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
 from app.repositories.room_repository import get_room_type_by_id_for_update
 from app.schemas.bookings import BookingResponse, BookingRoomResponse, CancelBookingRequest, CreateBookingRequest
-from app.services.hotel_service import get_approved_admin_hotel
+from app.services.hotel_service import get_approved_admin_hotel, get_operational_hotel
 
 # So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
 _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
@@ -162,9 +162,9 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
     return serialize_booking(booking, rooms)
 
 
-# Xu ly Admin xem danh sach booking cua khach san minh, co the loc theo trang thai.
+# Xu ly Admin/Staff xem danh sach booking cua khach san minh, co the loc theo trang thai.
 def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingStatus | None) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operational_hotel(db, current_user)
     bookings = list_bookings_by_hotel(db, hotel.id, status_filter)
     return [serialize_booking(booking, list_booking_rooms(db, booking.id)) for booking in bookings]
 

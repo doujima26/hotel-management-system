@@ -222,6 +222,18 @@ class BookingRoom(Base):
     subtotal: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
 
 
+# Model bang booking_room_units. Moi dong = 1 suat phong trong booking_rooms.quantity,
+# ho tro gan nhieu phong vat ly rieng biet khi quantity > 1 (booking_rooms.room_id cu
+# chi gan duoc 1 phong/dong nen khong du dung cho truong hop nay).
+class BookingRoomUnit(Base):
+    __tablename__ = "booking_room_units"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    booking_room_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("booking_rooms.id", ondelete="CASCADE"), nullable=False)
+    room_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("rooms.id", ondelete="RESTRICT"))
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 # Model bang payments.
 class Payment(Base):
     __tablename__ = "payments"

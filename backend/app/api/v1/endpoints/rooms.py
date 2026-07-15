@@ -14,6 +14,7 @@ from app.schemas.rooms import (
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
 )
+from app.services.checkin_service import get_room_status_board as get_room_status_board_action
 from app.services.room_service import (
     assign_amenity_to_room_type as assign_amenity_to_room_type_action,
     create_amenity as create_amenity_action,
@@ -50,6 +51,16 @@ def room_availability_endpoint(
 ):
     data = get_room_availability_action(db, hotel_id, check_in, check_out, num_guests)
     return ok(data, "Danh sach phong trong")
+
+
+# Admin/Staff xem so do phong (trang thai tat ca phong vat ly cua khach san minh).
+@router.get("/status")
+def room_status_board(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
+):
+    data = get_room_status_board_action(db, current_user)
+    return ok(data, "So do phong")
 
 
 # Admin tao loai phong cho khach san cua minh.

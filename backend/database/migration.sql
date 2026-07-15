@@ -378,6 +378,20 @@ CREATE TABLE favorites (
     UNIQUE(user_id, hotel_id)  -- Tránh trùng lặp
 );
 
+-- -------------------------------------------------------
+-- 22. booking_room_units - Gán phòng vật lý cụ thể cho từng suất phòng
+-- trong booking_rooms.quantity, phục vụ check-in khi quantity > 1
+-- (booking_rooms.room_id cũ chỉ gán được 1 phòng/dòng nên không đủ dùng)
+-- -------------------------------------------------------
+CREATE TABLE booking_room_units (
+    id                BIGSERIAL PRIMARY KEY,
+    booking_room_id   BIGINT NOT NULL REFERENCES booking_rooms(id) ON DELETE CASCADE,
+    room_id           BIGINT REFERENCES rooms(id) ON DELETE RESTRICT,  -- Gán khi check-in, NULL truoc do
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE booking_room_units IS 'Moi dong = 1 suat phong trong booking_rooms.quantity; room_id duoc gan luc check-in. Rollback: DROP TABLE booking_room_units;';
+
 
 
 -- ============================================================
@@ -409,6 +423,10 @@ CREATE INDEX idx_favorites_user ON favorites(user_id);
 -- Nhân sự & ca làm
 CREATE INDEX idx_staff_schedules_date ON staff_schedules(staff_id, shift_date);
 CREATE INDEX idx_staff_members_hotel ON staff_members(hotel_id);
+
+-- Gán phòng khi check-in
+CREATE INDEX idx_booking_room_units_booking_room ON booking_room_units(booking_room_id);
+CREATE INDEX idx_booking_room_units_room ON booking_room_units(room_id);
 
 -- Thanh toán
 CREATE INDEX idx_payments_status ON payments(payment_status);

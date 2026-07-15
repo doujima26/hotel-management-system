@@ -30,6 +30,7 @@ class CancelBookingRequest(BaseModel):
 class BookingRoomResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     room_type_id: int
     quantity: int
     price_per_night: float

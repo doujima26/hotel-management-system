@@ -7,6 +7,7 @@ from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.bookings import CancelBookingRequest, CreateBookingRequest
+from app.schemas.checkin import CheckInRequest, CheckOutRequest
 from app.services.booking_service import (
     admin_cancel_booking as admin_cancel_booking_action,
     cancel_booking as cancel_booking_action,
@@ -15,6 +16,10 @@ from app.services.booking_service import (
     get_booking_detail as get_booking_detail_action,
     list_hotel_bookings as list_hotel_bookings_action,
     list_my_bookings as list_my_bookings_action,
+)
+from app.services.checkin_service import (
+    check_in_booking as check_in_booking_action,
+    check_out_booking as check_out_booking_action,
 )
 from app.services.payment_service import get_invoice_by_booking as get_invoice_by_booking_action
 
@@ -42,13 +47,13 @@ def list_my_bookings(
     return ok(data, "Danh sach booking")
 
 
-# Admin xem danh sach booking cua khach san minh, co the loc theo trang thai.
+# Admin/Staff xem danh sach booking cua khach san minh, co the loc theo trang thai.
 # Dat truoc route "/{booking_id}" de tranh bi route dong nuot mat.
 @router.get("/hotel")
 def list_hotel_bookings(
     status_filter: BookingStatus | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
 ):
     data = list_hotel_bookings_action(db, current_user, status_filter)
     return ok(data, "Danh sach booking cua khach san")
@@ -109,3 +114,27 @@ def cancel_booking(
 ):
     data = cancel_booking_action(db, current_user, booking_id, payload)
     return ok(data, "Huy booking thanh cong")
+
+
+# Staff check-in booking: gan phong vat ly cu the cho tung suat phong da dat.
+@router.patch("/{booking_id}/check-in")
+def check_in_booking(
+    booking_id: int,
+    payload: CheckInRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STAFF)),
+):
+    data = check_in_booking_action(db, current_user, booking_id, payload)
+    return ok(data, "Check-in thanh cong")
+
+
+# Staff check-out booking: nha lai phong ve trong.
+@router.patch("/{booking_id}/check-out")
+def check_out_booking(
+    booking_id: int,
+    payload: CheckOutRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STAFF)),
+):
+    data = check_out_booking_action(db, current_user, booking_id, payload)
+    return ok(data, "Check-out thanh cong")

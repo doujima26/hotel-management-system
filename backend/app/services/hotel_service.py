@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, HotelStatus
+from app.core.enums import DiscountType, HotelStatus, UserRole
 from app.models.entities import Hotel, HotelImage, HotelService, Promotion, User
 from app.repositories.hotel_repository import (
     create_hotel_image_record,
@@ -26,6 +26,7 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
+from app.repositories.staff_repository import get_staff_member_by_user_id
 from app.schemas.hotels import (
     CreateHotelImageRequest,
     CreateHotelRequest,
@@ -97,6 +98,28 @@ def get_approved_admin_hotel(db: Session, current_user: User) -> Hotel:
             detail="Khach san chua duoc duyet de van hanh",
         )
     return hotel
+
+
+# Lay khach san dang van hanh cua nguoi dung hien tai, dung chung cho ca Admin
+# (chu khach san) va Staff (nhan vien gan voi khach san) - dung cho cac tinh
+# nang van hanh nhu xem trang thai phong, check-in/check-out.
+def get_operational_hotel(db: Session, current_user: User) -> Hotel:
+    if current_user.role == UserRole.STAFF:
+        staff = get_staff_member_by_user_id(db, current_user.id)
+        if not staff:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tai khoan chua duoc gan lam nhan vien cua khach san nao",
+            )
+        hotel = get_hotel_by_id(db, staff.hotel_id)
+        if not hotel:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Khach san khong ton tai",
+            )
+        return hotel
+
+    return get_approved_admin_hotel(db, current_user)
 
 
 # Kiem tra khuyen mai co du lieu hop le.
