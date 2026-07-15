@@ -512,21 +512,23 @@ CREATE TRIGGER trg_reviews_update_rating
     FOR EACH ROW EXECUTE FUNCTION fn_update_hotel_rating();
 
 -- -------------------------------------------------------
--- Trigger: Log thay đổi trạng thái phòng
--- -------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_log_room_status_change()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF OLD.status IS DISTINCT FROM NEW.status THEN
-        INSERT INTO room_status_logs (room_id, previous_status, new_status)
-        VALUES (NEW.id, OLD.status::VARCHAR, NEW.status::VARCHAR);
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_rooms_status_log
-    AFTER UPDATE ON rooms FOR EACH ROW EXECUTE FUNCTION fn_log_room_status_change();
+-- (Đã bỏ) Trigger: Log thay đổi trạng thái phòng
+-- Trước đây có trg_rooms_status_log + fn_log_room_status_change tự ghi
+-- room_status_logs khi rooms.status đổi, nhưng trigger không biết changed_by/reason
+-- (luôn NULL) trong khi code check-in/check-out (checkin_service.py) đã tự ghi log
+-- đầy đủ ngữ cảnh hơn -> gây ghi trùng 2 dòng/lần đổi trạng thái. Đã bỏ trigger,
+-- giữ lại đúng 1 nơi ghi log (application code). Rollback nếu cần khôi phục trigger:
+-- CREATE OR REPLACE FUNCTION fn_log_room_status_change() RETURNS TRIGGER AS $$
+-- BEGIN
+--     IF OLD.status IS DISTINCT FROM NEW.status THEN
+--         INSERT INTO room_status_logs (room_id, previous_status, new_status)
+--         VALUES (NEW.id, OLD.status::VARCHAR, NEW.status::VARCHAR);
+--     END IF;
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+-- CREATE TRIGGER trg_rooms_status_log
+--     AFTER UPDATE ON rooms FOR EACH ROW EXECUTE FUNCTION fn_log_room_status_change();
 
 -- ============================================================
 -- HOÀN TẤT MIGRATION
