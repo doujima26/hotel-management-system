@@ -1,6 +1,8 @@
-from datetime import date
+from datetime import date, time
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.core.enums import ShiftType
 
 
 # Schema du lieu dau vao cho Admin tao nhan vien moi.
@@ -35,3 +37,34 @@ class StaffMemberResponse(BaseModel):
 # Schema du lieu tra ve sau khi tao nhan vien, kem mat khau tam (mock, chua gui mail that).
 class CreateStaffResponse(StaffMemberResponse):
     temp_password_mock: str
+
+
+# Schema du lieu dau vao cho Admin xep ca lam viec cho nhan vien.
+class CreateStaffScheduleRequest(BaseModel):
+    shift_date: date
+    shift_type: ShiftType
+    start_time: time
+    end_time: time
+    notes: str | None = None
+
+
+# Schema du lieu dau vao cho Admin cap nhat ca lam viec.
+class UpdateStaffScheduleRequest(BaseModel):
+    shift_date: date | None = None
+    shift_type: ShiftType | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    notes: str | None = None
+
+
+# Schema du lieu tra ve 1 ca lam viec.
+class StaffScheduleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    staff_id: int
+    shift_date: date
+    shift_type: ShiftType
+    start_time: time
+    end_time: time
+    notes: str | None = None
