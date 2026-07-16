@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { RequireAuth } from "@/components/shared/RequireAuth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { formatDate, formatMoney } from "@/lib/utils/format";
+import { bookingsApi } from "@/lib/api/bookings";
+import { BOOKING_STATUS_LABELS } from "@/types/enums";
+import { ApiError } from "@/types/api";
+
+export default function BookingsPage() {
+  return (
+    <RequireAuth allow={["user"]}>
+      <BookingsList />
+    </RequireAuth>
+  );
+}
+
+function BookingsList() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["my-bookings"],
+    queryFn: () => bookingsApi.listMine(),
+  });
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8">
+      <h1 className="text-2xl font-semibold">Booking cua toi</h1>
+      {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+      {error && (
+        <p className="text-sm text-destructive">
+          {error instanceof ApiError ? error.message : "Khong the tai danh sach booking"}
+        </p>
+      )}
+      <div className="flex flex-col gap-3">
+        {data?.map((booking) => (
+          <Link key={booking.id} href={`/bookings/${booking.id}`}>
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>{booking.booking_code}</CardTitle>
+                  <Badge variant="secondary">{BOOKING_STATUS_LABELS[booking.status]}</Badge>
+                </div>
+                <CardDescription>
+                  {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Tong tien: {formatMoney(booking.total_amount)}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+        {data && data.length === 0 && <p className="text-center text-muted-foreground">Ban chua co booking nao.</p>}
+      </div>
+    </div>
+  );
+}
