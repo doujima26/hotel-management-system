@@ -1,0 +1,89 @@
+from datetime import date, datetime, time, timezone
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.core.enums import BookingStatus, PaymentStatus
+from app.models.entities import Booking, BookingRoom, BookingService, HotelService, Payment, RoomType, User
+
+# Cac trang thai booking khong tinh vao doanh thu/ty le lap day.
+_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
+
+
+# Chuyen 1 khoang ngay thanh khoang datetime co timezone de loc theo cot TIMESTAMPTZ.
+def _to_datetime_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
+    start = datetime.combine(from_date, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(to_date, time.max, tzinfo=timezone.utc)
+    return start, end
+
+
+# Tong tien da thu (payment completed) trong khoang ngay, loc theo khach san neu co.
+def get_revenue(db: Session, from_date: date, to_date: date, hotel_id: int | None = None) -> float:
+    start, end = _to_datetime_range(from_date, to_date)
+    query = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.payment_status == PaymentStatus.COMPLETED,
+        Payment.paid_at >= start,
+        Payment.paid_at <= end,
+    )
+    if hotel_id is not None:
+        query = query.join(Booking, Booking.id == Payment.booking_id).filter(Booking.hotel_id == hotel_id)
+    return float(query.scalar() or 0)
+
+
+# Tong so phong (theo cong suat room_types.total_rooms) cua 1 khach san.
+def get_total_room_capacity(db: Session, hotel_id: int) -> int:
+    return int(db.query(func.coalesce(func.sum(RoomType.total_rooms), 0)).filter(RoomType.hotel_id == hotel_id).scalar() or 0)
+
+
+# Lay danh sach (check_in_date, check_out_date, quantity) cua cac booking con hieu luc,
+# giao voi khoang ngay, dung de tinh ty le lap day.
+def list_active_booking_rooms_in_range(db: Session, hotel_id: int, from_date: date, to_date: date) -> list[tuple[date, date, int]]:
+    return (
+        db.query(Booking.check_in_date, Booking.check_out_date, BookingRoom.quantity)
+        .join(BookingRoom, BookingRoom.booking_id == Booking.id)
+        .filter(
+            Booking.hotel_id == hotel_id,
+            Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
+            Booking.check_in_date <= to_date,
+            Booking.check_out_date > from_date,
+        )
+        .all()
+    )
+
+
+# Dem so booking duoc tao trong khoang ngay, loc theo khach san neu co.
+def count_bookings_created(db: Session, from_date: date, to_date: date, hotel_id: int | None = None) -> int:
+    start, end = _to_datetime_range(from_date, to_date)
+    query = db.query(func.count(Booking.id)).filter(Booking.created_at >= start, Booking.created_at <= end)
+    if hotel_id is not None:
+        query = query.filter(Booking.hotel_id == hotel_id)
+    return int(query.scalar() or 0)
+
+
+# Dem so tai khoan moi dang ky trong khoang ngay.
+def count_new_users(db: Session, from_date: date, to_date: date) -> int:
+    start, end = _to_datetime_range(from_date, to_date)
+    return int(db.query(func.count(User.id)).filter(User.created_at >= start, User.created_at <= end).scalar() or 0)
+
+
+# Xep hang dich vu duoc su dung nhieu nhat cua 1 khach san trong khoang ngay.
+def get_top_services(db: Session, hotel_id: int, from_date: date, to_date: date, limit: int = 5) -> list[tuple[int, str, int, float]]:
+    start, end = _to_datetime_range(from_date, to_date)
+    return (
+        db.query(
+            HotelService.id,
+            HotelService.name,
+            func.coalesce(func.sum(BookingService.quantity), 0),
+            func.coalesce(func.sum(BookingService.subtotal), 0),
+        )
+        .join(BookingService, BookingService.service_id == HotelService.id)
+        .filter(
+            HotelService.hotel_id == hotel_id,
+            BookingService.used_at >= start,
+            BookingService.used_at <= end,
+        )
+        .group_by(HotelService.id, HotelService.name)
+        .order_by(func.sum(BookingService.quantity).desc())
+        .limit(limit)
+        .all()
+    )
