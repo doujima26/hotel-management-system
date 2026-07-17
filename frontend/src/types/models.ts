@@ -1,4 +1,4 @@
-import type { BookingStatus, HotelStatus, PaymentMethod, PaymentStatus, UserRole } from "./enums";
+import type { BookingStatus, DiscountType, HotelStatus, PaymentMethod, PaymentStatus, RoomStatus, UserRole } from "./enums";
 
 export interface User {
   id: number;
@@ -212,4 +212,85 @@ export interface PlatformDashboard {
   total_bookings: number;
   new_users_count: number;
   hotel: HotelDashboard | null;
+}
+
+export interface HotelServiceItem {
+  id: number;
+  hotel_id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  unit: string | null;
+  is_active: boolean;
+}
+
+export interface Promotion {
+  id: number;
+  hotel_id: number;
+  name: string;
+  description: string | null;
+  discount_type: DiscountType;
+  discount_value: number;
+  min_booking_amount: number | null;
+  max_discount_amount: number | null;
+  start_date: string;
+  end_date: string;
+  usage_limit: number | null;
+  used_count: number;
+  is_active: boolean;
+}
+
+export interface DeleteHotelImageResult {
+  id: number;
+}
+
+export interface RoomType {
+  id: number;
+  hotel_id: number;
+  name: string;
+  base_price: number;
+  max_guests: number;
+  total_rooms: number;
+  is_active: boolean;
+}
+
+export interface RoomItem {
+  id: number;
+  room_type_id: number;
+  room_number: string;
+  floor: number | null;
+  status: RoomStatus;
+  is_active: boolean;
+}
+
+export interface RoomListResult {
+  items: RoomItem[];
+  current_rooms: number;
+  max_rooms: number;
+  remaining_rooms: number;
+}
+
+export interface Amenity {
+  id: number;
+  hotel_id: number;
+  name: string;
+  icon: string | null;
+  category: string | null;
+}
+
+export interface RoomTypeAmenityLinkResult {
+  room_type_id: number;
+  amenity_id: number;
+}
+
+export interface RoomTypeImage {
+  id: number;
+  room_type_id: number;
+  image_url: string;
+  is_primary: boolean;
+  sort_order: number;
+}
+
+export interface DeleteRoomTypeImageResult {
+  id: number;
 }

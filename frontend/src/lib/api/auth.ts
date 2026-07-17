@@ -19,9 +19,12 @@ export interface VerifyAccountPayload {
 }
 
 export const authApi = {
-  // role luon la "user" o Milestone 1 - form dang ky khach hang khong duoc chon role.
+  // role luon la "user" - form dang ky khach hang cong khai khong duoc chon role.
   register: (payload: RegisterPayload) =>
     apiFetch<RegisterResult>("/auth/register", { method: "POST", body: { ...payload, role: "user" } }),
+  // role luon la "admin" - chi goi tu /admin/register (dang ky chu khach san), khong dung chung form khach hang.
+  registerAdmin: (payload: RegisterPayload) =>
+    apiFetch<RegisterResult>("/auth/register", { method: "POST", body: { ...payload, role: "admin" } }),
   login: (payload: LoginPayload) => apiFetch<LoginResult>("/auth/login", { method: "POST", body: payload }),
   me: () => apiFetch<User>("/auth/me", { auth: true }),
   verifyAccount: (payload: VerifyAccountPayload) =>
