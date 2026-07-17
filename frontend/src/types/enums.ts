@@ -24,6 +24,13 @@ export type ShiftType = "morning" | "afternoon" | "night";
 
 export type CheckType = "check_in" | "check_out";
 
+export const HOTEL_STATUS_LABELS: Record<HotelStatus, string> = {
+  pending: "Cho duyet",
+  approved: "Da duyet",
+  rejected: "Tu choi",
+  suspended: "Tam dung",
+};
+
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Cho xac nhan",
   confirmed: "Da xac nhan",

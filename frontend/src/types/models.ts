@@ -1,4 +1,4 @@
-import type { BookingStatus, PaymentMethod, PaymentStatus, UserRole } from "./enums";
+import type { BookingStatus, HotelStatus, PaymentMethod, PaymentStatus, UserRole } from "./enums";
 
 export interface User {
   id: number;
@@ -142,4 +142,74 @@ export interface Invoice {
 export interface PayBookingResult {
   payment: Payment;
   invoice: Invoice;
+}
+
+export interface AdminHotel {
+  id: number;
+  owner_id: number;
+  name: string;
+  description: string | null;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string | null;
+  email: string | null;
+  star_rating: number | null;
+  avg_rating: number;
+  total_reviews: number;
+  status: HotelStatus;
+  rejection_reason: string | null;
+}
+
+export interface AdminHotelListResult {
+  items: AdminHotel[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface AdminUserListResult {
+  items: User[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface ReviewHotelResult {
+  id: number;
+  status: HotelStatus;
+  rejection_reason: string | null;
+}
+
+export interface SetUserActiveResult {
+  user_id: number;
+  email: string;
+  is_active: boolean;
+}
+
+export interface TopServiceItem {
+  service_id: number;
+  service_name: string;
+  total_quantity: number;
+  total_revenue: number;
+}
+
+export interface HotelDashboard {
+  hotel_id: number;
+  from_date: string;
+  to_date: string;
+  revenue: number;
+  occupancy_rate: number;
+  top_services: TopServiceItem[];
+}
+
+export interface PlatformDashboard {
+  from_date: string;
+  to_date: string;
+  total_revenue: number;
+  total_bookings: number;
+  new_users_count: number;
+  hotel: HotelDashboard | null;
 }
