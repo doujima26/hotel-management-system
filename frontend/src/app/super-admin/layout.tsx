@@ -6,8 +6,8 @@ import { RequireAuth } from "@/components/shared/RequireAuth";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: "/super-admin/hotels", label: "Khach san" },
-  { href: "/super-admin/users", label: "Nguoi dung" },
+  { href: "/super-admin/hotels", label: "Khách sạn" },
+  { href: "/super-admin/users", label: "Người dùng" },
   { href: "/super-admin/dashboard", label: "Dashboard" },
 ];
 
@@ -25,7 +25,7 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <div>
-        <h1 className="text-2xl font-semibold">Quan tri nen tang</h1>
+        <h1 className="text-2xl font-semibold">Quản trị nền tảng</h1>
         <nav className="mt-3 flex gap-2 border-b pb-2">
           {TABS.map((tab) => (
             <Link

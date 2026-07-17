@@ -26,11 +26,11 @@ function BookingsList() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8">
-      <h1 className="text-2xl font-semibold">Booking cua toi</h1>
-      {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+      <h1 className="text-2xl font-semibold">Booking của tôi</h1>
+      {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Khong the tai danh sach booking"}
+          {error instanceof ApiError ? error.message : "Không thể tải danh sách booking"}
         </p>
       )}
       <div className="flex flex-col gap-3">
@@ -47,12 +47,12 @@ function BookingsList() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Tong tien: {formatMoney(booking.total_amount)}</p>
+                <p className="text-sm text-muted-foreground">Tổng tiền: {formatMoney(booking.total_amount)}</p>
               </CardContent>
             </Card>
           </Link>
         ))}
-        {data && data.length === 0 && <p className="text-center text-muted-foreground">Ban chua co booking nao.</p>}
+        {data && data.length === 0 && <p className="text-center text-muted-foreground">Bạn chưa có booking nào.</p>}
       </div>
     </div>
   );

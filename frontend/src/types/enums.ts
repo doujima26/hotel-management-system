@@ -25,24 +25,24 @@ export type ShiftType = "morning" | "afternoon" | "night";
 export type CheckType = "check_in" | "check_out";
 
 export const HOTEL_STATUS_LABELS: Record<HotelStatus, string> = {
-  pending: "Cho duyet",
-  approved: "Da duyet",
-  rejected: "Tu choi",
-  suspended: "Tam dung",
+  pending: "Chờ duyệt",
+  approved: "Đã duyệt",
+  rejected: "Từ chối",
+  suspended: "Tạm dừng",
 };
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
-  pending: "Cho xac nhan",
-  confirmed: "Da xac nhan",
-  checked_in: "Dang luu tru",
-  checked_out: "Da tra phong",
-  cancelled: "Da huy",
-  no_show: "Khong den",
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  checked_in: "Đang lưu trú",
+  checked_out: "Đã trả phòng",
+  cancelled: "Đã hủy",
+  no_show: "Không đến",
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   zalopay: "ZaloPay",
   momo: "MoMo",
-  credit_card: "The tin dung",
-  bank_transfer: "Chuyen khoan",
+  credit_card: "Thẻ tín dụng",
+  bank_transfer: "Chuyển khoản",
 };

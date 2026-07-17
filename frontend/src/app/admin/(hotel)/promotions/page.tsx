@@ -25,8 +25,8 @@ import type { Promotion } from "@/types/models";
 import { useAdminHotel } from "../layout";
 
 const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
-  percentage: "Phan tram",
-  fixed_amount: "So tien co dinh",
+  percentage: "Phần trăm",
+  fixed_amount: "Số tiền cố định",
 };
 
 export default function AdminPromotionsPage() {
@@ -66,14 +66,14 @@ export default function AdminPromotionsPage() {
         start_date: startDate,
         end_date: endDate,
       });
-      toast.success("Tao khuyen mai thanh cong");
+      toast.success("Tạo khuyến mãi thành công");
       setName("");
       setDiscountValue("");
       setStartDate("");
       setEndDate("");
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tao khuyen mai that bai");
+      setFormError(err instanceof ApiError ? err.message : "Tạo khuyến mãi thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +84,7 @@ export default function AdminPromotionsPage() {
       await hotelsApi.updatePromotion(promotion.id, { is_active: !promotion.is_active });
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     }
   }
 
@@ -99,11 +99,11 @@ export default function AdminPromotionsPage() {
         start_date: values.start_date,
         end_date: values.end_date,
       });
-      toast.success("Cap nhat khuyen mai thanh cong");
+      toast.success("Cập nhật khuyến mãi thành công");
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setEditSubmitting(false);
     }
@@ -113,32 +113,34 @@ export default function AdminPromotionsPage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tao khuyen mai</CardTitle>
+          <CardTitle>Tạo khuyến mãi</CardTitle>
           <CardDescription>
-            {approved ? "Ap dung tren tong gia tri booking cua khach san." : "Khach san can duoc duyet truoc khi tao khuyen mai."}
+            {approved
+              ? "Áp dụng trên tổng giá trị booking của khách sạn."
+              : "Khách sạn cần được duyệt trước khi tạo khuyến mãi."}
           </CardDescription>
         </CardHeader>
         {approved && (
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo_name">Ten khuyen mai</Label>
+                <Label htmlFor="promo_name">Tên khuyến mãi</Label>
                 <Input id="promo_name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo_type">Loai giam gia</Label>
+                <Label htmlFor="promo_type">Loại giảm giá</Label>
                 <Select value={discountType} onValueChange={(v) => setDiscountType(v as DiscountType)}>
                   <SelectTrigger id="promo_type" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">Phan tram (%)</SelectItem>
-                    <SelectItem value="fixed_amount">So tien co dinh (VND)</SelectItem>
+                    <SelectItem value="percentage">Phần trăm (%)</SelectItem>
+                    <SelectItem value="fixed_amount">Số tiền cố định (VND)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo_value">Gia tri giam</Label>
+                <Label htmlFor="promo_value">Giá trị giảm</Label>
                 <Input
                   id="promo_value"
                   type="number"
@@ -149,11 +151,11 @@ export default function AdminPromotionsPage() {
               </div>
               <div />
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo_start">Ngay bat dau</Label>
+                <Label htmlFor="promo_start">Ngày bắt đầu</Label>
                 <Input id="promo_start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo_end">Ngay ket thuc</Label>
+                <Label htmlFor="promo_end">Ngày kết thúc</Label>
                 <Input id="promo_end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
             </div>
@@ -163,7 +165,7 @@ export default function AdminPromotionsPage() {
               disabled={submitting || !name.trim() || !discountValue || !startDate || !endDate}
               className="self-start"
             >
-              {submitting ? "Dang tao..." : "Tao khuyen mai"}
+              {submitting ? "Đang tạo..." : "Tạo khuyến mãi"}
             </Button>
           </CardContent>
         )}
@@ -171,11 +173,11 @@ export default function AdminPromotionsPage() {
 
       {approved && (
         <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Danh sach khuyen mai</h2>
-          {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+          <h2 className="text-lg font-semibold">Danh sách khuyến mãi</h2>
+          {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Khong the tai danh sach khuyen mai"}
+              {error instanceof ApiError ? error.message : "Không thể tải danh sách khuyến mãi"}
             </p>
           )}
           {promotions?.map((promotion) => (
@@ -184,7 +186,7 @@ export default function AdminPromotionsPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle>{promotion.name}</CardTitle>
                   <Badge variant={promotion.is_active ? "secondary" : "destructive"}>
-                    {promotion.is_active ? "Dang ap dung" : "Da tat"}
+                    {promotion.is_active ? "Đang áp dụng" : "Đã tắt"}
                   </Badge>
                 </div>
                 <CardDescription>
@@ -192,25 +194,25 @@ export default function AdminPromotionsPage() {
                   {promotion.discount_type === "percentage"
                     ? `${promotion.discount_value}%`
                     : formatMoney(promotion.discount_value)}{" "}
-                  · {formatDate(promotion.start_date)} - {formatDate(promotion.end_date)} · Da dung {promotion.used_count} lan
+                  · {formatDate(promotion.start_date)} - {formatDate(promotion.end_date)} · Đã dùng {promotion.used_count} lần
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setEditing(promotion)}>
-                  Sua
+                  Sửa
                 </Button>
                 <Button
                   size="sm"
                   variant={promotion.is_active ? "destructive" : "default"}
                   onClick={() => handleToggleActive(promotion)}
                 >
-                  {promotion.is_active ? "Tat" : "Bat lai"}
+                  {promotion.is_active ? "Tắt" : "Bật lại"}
                 </Button>
               </CardContent>
             </Card>
           ))}
           {promotions && promotions.length === 0 && (
-            <p className="text-center text-muted-foreground">Chua co khuyen mai nao.</p>
+            <p className="text-center text-muted-foreground">Chưa có khuyến mãi nào.</p>
           )}
         </div>
       )}
@@ -250,25 +252,25 @@ function EditPromotionDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Sua khuyen mai</DialogTitle>
-          <DialogDescription>Cap nhat thong tin khuyen mai.</DialogDescription>
+          <DialogTitle>Sửa khuyến mãi</DialogTitle>
+          <DialogDescription>Cập nhật thông tin khuyến mãi.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_promo_name">Ten khuyen mai</Label>
+            <Label htmlFor="edit_promo_name">Tên khuyến mãi</Label>
             <Input id="edit_promo_name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_promo_value">Gia tri giam</Label>
+            <Label htmlFor="edit_promo_value">Giá trị giảm</Label>
             <Input id="edit_promo_value" type="number" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_promo_start">Ngay bat dau</Label>
+              <Label htmlFor="edit_promo_start">Ngày bắt đầu</Label>
               <Input id="edit_promo_start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_promo_end">Ngay ket thuc</Label>
+              <Label htmlFor="edit_promo_end">Ngày kết thúc</Label>
               <Input id="edit_promo_end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
@@ -276,10 +278,10 @@ function EditPromotionDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Huy
+            Hủy
           </Button>
           <Button onClick={() => onSave({ name, discount_value: discountValue, start_date: startDate, end_date: endDate })} disabled={submitting}>
-            Luu
+            Lưu
           </Button>
         </DialogFooter>
       </DialogContent>

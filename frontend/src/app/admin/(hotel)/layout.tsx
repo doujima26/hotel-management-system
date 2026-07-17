@@ -18,17 +18,17 @@ const AdminHotelContext = createContext<AdminHotel | null>(null);
 export function useAdminHotel(): AdminHotel {
   const hotel = useContext(AdminHotelContext);
   if (!hotel) {
-    throw new Error("useAdminHotel phai duoc goi ben trong AdminHotelLayout sau khi da co khach san");
+    throw new Error("useAdminHotel phải được gọi bên trong AdminHotelLayout sau khi đã có khách sạn");
   }
   return hotel;
 }
 
 const TABS = [
-  { href: "/admin/hotel-profile", label: "Ho so khach san" },
-  { href: "/admin/room-types", label: "Loai phong" },
-  { href: "/admin/amenities", label: "Tien nghi" },
-  { href: "/admin/services", label: "Dich vu" },
-  { href: "/admin/promotions", label: "Khuyen mai" },
+  { href: "/admin/hotel-profile", label: "Hồ sơ khách sạn" },
+  { href: "/admin/room-types", label: "Loại phòng" },
+  { href: "/admin/amenities", label: "Tiện nghi" },
+  { href: "/admin/services", label: "Dịch vụ" },
+  { href: "/admin/promotions", label: "Khuyến mãi" },
 ];
 
 export default function AdminHotelLayout({ children }: { children: React.ReactNode }) {
@@ -62,7 +62,7 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
   }, [isLoading, noHotelYet, hotel, pathname, router]);
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Dang tai...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Đang tải...</div>;
   }
 
   if (noHotelYet) {
@@ -72,13 +72,13 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
     if (pathname === "/admin/onboarding") {
       return <div className="mx-auto max-w-2xl px-4 py-8">{children}</div>;
     }
-    return <div className="p-8 text-center text-muted-foreground">Dang chuyen huong...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Đang chuyển hướng...</div>;
   }
 
   if (error) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 text-center text-destructive">
-        {error instanceof ApiError ? error.message : "Khong the tai thong tin khach san"}
+        {error instanceof ApiError ? error.message : "Không thể tải thông tin khách sạn"}
       </div>
     );
   }
@@ -99,18 +99,18 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
           </div>
           {hotel.status === "pending" && (
             <p className="mt-1 text-sm text-muted-foreground">
-              Khach san dang cho Super Admin duyet. Sau khi duyet, ban moi tao duoc loai phong, tien nghi, dich vu,
-              khuyen mai va anh.
+              Khách sạn đang chờ Super Admin duyệt. Sau khi duyệt, bạn mới tạo được loại phòng, tiện nghi, dịch vụ,
+              khuyến mãi và ảnh.
             </p>
           )}
           {hotel.status === "rejected" && (
             <p className="mt-1 text-sm text-destructive">
-              Khach san bi tu choi{hotel.rejection_reason ? `: ${hotel.rejection_reason}` : "."} Vui long cap nhat
-              thong tin va lien he quan tri vien.
+              Khách sạn bị từ chối{hotel.rejection_reason ? `: ${hotel.rejection_reason}` : "."} Vui lòng cập nhật
+              thông tin và liên hệ quản trị viên.
             </p>
           )}
           {hotel.status === "suspended" && (
-            <p className="mt-1 text-sm text-destructive">Khach san dang bi tam dung hoat dong boi quan tri vien.</p>
+            <p className="mt-1 text-sm text-destructive">Khách sạn đang bị tạm dừng hoạt động bởi quản trị viên.</p>
           )}
           <nav className="mt-4 flex flex-wrap gap-2 border-b pb-2">
             {TABS.map((tab) => (

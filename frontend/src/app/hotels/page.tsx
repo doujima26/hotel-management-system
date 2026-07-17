@@ -38,7 +38,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       page_size: 10,
     });
   } catch (err) {
-    errorMessage = err instanceof ApiError ? err.message : "Khong the tai danh sach khach san";
+    errorMessage = err instanceof ApiError ? err.message : "Không thể tải danh sách khách sạn";
   }
 
   function buildPageHref(targetPage: number) {
@@ -59,23 +59,23 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
         className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-5"
       >
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="city">Thanh pho</Label>
-          <Input id="city" name="city" defaultValue={city} placeholder="Vi du: Da Nang" />
+          <Label htmlFor="city">Thành phố</Label>
+          <Input id="city" name="city" defaultValue={city} placeholder="Ví dụ: Đà Nẵng" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_in">Nhan phong</Label>
+          <Label htmlFor="check_in">Nhận phòng</Label>
           <Input id="check_in" name="check_in" type="date" defaultValue={checkIn} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_out">Tra phong</Label>
+          <Label htmlFor="check_out">Trả phòng</Label>
           <Input id="check_out" name="check_out" type="date" defaultValue={checkOut} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="num_guests">So khach</Label>
+          <Label htmlFor="num_guests">Số khách</Label>
           <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={numGuests} />
         </div>
         <Button type="submit" className="self-end">
-          Tim kiem
+          Tìm kiếm
         </Button>
       </form>
 
@@ -83,7 +83,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
 
       {result && (
         <>
-          <p className="text-sm text-muted-foreground">Tim thay {result.total} khach san</p>
+          <p className="text-sm text-muted-foreground">Tìm thấy {result.total} khách sạn</p>
           <div className="flex flex-col gap-4">
             {result.items.map((hotel) => {
               const detailQs = new URLSearchParams();
@@ -107,7 +107,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
-                        {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} danh gia)
+                        {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} đánh giá)
                       </p>
                     </CardContent>
                   </Card>
@@ -115,7 +115,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
               );
             })}
             {result.items.length === 0 && (
-              <p className="text-center text-muted-foreground">Khong tim thay khach san phu hop.</p>
+              <p className="text-center text-muted-foreground">Không tìm thấy khách sạn phù hợp.</p>
             )}
           </div>
 
@@ -126,7 +126,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
                 aria-disabled={page <= 1}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), page <= 1 && "pointer-events-none opacity-50")}
               >
-                Truoc
+                Trước
               </Link>
               <span className="text-sm text-muted-foreground">
                 Trang {result.page} / {result.total_pages}

@@ -29,7 +29,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
   } catch (err) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-center text-destructive">
-        {err instanceof ApiError ? err.message : "Khong tim thay khach san"}
+        {err instanceof ApiError ? err.message : "Không tìm thấy khách sạn"}
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
         num_guests: numGuests ? Number(numGuests) : undefined,
       });
     } catch (err) {
-      availabilityError = err instanceof ApiError ? err.message : "Khong the tai tinh trang phong trong";
+      availabilityError = err instanceof ApiError ? err.message : "Không thể tải tình trạng phòng trống";
     }
   }
 
@@ -56,7 +56,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <div>
         <Link href="/hotels" className="text-sm text-muted-foreground hover:text-foreground">
-          &larr; Quay lai tim kiem
+          &larr; Quay lại tìm kiếm
         </Link>
       </div>
 
@@ -77,7 +77,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           {hotel.star_rating ? `${hotel.star_rating} sao - ` : ""}
-          {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} danh gia)
+          {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} đánh giá)
         </p>
         {hotel.description && <p className="mt-3 text-sm">{hotel.description}</p>}
       </div>
@@ -86,27 +86,27 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
 
       <form className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_in">Nhan phong</Label>
+          <Label htmlFor="check_in">Nhận phòng</Label>
           <Input id="check_in" name="check_in" type="date" defaultValue={checkIn} required />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_out">Tra phong</Label>
+          <Label htmlFor="check_out">Trả phòng</Label>
           <Input id="check_out" name="check_out" type="date" defaultValue={checkOut} required />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="num_guests">So khach</Label>
+          <Label htmlFor="num_guests">Số khách</Label>
           <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={numGuests} />
         </div>
         <Button type="submit" className="self-end">
-          Xem phong trong
+          Xem phòng trống
         </Button>
       </form>
 
       <div className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Loai phong</h2>
+        <h2 className="text-lg font-semibold">Loại phòng</h2>
 
         {!hasDateRange && (
-          <p className="text-sm text-muted-foreground">Chon ngay nhan/tra phong de xem phong con trong va gia.</p>
+          <p className="text-sm text-muted-foreground">Chọn ngày nhận/trả phòng để xem phòng còn trống và giá.</p>
         )}
         {availabilityError && <p className="text-sm text-destructive">{availabilityError}</p>}
 
@@ -125,24 +125,24 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>{room.name}</CardTitle>
-                      <span className="font-semibold">{formatMoney(room.base_price)}/dem</span>
+                      <span className="font-semibold">{formatMoney(room.base_price)}/đêm</span>
                     </div>
-                    <CardDescription>Toi da {room.max_guests} khach/phong</CardDescription>
+                    <CardDescription>Tối đa {room.max_guests} khách/phòng</CardDescription>
                   </CardHeader>
                   <CardContent className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">
-                      {canBook ? `Con trong ${room.available_rooms}/${room.total_rooms} phong` : "Het phong trong"}
+                      {canBook ? `Còn trống ${room.available_rooms}/${room.total_rooms} phòng` : "Hết phòng trống"}
                     </span>
                     {canBook ? (
                       <Link
                         href={`/checkout/${id}?${bookQs.toString()}`}
                         className={cn(buttonVariants({ size: "sm" }))}
                       >
-                        Dat phong
+                        Đặt phòng
                       </Link>
                     ) : (
                       <Button size="sm" disabled>
-                        Het phong
+                        Hết phòng
                       </Button>
                     )}
                   </CardContent>
@@ -150,7 +150,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
               );
             })}
             {availability.items.length === 0 && (
-              <p className="text-center text-muted-foreground">Khach san chua co loai phong nao.</p>
+              <p className="text-center text-muted-foreground">Khách sạn chưa có loại phòng nào.</p>
             )}
           </div>
         )}

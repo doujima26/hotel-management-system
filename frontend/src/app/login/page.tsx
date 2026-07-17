@@ -39,10 +39,10 @@ function LoginForm() {
     try {
       const result = await authApi.login(values);
       applyLoginResult(result);
-      toast.success("Dang nhap thanh cong");
+      toast.success("Đăng nhập thành công");
       router.push(next || getRoleHomePath(result.user.role));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Dang nhap that bai");
+      toast.error(err instanceof ApiError ? err.message : "Đăng nhập thất bại");
     }
   }
 
@@ -50,8 +50,8 @@ function LoginForm() {
     <div className="mx-auto flex max-w-sm flex-col gap-4 px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle>Dang nhap</CardTitle>
-          <CardDescription>Dang nhap de dat phong va quan ly booking cua ban.</CardDescription>
+          <CardTitle>Đăng nhập</CardTitle>
+          <CardDescription>Đăng nhập để đặt phòng và quản lý booking của bạn.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -61,18 +61,18 @@ function LoginForm() {
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Mat khau</Label>
+              <Label htmlFor="password">Mật khẩu</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Dang xu ly..." : "Dang nhap"}
+              {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Chua co tai khoan?{" "}
+            Chưa có tài khoản?{" "}
             <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-              Dang ky
+              Đăng ký
             </Link>
           </p>
         </CardContent>

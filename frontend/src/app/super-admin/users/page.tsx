@@ -15,22 +15,22 @@ import type { UserRole } from "@/types/enums";
 const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: "Super Admin",
   admin: "Admin",
-  staff: "Nhan vien",
-  user: "Khach hang",
+  staff: "Nhân viên",
+  user: "Khách hàng",
 };
 
 const ROLE_OPTIONS: { value: UserRole | "all"; label: string }[] = [
-  { value: "all", label: "Tat ca vai tro" },
-  { value: "user", label: "Khach hang" },
+  { value: "all", label: "Tất cả vai trò" },
+  { value: "user", label: "Khách hàng" },
   { value: "admin", label: "Admin" },
-  { value: "staff", label: "Nhan vien" },
+  { value: "staff", label: "Nhân viên" },
   { value: "super_admin", label: "Super Admin" },
 ];
 
 const ACTIVE_OPTIONS: { value: "all" | "active" | "inactive"; label: string }[] = [
-  { value: "all", label: "Tat ca trang thai" },
-  { value: "active", label: "Dang hoat dong" },
-  { value: "inactive", label: "Da khoa" },
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "active", label: "Đang hoạt động" },
+  { value: "inactive", label: "Đã khóa" },
 ];
 
 export default function SuperAdminUsersPage() {
@@ -57,10 +57,10 @@ export default function SuperAdminUsersPage() {
     setBusyUserId(userId);
     try {
       await adminApi.setUserActive(userId, nextActive);
-      toast.success(nextActive ? "Da mo khoa tai khoan" : "Da khoa tai khoan");
+      toast.success(nextActive ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản");
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setBusyUserId(null);
     }
@@ -69,7 +69,7 @@ export default function SuperAdminUsersPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Quan ly nguoi dung</h2>
+        <h2 className="text-lg font-semibold">Quản lý người dùng</h2>
         <div className="flex gap-2">
           <Select
             value={roleFilter}
@@ -110,10 +110,10 @@ export default function SuperAdminUsersPage() {
         </div>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+      {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Khong the tai danh sach nguoi dung"}
+          {error instanceof ApiError ? error.message : "Không thể tải danh sách người dùng"}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
@@ -127,14 +127,14 @@ export default function SuperAdminUsersPage() {
                 <div className="flex gap-2">
                   <Badge variant="outline">{ROLE_LABELS[user.role]}</Badge>
                   <Badge variant={user.is_active ? "secondary" : "destructive"}>
-                    {user.is_active ? "Dang hoat dong" : "Da khoa"}
+                    {user.is_active ? "Đang hoạt động" : "Đã khóa"}
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {user.email} {user.is_verified ? "" : "- chua xac thuc"}
+                {user.email} {user.is_verified ? "" : "- chưa xác thực"}
               </span>
               <Button
                 size="sm"
@@ -142,13 +142,13 @@ export default function SuperAdminUsersPage() {
                 onClick={() => handleToggleActive(user.id, !user.is_active)}
                 disabled={busyUserId === user.id}
               >
-                {user.is_active ? "Khoa" : "Mo khoa"}
+                {user.is_active ? "Khóa" : "Mở khóa"}
               </Button>
             </CardContent>
           </Card>
         ))}
         {data && data.items.length === 0 && (
-          <p className="text-center text-muted-foreground">Khong co nguoi dung nao phu hop.</p>
+          <p className="text-center text-muted-foreground">Không có người dùng nào phù hợp.</p>
         )}
       </div>
 
@@ -160,7 +160,7 @@ export default function SuperAdminUsersPage() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), page <= 1 && "pointer-events-none opacity-50")}
           >
-            Truoc
+            Trước
           </button>
           <span className="text-sm text-muted-foreground">
             Trang {data.page} / {data.total_pages}

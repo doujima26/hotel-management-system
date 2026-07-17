@@ -15,12 +15,12 @@ import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 
 const onboardingSchema = z.object({
-  name: z.string().min(2, "Ten toi thieu 2 ky tu").max(255),
-  address: z.string().min(5, "Dia chi toi thieu 5 ky tu"),
-  city: z.string().min(2, "Thanh pho toi thieu 2 ky tu").max(100),
+  name: z.string().min(2, "Tên tối thiểu 2 ký tự").max(255),
+  address: z.string().min(5, "Địa chỉ tối thiểu 5 ký tự"),
+  city: z.string().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
   district: z.string().max(100).optional().or(z.literal("")),
   phone: z.string().max(20).optional().or(z.literal("")),
-  email: z.email("Email khong hop le").optional().or(z.literal("")),
+  email: z.email("Email không hợp lệ").optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
 });
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -48,58 +48,58 @@ export default function AdminOnboardingPage() {
         email: values.email || undefined,
         description: values.description || undefined,
       });
-      toast.success("Dang ky khach san thanh cong, dang cho duyet");
+      toast.success("Đăng ký khách sạn thành công, đang chờ duyệt");
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
       router.push("/admin/hotel-profile");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Dang ky khach san that bai");
+      setFormError(err instanceof ApiError ? err.message : "Đăng ký khách sạn thất bại");
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Dang ky khach san</CardTitle>
+        <CardTitle>Đăng ký khách sạn</CardTitle>
         <CardDescription>
-          Dien thong tin co ban ve khach san cua ban. Sau khi gui, don se cho Super Admin duyet.
+          Điền thông tin cơ bản về khách sạn của bạn. Sau khi gửi, đơn sẽ chờ Super Admin duyệt.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Ten khach san</Label>
+            <Label htmlFor="name">Tên khách sạn</Label>
             <Input id="name" {...register("name")} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="address">Dia chi</Label>
+            <Label htmlFor="address">Địa chỉ</Label>
             <Input id="address" {...register("address")} />
             {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="city">Thanh pho</Label>
+              <Label htmlFor="city">Thành phố</Label>
               <Input id="city" {...register("city")} />
               {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="district">Quan/Huyen (khong bat buoc)</Label>
+              <Label htmlFor="district">Quận/Huyện (không bắt buộc)</Label>
               <Input id="district" {...register("district")} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">So dien thoai (khong bat buoc)</Label>
+              <Label htmlFor="phone">Số điện thoại (không bắt buộc)</Label>
               <Input id="phone" {...register("phone")} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email khach san (khong bat buoc)</Label>
+              <Label htmlFor="email">Email khách sạn (không bắt buộc)</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Mo ta (khong bat buoc)</Label>
+            <Label htmlFor="description">Mô tả (không bắt buộc)</Label>
             <textarea
               id="description"
               {...register("description")}
@@ -109,7 +109,7 @@ export default function AdminOnboardingPage() {
           </div>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Dang xu ly..." : "Dang ky khach san"}
+            {isSubmitting ? "Đang xử lý..." : "Đăng ký khách sạn"}
           </Button>
         </form>
       </CardContent>

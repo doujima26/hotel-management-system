@@ -22,11 +22,11 @@ import { ApiError } from "@/types/api";
 import { HOTEL_STATUS_LABELS, type HotelStatus } from "@/types/enums";
 
 const FILTER_OPTIONS: { value: HotelStatus | "all"; label: string }[] = [
-  { value: "pending", label: "Cho duyet" },
-  { value: "approved", label: "Da duyet" },
-  { value: "rejected", label: "Tu choi" },
-  { value: "suspended", label: "Tam dung" },
-  { value: "all", label: "Tat ca" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "approved", label: "Đã duyệt" },
+  { value: "rejected", label: "Từ chối" },
+  { value: "suspended", label: "Tạm dừng" },
+  { value: "all", label: "Tất cả" },
 ];
 
 export default function SuperAdminHotelsPage() {
@@ -53,10 +53,10 @@ export default function SuperAdminHotelsPage() {
     setBusyHotelId(hotelId);
     try {
       await adminApi.reviewHotel(hotelId, { action, rejection_reason: reason });
-      toast.success("Cap nhat trang thai khach san thanh cong");
+      toast.success("Cập nhật trạng thái khách sạn thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-hotels"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setBusyHotelId(null);
     }
@@ -76,7 +76,7 @@ export default function SuperAdminHotelsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Duyet khach san</h2>
+        <h2 className="text-lg font-semibold">Duyệt khách sạn</h2>
         <Select
           value={statusFilter}
           onValueChange={(v) => {
@@ -97,10 +97,10 @@ export default function SuperAdminHotelsPage() {
         </Select>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+      {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Khong the tai danh sach khach san"}
+          {error instanceof ApiError ? error.message : "Không thể tải danh sách khách sạn"}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
@@ -120,12 +120,12 @@ export default function SuperAdminHotelsPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               <p className="text-sm text-muted-foreground">
-                Chu so huu: user #{hotel.owner_id}
+                Chủ sở hữu: user #{hotel.owner_id}
                 {hotel.phone ? ` - ${hotel.phone}` : ""}
                 {hotel.email ? ` - ${hotel.email}` : ""}
               </p>
               {hotel.rejection_reason && (
-                <p className="text-sm text-destructive">Ly do tu choi: {hotel.rejection_reason}</p>
+                <p className="text-sm text-destructive">Lý do từ chối: {hotel.rejection_reason}</p>
               )}
               <div className="flex gap-2">
                 {hotel.status === "pending" && (
@@ -135,7 +135,7 @@ export default function SuperAdminHotelsPage() {
                       onClick={() => handleReview(hotel.id, "approved")}
                       disabled={busyHotelId === hotel.id}
                     >
-                      Duyet
+                      Duyệt
                     </Button>
                     <Button
                       size="sm"
@@ -143,7 +143,7 @@ export default function SuperAdminHotelsPage() {
                       onClick={() => openRejectDialog(hotel.id)}
                       disabled={busyHotelId === hotel.id}
                     >
-                      Tu choi
+                      Từ chối
                     </Button>
                   </>
                 )}
@@ -154,7 +154,7 @@ export default function SuperAdminHotelsPage() {
                     onClick={() => handleReview(hotel.id, "suspended")}
                     disabled={busyHotelId === hotel.id}
                   >
-                    Tam dung
+                    Tạm dừng
                   </Button>
                 )}
                 {(hotel.status === "rejected" || hotel.status === "suspended") && (
@@ -163,7 +163,7 @@ export default function SuperAdminHotelsPage() {
                     onClick={() => handleReview(hotel.id, "approved")}
                     disabled={busyHotelId === hotel.id}
                   >
-                    Duyet lai
+                    Duyệt lại
                   </Button>
                 )}
               </div>
@@ -171,7 +171,7 @@ export default function SuperAdminHotelsPage() {
           </Card>
         ))}
         {data && data.items.length === 0 && (
-          <p className="text-center text-muted-foreground">Khong co khach san nao o trang thai nay.</p>
+          <p className="text-center text-muted-foreground">Không có khách sạn nào ở trạng thái này.</p>
         )}
       </div>
 
@@ -183,7 +183,7 @@ export default function SuperAdminHotelsPage() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), page <= 1 && "pointer-events-none opacity-50")}
           >
-            Truoc
+            Trước
           </button>
           <span className="text-sm text-muted-foreground">
             Trang {data.page} / {data.total_pages}
@@ -205,11 +205,11 @@ export default function SuperAdminHotelsPage() {
       <Dialog open={rejectTarget !== null} onOpenChange={(open) => !open && setRejectTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tu choi khach san</DialogTitle>
-            <DialogDescription>Nhap ly do tu choi (se hien thi cho chu khach san).</DialogDescription>
+            <DialogTitle>Từ chối khách sạn</DialogTitle>
+            <DialogDescription>Nhập lý do từ chối (sẽ hiển thị cho chủ khách sạn).</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reject_reason">Ly do</Label>
+            <Label htmlFor="reject_reason">Lý do</Label>
             <textarea
               id="reject_reason"
               value={rejectReason}
@@ -220,10 +220,10 @@ export default function SuperAdminHotelsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>
-              Huy
+              Hủy
             </Button>
             <Button variant="destructive" onClick={confirmReject} disabled={busyHotelId === rejectTarget}>
-              Xac nhan tu choi
+              Xác nhận từ chối
             </Button>
           </DialogFooter>
         </DialogContent>

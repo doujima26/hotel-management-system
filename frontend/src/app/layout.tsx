@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Hotel Booking",
-  description: "Nen tang dat phong khach san",
+  description: "Nền tảng đặt phòng khách sạn",
 };
 
 export default function RootLayout({

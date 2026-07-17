@@ -24,38 +24,38 @@ export function Navbar() {
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/hotels" className="text-muted-foreground hover:text-foreground">
-            Tim khach san
+            Tìm khách sạn
           </Link>
           {isHydrated && user ? (
             <>
               {user.role === "super_admin" && (
                 <Link href="/super-admin/hotels" className="text-muted-foreground hover:text-foreground">
-                  Quan tri
+                  Quản trị
                 </Link>
               )}
               {user.role === "admin" && (
                 <Link href="/admin/hotel-profile" className="text-muted-foreground hover:text-foreground">
-                  Quan ly khach san
+                  Quản lý khách sạn
                 </Link>
               )}
               {user.role === "user" && (
                 <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
-                  Booking cua toi
+                  Booking của tôi
                 </Link>
               )}
               <span className="text-muted-foreground">{user.full_name}</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                Dang xuat
+                Đăng xuất
               </Button>
             </>
           ) : (
             isHydrated && (
               <>
                 <Link href="/login" className="text-muted-foreground hover:text-foreground">
-                  Dang nhap
+                  Đăng nhập
                 </Link>
                 <Link href="/register" className={cn(buttonVariants({ size: "sm" }))}>
-                  Dang ky
+                  Đăng ký
                 </Link>
               </>
             )

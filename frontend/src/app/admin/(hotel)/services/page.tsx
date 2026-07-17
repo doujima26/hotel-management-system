@@ -54,13 +54,13 @@ export default function AdminServicesPage() {
     setSubmitting(true);
     try {
       await hotelsApi.createService({ name: name.trim(), price: Number(price), unit: unit.trim() || undefined });
-      toast.success("Tao dich vu thanh cong");
+      toast.success("Tạo dịch vụ thành công");
       setName("");
       setPrice("");
       setUnit("");
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tao dich vu that bai");
+      setFormError(err instanceof ApiError ? err.message : "Tạo dịch vụ thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +71,7 @@ export default function AdminServicesPage() {
       await hotelsApi.updateService(service.id, { is_active: !service.is_active });
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     }
   }
 
@@ -93,11 +93,11 @@ export default function AdminServicesPage() {
         price: Number(editPrice),
         unit: editUnit.trim() || undefined,
       });
-      toast.success("Cap nhat dich vu thanh cong");
+      toast.success("Cập nhật dịch vụ thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setEditSubmitting(false);
     }
@@ -107,30 +107,32 @@ export default function AdminServicesPage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tao dich vu khach san</CardTitle>
+          <CardTitle>Tạo dịch vụ khách sạn</CardTitle>
           <CardDescription>
-            {approved ? "Vi du: dua don san bay, giat ui, an sang..." : "Khach san can duoc duyet truoc khi tao dich vu."}
+            {approved
+              ? "Ví dụ: đưa đón sân bay, giặt ủi, ăn sáng..."
+              : "Khách sạn cần được duyệt trước khi tạo dịch vụ."}
           </CardDescription>
         </CardHeader>
         {approved && (
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="svc_name">Ten dich vu</Label>
+                <Label htmlFor="svc_name">Tên dịch vụ</Label>
                 <Input id="svc_name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="svc_price">Gia (VND)</Label>
+                <Label htmlFor="svc_price">Giá (VND)</Label>
                 <Input id="svc_price" type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="svc_unit">Don vi (khong bat buoc)</Label>
-                <Input id="svc_unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Vi du: luot" />
+                <Label htmlFor="svc_unit">Đơn vị (không bắt buộc)</Label>
+                <Input id="svc_unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ví dụ: lượt" />
               </div>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <Button onClick={handleCreate} disabled={submitting || !name.trim() || !price} className="self-start">
-              {submitting ? "Dang tao..." : "Tao dich vu"}
+              {submitting ? "Đang tạo..." : "Tạo dịch vụ"}
             </Button>
           </CardContent>
         )}
@@ -138,11 +140,11 @@ export default function AdminServicesPage() {
 
       {approved && (
         <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Danh sach dich vu</h2>
-          {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+          <h2 className="text-lg font-semibold">Danh sách dịch vụ</h2>
+          {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Khong the tai danh sach dich vu"}
+              {error instanceof ApiError ? error.message : "Không thể tải danh sách dịch vụ"}
             </p>
           )}
           {services?.map((service) => (
@@ -151,7 +153,7 @@ export default function AdminServicesPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle>{service.name}</CardTitle>
                   <Badge variant={service.is_active ? "secondary" : "destructive"}>
-                    {service.is_active ? "Dang hoat dong" : "Da tat"}
+                    {service.is_active ? "Đang hoạt động" : "Đã tắt"}
                   </Badge>
                 </div>
                 <CardDescription>
@@ -161,45 +163,45 @@ export default function AdminServicesPage() {
               </CardHeader>
               <CardContent className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => openEdit(service)}>
-                  Sua
+                  Sửa
                 </Button>
                 <Button size="sm" variant={service.is_active ? "destructive" : "default"} onClick={() => handleToggleActive(service)}>
-                  {service.is_active ? "Tat" : "Bat lai"}
+                  {service.is_active ? "Tắt" : "Bật lại"}
                 </Button>
               </CardContent>
             </Card>
           ))}
-          {services && services.length === 0 && <p className="text-center text-muted-foreground">Chua co dich vu nao.</p>}
+          {services && services.length === 0 && <p className="text-center text-muted-foreground">Chưa có dịch vụ nào.</p>}
         </div>
       )}
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Sua dich vu</DialogTitle>
-            <DialogDescription>Cap nhat thong tin dich vu.</DialogDescription>
+            <DialogTitle>Sửa dịch vụ</DialogTitle>
+            <DialogDescription>Cập nhật thông tin dịch vụ.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_svc_name">Ten dich vu</Label>
+              <Label htmlFor="edit_svc_name">Tên dịch vụ</Label>
               <Input id="edit_svc_name" value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_svc_price">Gia (VND)</Label>
+              <Label htmlFor="edit_svc_price">Giá (VND)</Label>
               <Input id="edit_svc_price" type="number" min={0} value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_svc_unit">Don vi</Label>
+              <Label htmlFor="edit_svc_unit">Đơn vị</Label>
               <Input id="edit_svc_unit" value={editUnit} onChange={(e) => setEditUnit(e.target.value)} />
             </div>
             {editError && <p className="text-sm text-destructive">{editError}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>
-              Huy
+              Hủy
             </Button>
             <Button onClick={saveEdit} disabled={editSubmitting}>
-              Luu
+              Lưu
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -31,7 +31,7 @@ export function RequireAuth({
   }, [isHydrated, isAuthenticated, user, allow, router, pathname]);
 
   if (!isHydrated) {
-    return <div className="p-8 text-center text-muted-foreground">Dang tai...</div>;
+    return <div className="p-8 text-center text-muted-foreground">Đang tải...</div>;
   }
   if (!isAuthenticated || (user && !allow.includes(user.role))) {
     return null;

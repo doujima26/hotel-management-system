@@ -15,12 +15,12 @@ import { ApiError } from "@/types/api";
 import { useAdminHotel } from "../layout";
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Ten toi thieu 2 ky tu").max(255),
-  address: z.string().min(5, "Dia chi toi thieu 5 ky tu"),
-  city: z.string().min(2, "Thanh pho toi thieu 2 ky tu").max(100),
+  name: z.string().min(2, "Tên tối thiểu 2 ký tự").max(255),
+  address: z.string().min(5, "Địa chỉ tối thiểu 5 ký tự"),
+  city: z.string().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
   district: z.string().max(100).optional().or(z.literal("")),
   phone: z.string().max(20).optional().or(z.literal("")),
-  email: z.email("Email khong hop le").optional().or(z.literal("")),
+  email: z.email("Email không hợp lệ").optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -61,10 +61,10 @@ export default function AdminHotelProfilePage() {
         description: values.description || undefined,
         star_rating: starRating ? Number(starRating) : undefined,
       });
-      toast.success("Cap nhat thong tin khach san thanh cong");
+      toast.success("Cập nhật thông tin khách sạn thành công");
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     }
   }
 
@@ -72,45 +72,45 @@ export default function AdminHotelProfilePage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Thong tin khach san</CardTitle>
-          <CardDescription>Co the sua ngay ca khi dang cho duyet.</CardDescription>
+          <CardTitle>Thông tin khách sạn</CardTitle>
+          <CardDescription>Có thể sửa ngay cả khi đang chờ duyệt.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Ten khach san</Label>
+              <Label htmlFor="name">Tên khách sạn</Label>
               <Input id="name" {...register("name")} />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="address">Dia chi</Label>
+              <Label htmlFor="address">Địa chỉ</Label>
               <Input id="address" {...register("address")} />
               {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="city">Thanh pho</Label>
+                <Label htmlFor="city">Thành phố</Label>
                 <Input id="city" {...register("city")} />
                 {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="district">Quan/Huyen</Label>
+                <Label htmlFor="district">Quận/Huyện</Label>
                 <Input id="district" {...register("district")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="phone">So dien thoai</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <Input id="phone" {...register("phone")} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email">Email khach san</Label>
+                <Label htmlFor="email">Email khách sạn</Label>
                 <Input id="email" type="email" {...register("email")} />
                 {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="star_rating">Hang sao (1-5, khong bat buoc)</Label>
+              <Label htmlFor="star_rating">Hạng sao (1-5, không bắt buộc)</Label>
               <Input
                 id="star_rating"
                 type="number"
@@ -121,7 +121,7 @@ export default function AdminHotelProfilePage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="description">Mo ta</Label>
+              <Label htmlFor="description">Mô tả</Label>
               <textarea
                 id="description"
                 {...register("description")}
@@ -131,7 +131,7 @@ export default function AdminHotelProfilePage() {
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <Button type="submit" disabled={isSubmitting} className="self-start">
-              {isSubmitting ? "Dang luu..." : "Luu thay doi"}
+              {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </form>
         </CardContent>
@@ -161,10 +161,10 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
     try {
       await hotelsApi.createImage({ image_url: newImageUrl.trim(), is_primary: !images || images.length === 0 });
       setNewImageUrl("");
-      toast.success("Them anh thanh cong");
+      toast.success("Thêm ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Them anh that bai");
+      setActionError(err instanceof ApiError ? err.message : "Thêm ảnh thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -176,7 +176,7 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
       await hotelsApi.setPrimaryImage(imageId);
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cap nhat that bai");
+      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     }
   }
 
@@ -184,19 +184,21 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
     setActionError(null);
     try {
       await hotelsApi.deleteImage(imageId);
-      toast.success("Xoa anh thanh cong");
+      toast.success("Xóa ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Xoa anh that bai");
+      setActionError(err instanceof ApiError ? err.message : "Xóa ảnh thất bại");
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Anh khach san</CardTitle>
+        <CardTitle>Ảnh khách sạn</CardTitle>
         <CardDescription>
-          {approved ? "Dan URL anh (chua ho tro upload file truc tiep)." : "Chi quan ly duoc anh sau khi khach san duoc duyet."}
+          {approved
+            ? "Dán URL ảnh (chưa hỗ trợ upload file trực tiếp)."
+            : "Chỉ quản lý được ảnh sau khi khách sạn được duyệt."}
         </CardDescription>
       </CardHeader>
       {approved && (
@@ -208,11 +210,11 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
               onChange={(e) => setNewImageUrl(e.target.value)}
             />
             <Button onClick={handleAdd} disabled={submitting || !newImageUrl.trim()}>
-              Them anh
+              Thêm ảnh
             </Button>
           </div>
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          {isLoading && <p className="text-sm text-muted-foreground">Dang tai...</p>}
+          {isLoading && <p className="text-sm text-muted-foreground">Đang tải...</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {images?.map((image) => (
               <div key={image.id} className="flex flex-col gap-1.5 overflow-hidden rounded-lg border">
@@ -220,14 +222,14 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
                 <img src={image.image_url} alt="" className="h-28 w-full object-cover" />
                 <div className="flex items-center justify-between gap-1 px-2 pb-2">
                   {image.is_primary ? (
-                    <span className="text-xs font-medium text-muted-foreground">Anh dai dien</span>
+                    <span className="text-xs font-medium text-muted-foreground">Ảnh đại diện</span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleSetPrimary(image.id)}
                       className="text-xs text-primary hover:underline"
                     >
-                      Dat dai dien
+                      Đặt đại diện
                     </button>
                   )}
                   <button
@@ -235,13 +237,13 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
                     onClick={() => handleDelete(image.id)}
                     className="text-xs text-destructive hover:underline"
                   >
-                    Xoa
+                    Xóa
                   </button>
                 </div>
               </div>
             ))}
             {images && images.length === 0 && (
-              <p className="col-span-full text-sm text-muted-foreground">Chua co anh nao.</p>
+              <p className="col-span-full text-sm text-muted-foreground">Chưa có ảnh nào.</p>
             )}
           </div>
         </CardContent>

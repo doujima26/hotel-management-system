@@ -38,9 +38,9 @@ export default function RegisterPage() {
       setOtpMock(result.otp_mock);
       setOtp(result.otp_mock);
       setStep("verify");
-      toast.success("Dang ky thanh cong. Vui long xac thuc OTP.");
+      toast.success("Đăng ký thành công. Vui lòng xác thực OTP.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Dang ky that bai");
+      toast.error(err instanceof ApiError ? err.message : "Đăng ký thất bại");
     }
   }
 
@@ -50,10 +50,10 @@ export default function RegisterPage() {
     setVerifyLoading(true);
     try {
       await authApi.verifyAccount({ email, otp });
-      toast.success("Xac thuc thanh cong. Vui long dang nhap.");
+      toast.success("Xác thực thành công. Vui lòng đăng nhập.");
       router.push("/login");
     } catch (err) {
-      setVerifyError(err instanceof ApiError ? err.message : "Xac thuc that bai");
+      setVerifyError(err instanceof ApiError ? err.message : "Xác thực thất bại");
     } finally {
       setVerifyLoading(false);
     }
@@ -64,21 +64,21 @@ export default function RegisterPage() {
       <div className="mx-auto flex max-w-sm flex-col gap-4 px-4 py-12">
         <Card>
           <CardHeader>
-            <CardTitle>Xac thuc tai khoan</CardTitle>
+            <CardTitle>Xác thực tài khoản</CardTitle>
             <CardDescription>
-              Nhap ma OTP da gui toi {email}. Moi truong demo: ma da duoc dien san tu response dang ky.
+              Nhập mã OTP đã gửi tới {email}. Môi trường demo: mã đã được điền sẵn từ response đăng ký.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleVerify} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="otp">Ma OTP</Label>
+                <Label htmlFor="otp">Mã OTP</Label>
                 <Input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} />
-                {otpMock && <p className="text-xs text-muted-foreground">Ma demo: {otpMock}</p>}
+                {otpMock && <p className="text-xs text-muted-foreground">Mã demo: {otpMock}</p>}
               </div>
               {verifyError && <p className="text-sm text-destructive">{verifyError}</p>}
               <Button type="submit" disabled={verifyLoading}>
-                {verifyLoading ? "Dang xac thuc..." : "Xac thuc"}
+                {verifyLoading ? "Đang xác thực..." : "Xác thực"}
               </Button>
             </form>
           </CardContent>
@@ -91,13 +91,13 @@ export default function RegisterPage() {
     <div className="mx-auto flex max-w-sm flex-col gap-4 px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle>Dang ky tai khoan</CardTitle>
-          <CardDescription>Tao tai khoan de tim kiem va dat phong khach san.</CardDescription>
+          <CardTitle>Đăng ký tài khoản</CardTitle>
+          <CardDescription>Tạo tài khoản để tìm kiếm và đặt phòng khách sạn.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="full_name">Ho ten</Label>
+              <Label htmlFor="full_name">Họ tên</Label>
               <Input id="full_name" {...register("full_name")} />
               {errors.full_name && <p className="text-sm text-destructive">{errors.full_name.message}</p>}
             </div>
@@ -107,29 +107,29 @@ export default function RegisterPage() {
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Mat khau</Label>
+              <Label htmlFor="password">Mật khẩu</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">So dien thoai (khong bat buoc)</Label>
+              <Label htmlFor="phone">Số điện thoại (không bắt buộc)</Label>
               <Input id="phone" {...register("phone")} />
               {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
             </div>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Dang xu ly..." : "Dang ky"}
+              {isSubmitting ? "Đang xử lý..." : "Đăng ký"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Da co tai khoan?{" "}
+            Đã có tài khoản?{" "}
             <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-              Dang nhap
+              Đăng nhập
             </Link>
           </p>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Ban muon dang ky kinh doanh?{" "}
+            Bạn muốn đăng ký kinh doanh?{" "}
             <Link href="/admin/register" className="text-primary underline-offset-4 hover:underline">
-              Dang ky lam chu khach san
+              Đăng ký làm chủ khách sạn
             </Link>
           </p>
         </CardContent>

@@ -54,12 +54,12 @@ export default function AdminAmenitiesPage() {
     setSubmitting(true);
     try {
       await roomsApi.createAmenity({ name: name.trim(), category: category.trim() || undefined });
-      toast.success("Tao tien nghi thanh cong");
+      toast.success("Tạo tiện nghi thành công");
       setName("");
       setCategory("");
       await queryClient.invalidateQueries({ queryKey: ["amenities"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tao tien nghi that bai");
+      setFormError(err instanceof ApiError ? err.message : "Tạo tiện nghi thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -70,10 +70,10 @@ export default function AdminAmenitiesPage() {
     setAssignError(null);
     try {
       await roomsApi.assignAmenityToRoomType(roomTypeId, amenityId);
-      toast.success("Gan tien nghi thanh cong");
+      toast.success("Gán tiện nghi thành công");
       await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
     } catch (err) {
-      setAssignError(err instanceof ApiError ? err.message : "Gan tien nghi that bai");
+      setAssignError(err instanceof ApiError ? err.message : "Gán tiện nghi thất bại");
     }
   }
 
@@ -83,26 +83,28 @@ export default function AdminAmenitiesPage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tao tien nghi khach san</CardTitle>
+          <CardTitle>Tạo tiện nghi khách sạn</CardTitle>
           <CardDescription>
-            {approved ? "Tien nghi dung chung cho toan khach san, se gan vao tung loai phong ben duoi." : "Khach san can duoc duyet truoc khi tao tien nghi."}
+            {approved
+              ? "Tiện nghi dùng chung cho toàn khách sạn, sẽ gán vào từng loại phòng bên dưới."
+              : "Khách sạn cần được duyệt trước khi tạo tiện nghi."}
           </CardDescription>
         </CardHeader>
         {approved && (
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="amenity_name">Ten tien nghi</Label>
-                <Input id="amenity_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Vi du: Wifi mien phi" />
+                <Label htmlFor="amenity_name">Tên tiện nghi</Label>
+                <Input id="amenity_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Wifi miễn phí" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="amenity_category">Danh muc (khong bat buoc)</Label>
-                <Input id="amenity_category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Vi du: Ket noi" />
+                <Label htmlFor="amenity_category">Danh mục (không bắt buộc)</Label>
+                <Input id="amenity_category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ví dụ: Kết nối" />
               </div>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <Button onClick={handleCreate} disabled={submitting || !name.trim()} className="self-start">
-              {submitting ? "Dang tao..." : "Tao tien nghi"}
+              {submitting ? "Đang tạo..." : "Tạo tiện nghi"}
             </Button>
           </CardContent>
         )}
@@ -111,11 +113,11 @@ export default function AdminAmenitiesPage() {
       {approved && (
         <>
           <div className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">Danh sach tien nghi</h2>
-            {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+            <h2 className="text-lg font-semibold">Danh sách tiện nghi</h2>
+            {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
             {error && (
               <p className="text-sm text-destructive">
-                {error instanceof ApiError ? error.message : "Khong the tai danh sach tien nghi"}
+                {error instanceof ApiError ? error.message : "Không thể tải danh sách tiện nghi"}
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -125,27 +127,27 @@ export default function AdminAmenitiesPage() {
                   {amenity.category ? ` · ${amenity.category}` : ""}
                 </Badge>
               ))}
-              {amenities && amenities.length === 0 && <p className="text-sm text-muted-foreground">Chua co tien nghi nao.</p>}
+              {amenities && amenities.length === 0 && <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào.</p>}
             </div>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Gan tien nghi vao loai phong</CardTitle>
-              <CardDescription>Chon 1 loai phong, sau do bam gan cho tung tien nghi.</CardDescription>
+              <CardTitle>Gán tiện nghi vào loại phòng</CardTitle>
+              <CardDescription>Chọn 1 loại phòng, sau đó bấm gán cho từng tiện nghi.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="room_type_select">Loai phong</Label>
+                <Label htmlFor="room_type_select">Loại phòng</Label>
                 <Select
                   value={selectedRoomTypeId || "none"}
                   onValueChange={(v) => setSelectedRoomTypeId(!v || v === "none" ? "" : v)}
                 >
                   <SelectTrigger id="room_type_select" className="w-full sm:w-64">
-                    <SelectValue placeholder="Chon loai phong" />
+                    <SelectValue placeholder="Chọn loại phòng" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Chon loai phong</SelectItem>
+                    <SelectItem value="none">Chọn loại phòng</SelectItem>
                     {roomTypes?.map((rt) => (
                       <SelectItem key={rt.id} value={String(rt.id)}>
                         {rt.name}
@@ -173,7 +175,7 @@ export default function AdminAmenitiesPage() {
                     );
                   })}
                   {amenities && amenities.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Chua co tien nghi nao de gan.</p>
+                    <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào để gán.</p>
                   )}
                 </div>
               )}

@@ -41,14 +41,14 @@ export default function AdminRoomTypesPage() {
         max_guests: Number(maxGuests),
         total_rooms: Number(totalRooms),
       });
-      toast.success("Tao loai phong thanh cong");
+      toast.success("Tạo loại phòng thành công");
       setName("");
       setBasePrice("");
       setMaxGuests("2");
       setTotalRooms("1");
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tao loai phong that bai");
+      setFormError(err instanceof ApiError ? err.message : "Tạo loại phòng thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -58,22 +58,22 @@ export default function AdminRoomTypesPage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tao loai phong moi</CardTitle>
+          <CardTitle>Tạo loại phòng mới</CardTitle>
           <CardDescription>
             {approved
-              ? "Khong co API sua/xoa loai phong sau khi tao, kiem tra ky truoc khi luu."
-              : "Khach san can duoc duyet truoc khi tao loai phong."}
+              ? "Không có API sửa/xóa loại phòng sau khi tạo, kiểm tra kỹ trước khi lưu."
+              : "Khách sạn cần được duyệt trước khi tạo loại phòng."}
           </CardDescription>
         </CardHeader>
         {approved && (
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_name">Ten loai phong</Label>
-                <Input id="rt_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Vi du: Deluxe" />
+                <Label htmlFor="rt_name">Tên loại phòng</Label>
+                <Input id="rt_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Deluxe" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_price">Gia moi dem (VND)</Label>
+                <Label htmlFor="rt_price">Giá mỗi đêm (VND)</Label>
                 <Input
                   id="rt_price"
                   type="number"
@@ -83,7 +83,7 @@ export default function AdminRoomTypesPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_guests">So khach toi da/phong</Label>
+                <Label htmlFor="rt_guests">Số khách tối đa/phòng</Label>
                 <Input
                   id="rt_guests"
                   type="number"
@@ -93,7 +93,7 @@ export default function AdminRoomTypesPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_total">Tong so phong loai nay</Label>
+                <Label htmlFor="rt_total">Tổng số phòng loại này</Label>
                 <Input
                   id="rt_total"
                   type="number"
@@ -109,18 +109,18 @@ export default function AdminRoomTypesPage() {
               disabled={submitting || !name.trim() || !basePrice || !maxGuests || !totalRooms}
               className="self-start"
             >
-              {submitting ? "Dang tao..." : "Tao loai phong"}
+              {submitting ? "Đang tạo..." : "Tạo loại phòng"}
             </Button>
           </CardContent>
         )}
       </Card>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Danh sach loai phong</h2>
-        {isLoading && <p className="text-muted-foreground">Dang tai...</p>}
+        <h2 className="text-lg font-semibold">Danh sách loại phòng</h2>
+        {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
-            {error instanceof ApiError ? error.message : "Khong the tai danh sach loai phong"}
+            {error instanceof ApiError ? error.message : "Không thể tải danh sách loại phòng"}
           </p>
         )}
         {roomTypes?.map((roomType) => (
@@ -128,21 +128,21 @@ export default function AdminRoomTypesPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{roomType.name}</CardTitle>
-                <span className="font-semibold">{formatMoney(roomType.base_price)}/dem</span>
+                <span className="font-semibold">{formatMoney(roomType.base_price)}/đêm</span>
               </div>
               <CardDescription>
-                Toi da {roomType.max_guests} khach/phong - {roomType.total_rooms} phong
+                Tối đa {roomType.max_guests} khách/phòng - {roomType.total_rooms} phòng
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href={`/admin/room-types/${roomType.id}/rooms`} className="text-sm text-primary hover:underline">
-                Quan ly phong vat ly &amp; anh &rarr;
+                Quản lý phòng vật lý &amp; ảnh &rarr;
               </Link>
             </CardContent>
           </Card>
         ))}
         {roomTypes && roomTypes.length === 0 && (
-          <p className="text-center text-muted-foreground">Chua co loai phong nao.</p>
+          <p className="text-center text-muted-foreground">Chưa có loại phòng nào.</p>
         )}
       </div>
     </div>
