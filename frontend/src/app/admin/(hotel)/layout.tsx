@@ -66,7 +66,13 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
   }
 
   if (noHotelYet) {
-    return <div className="mx-auto max-w-2xl px-4 py-8">{children}</div>;
+    // Neu dang o dung /admin/onboarding thi render form (children). Neu khong,
+    // useEffect ben tren se redirect sang do - trong luc cho, khong render {children}
+    // vi trang dich hien tai (vd hotel-profile) can useAdminHotel() va se crash.
+    if (pathname === "/admin/onboarding") {
+      return <div className="mx-auto max-w-2xl px-4 py-8">{children}</div>;
+    }
+    return <div className="p-8 text-center text-muted-foreground">Dang chuyen huong...</div>;
   }
 
   if (error) {
