@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -7,6 +7,7 @@ from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, User
 from app.schemas.admin import ReviewHotelRequest, ReviewHotelResponse, SetUserActiveRequest
+from app.services.admin_service import list_hotels_for_admin, list_users_for_admin
 from app.services.auth_service import set_user_active
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -16,6 +17,39 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("")
 def admin_ping():
     return ok({"module": "admin"}, "Admin module ready")
+
+
+# Super admin xem danh sach khach san, co the loc theo trang thai (vd pending de duyet).
+@router.get("/hotels")
+def list_hotels_endpoint(
+    status_filter: HotelStatus | None = Query(default=None, alias="status"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = list_hotels_for_admin(db, status_filter=status_filter, page=page, page_size=page_size)
+    return ok(data, "Danh sach khach san")
+
+
+# Super admin xem danh sach nguoi dung, co the loc theo role/trang thai kich hoat.
+@router.get("/users")
+def list_users_endpoint(
+    role_filter: UserRole | None = Query(default=None, alias="role"),
+    is_active: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = list_users_for_admin(
+        db,
+        role_filter=role_filter,
+        is_active_filter=is_active,
+        page=page,
+        page_size=page_size,
+    )
+    return ok(data, "Danh sach nguoi dung")
 
 
 # Super admin khoa hoac mo tai khoan nguoi dung.

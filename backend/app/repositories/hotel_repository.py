@@ -92,6 +92,28 @@ def search_hotel_records(
     return hotels, total
 
 
+# Lay danh sach khach san cho super admin duyet, loc theo trang thai (khong loc neu None).
+def list_hotel_records_for_admin(
+    db: Session,
+    *,
+    status_filter: HotelStatus | None,
+    page: int,
+    page_size: int,
+) -> tuple[list[Hotel], int]:
+    query = db.query(Hotel)
+    if status_filter:
+        query = query.filter(Hotel.status == status_filter)
+
+    total = query.count()
+    hotels = (
+        query.order_by(Hotel.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return hotels, total
+
+
 # Lay dich vu theo ten trong khach san.
 def get_hotel_service_by_name(db: Session, hotel_id: int, name: str) -> HotelService | None:
     return db.query(HotelService).filter(HotelService.hotel_id == hotel_id, HotelService.name == name).first()
