@@ -53,11 +53,14 @@ class VerifyAccountRequest(BaseModel):
 
 
 # Schema du lieu tra ve thong tin co ban cua nguoi dung.
+# Luu y: email dung str (khong dung EmailStr) vi day la schema DOC lai du lieu da luu san
+# trong DB, khong phai validate du lieu dau vao - EmailStr se bi loi 500 voi domain khong
+# the nhan mail that (vd du lieu seed dang ".local").
 class UserPublicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    email: EmailStr
+    email: str
     full_name: str
     role: UserRole
     is_active: bool

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from app.core.enums import HotelStatus
 from app.schemas.auth import UserPublicResponse
@@ -17,9 +17,10 @@ class ReviewHotelRequest(BaseModel):
 
 
 # Schema du lieu tra ve sau khi khoa mo tai khoan nguoi dung.
+# Luu y: email dung str (khong dung EmailStr), ly do xem chu thich o UserPublicResponse.
 class SetUserActiveResponse(BaseModel):
     user_id: int
-    email: EmailStr
+    email: str
     is_active: bool
 
 
