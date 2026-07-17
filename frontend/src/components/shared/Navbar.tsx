@@ -28,9 +28,16 @@ export function Navbar() {
           </Link>
           {isHydrated && user ? (
             <>
-              <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
-                Booking cua toi
-              </Link>
+              {user.role === "super_admin" && (
+                <Link href="/super-admin/hotels" className="text-muted-foreground hover:text-foreground">
+                  Quan tri
+                </Link>
+              )}
+              {user.role === "user" && (
+                <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
+                  Booking cua toi
+                </Link>
+              )}
               <span className="text-muted-foreground">{user.full_name}</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Dang xuat

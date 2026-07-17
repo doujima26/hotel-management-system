@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
 import { applyLoginResult } from "@/lib/auth/session";
+import { getRoleHomePath } from "@/lib/auth/roleHome";
 import { ApiError } from "@/types/api";
 import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
 
@@ -26,7 +27,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/";
+  const next = searchParams.get("next");
 
   const {
     register,
@@ -39,7 +40,7 @@ function LoginForm() {
       const result = await authApi.login(values);
       applyLoginResult(result);
       toast.success("Dang nhap thanh cong");
-      router.push(next);
+      router.push(next || getRoleHomePath(result.user.role));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Dang nhap that bai");
     }
