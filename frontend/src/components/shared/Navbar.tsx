@@ -33,6 +33,11 @@ export function Navbar() {
                   Quan tri
                 </Link>
               )}
+              {user.role === "admin" && (
+                <Link href="/admin/hotel-profile" className="text-muted-foreground hover:text-foreground">
+                  Quan ly khach san
+                </Link>
+              )}
               {user.role === "user" && (
                 <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
                   Booking cua toi

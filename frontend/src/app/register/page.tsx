@@ -126,6 +126,12 @@ export default function RegisterPage() {
               Dang nhap
             </Link>
           </p>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            Ban muon dang ky kinh doanh?{" "}
+            <Link href="/admin/register" className="text-primary underline-offset-4 hover:underline">
+              Dang ky lam chu khach san
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>
