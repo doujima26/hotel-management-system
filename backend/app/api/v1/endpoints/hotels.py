@@ -24,6 +24,7 @@ from app.services.hotel_service import (
     create_promotion as create_promotion_service_action,
     delete_hotel_image as delete_hotel_image_action,
     get_hotel_detail as get_hotel_detail_action,
+    get_my_hotel as get_my_hotel_action,
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
@@ -75,6 +76,17 @@ def create_hotel(
 ):
     data = create_hotel_action(db, current_user, payload)
     return ok(data, "Dang ky khach san thanh cong, cho duyet")
+
+
+# Admin xem lai thong tin khach san cua minh (biet id + trang thai duyet, ke ca dang pending).
+# Dat truoc "/{hotel_id}" de tranh bi route dong nuot mat.
+@router.get("/me")
+def get_my_hotel(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = get_my_hotel_action(db, current_user)
+    return ok(data, "Thong tin khach san cua toi")
 
 
 # Admin cap nhat thong tin khach san cua minh.

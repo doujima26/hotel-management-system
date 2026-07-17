@@ -149,6 +149,17 @@ def create_hotel(db: Session, current_user: User, payload: CreateHotelRequest) -
     return serialize_hotel(hotel)
 
 
+# Xu ly lay lai thong tin khach san cua admin hien tai (ke ca khi dang cho duyet).
+def get_my_hotel(db: Session, current_user: User) -> dict:
+    hotel = get_hotel_by_owner(db, current_user.id)
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin chua dang ky khach san",
+        )
+    return serialize_hotel(hotel)
+
+
 # Xu ly cap nhat thong tin khach san cua admin.
 def update_hotel(db: Session, current_user: User, payload: UpdateHotelRequest) -> dict:
     hotel = get_hotel_by_owner(db, current_user.id)
