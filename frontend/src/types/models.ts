@@ -1,4 +1,13 @@
-import type { BookingStatus, DiscountType, HotelStatus, PaymentMethod, PaymentStatus, RoomStatus, UserRole } from "./enums";
+import type {
+  BookingStatus,
+  DiscountType,
+  HotelStatus,
+  PaymentMethod,
+  PaymentStatus,
+  RoomStatus,
+  ShiftType,
+  UserRole,
+} from "./enums";
 
 export interface User {
   id: number;
@@ -292,5 +301,46 @@ export interface RoomTypeImage {
 }
 
 export interface DeleteRoomTypeImageResult {
+  id: number;
+}
+
+export interface StaffMember {
+  id: number;
+  user_id: number;
+  hotel_id: number;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  position: string;
+  is_active: boolean;
+  hired_at: string | null;
+}
+
+export interface CreateStaffResult extends StaffMember {
+  temp_password_mock: string;
+}
+
+export interface StaffSchedule {
+  id: number;
+  staff_id: number;
+  shift_date: string;
+  shift_type: ShiftType;
+  start_time: string;
+  end_time: string;
+  notes: string | null;
+}
+
+export interface RoomStatusItem {
+  room_id: number;
+  room_number: string;
+  floor: number | null;
+  room_type_id: number;
+  room_type_name: string;
+  status: RoomStatus;
+  current_booking_code: string | null;
+  expected_check_out: string | null;
+}
+
+export interface DeleteScheduleResult {
   id: number;
 }

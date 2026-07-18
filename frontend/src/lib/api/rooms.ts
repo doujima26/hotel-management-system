@@ -6,6 +6,7 @@ import type {
   RoomAvailability,
   RoomItem,
   RoomListResult,
+  RoomStatusItem,
   RoomType,
   RoomTypeAmenityLinkResult,
   RoomTypeImage,
@@ -87,4 +88,6 @@ export const roomsApi = {
       method: "PATCH",
       auth: true,
     }),
+
+  statusBoard: () => apiFetch<RoomStatusItem[]>("/rooms/status", { auth: true }),
 };
