@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState("");
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const {
     register,
@@ -59,6 +60,24 @@ export default function RegisterPage() {
     }
   }
 
+  async function handleResendOtp() {
+    setResending(true);
+    try {
+      const result = await authApi.sendVerifyOtp({ email });
+      if (result.otp_mock) {
+        setOtpMock(result.otp_mock);
+        setOtp(result.otp_mock);
+        toast.success("Đã gửi lại mã OTP");
+      } else {
+        toast.success("Tài khoản đã được xác thực trước đó");
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Gửi lại mã OTP thất bại");
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (step === "verify") {
     return (
       <div className="mx-auto flex max-w-sm flex-col gap-4 px-4 py-12">
@@ -79,6 +98,9 @@ export default function RegisterPage() {
               {verifyError && <p className="text-sm text-destructive">{verifyError}</p>}
               <Button type="submit" disabled={verifyLoading}>
                 {verifyLoading ? "Đang xác thực..." : "Xác thực"}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleResendOtp} disabled={resending}>
+                {resending ? "Đang gửi..." : "Gửi lại mã OTP"}
               </Button>
             </form>
           </CardContent>

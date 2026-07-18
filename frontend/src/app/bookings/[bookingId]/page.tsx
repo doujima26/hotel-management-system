@@ -8,9 +8,12 @@ import { RequireAuth } from "@/components/shared/RequireAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
+import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 import { BOOKING_STATUS_LABELS } from "@/types/enums";
 
@@ -32,6 +35,11 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [rating, setRating] = useState("5");
+  const [comment, setComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const bookingQuery = useQuery({
     queryKey: ["booking-detail", id],
@@ -63,6 +71,25 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       setCancelError(err instanceof ApiError ? err.message : "Hủy booking thất bại");
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleSubmitReview() {
+    if (!booking) return;
+    setReviewError(null);
+    setReviewSubmitting(true);
+    try {
+      await reviewsApi.create({ booking_id: booking.id, rating: Number(rating), comment: comment || undefined });
+      toast.success("Đánh giá thành công");
+      setReviewSubmitted(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setReviewSubmitted(true);
+      } else {
+        setReviewError(err instanceof ApiError ? err.message : "Đánh giá thất bại");
+      }
+    } finally {
+      setReviewSubmitting(false);
     }
   }
 
@@ -150,6 +177,49 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
         <Button variant="destructive" onClick={handleCancel} disabled={cancelling}>
           {cancelling ? "Đang hủy..." : "Hủy booking"}
         </Button>
+      )}
+
+      {booking.status === "checked_out" && !reviewSubmitted && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Viết đánh giá</CardTitle>
+            <CardDescription>Chia sẻ trải nghiệm của bạn về kỳ nghỉ này.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="rating">Số sao</Label>
+              <Select value={rating} onValueChange={(v) => v && setRating(v)}>
+                <SelectTrigger id="rating" className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 4, 3, 2, 1].map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value} sao
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="comment">Nhận xét (không bắt buộc)</Label>
+              <textarea
+                id="comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </div>
+            {reviewError && <p className="text-sm text-destructive">{reviewError}</p>}
+            <Button onClick={handleSubmitReview} disabled={reviewSubmitting} className="self-start">
+              {reviewSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {booking.status === "checked_out" && reviewSubmitted && (
+        <p className="text-sm text-muted-foreground">Cảm ơn bạn đã đánh giá kỳ nghỉ này!</p>
       )}
     </div>
   );

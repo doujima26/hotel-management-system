@@ -4,11 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
 import { cn } from "@/lib/utils";
-import { formatMoney } from "@/lib/utils/format";
+import { formatDate, formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
+import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
+import type { Review } from "@/types/models";
 
 interface HotelDetailPageProps {
   params: Promise<{ hotelId: string }>;
@@ -52,6 +55,13 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
 
   const primaryImage = hotel.images.find((img) => img.is_primary) ?? hotel.images[0];
 
+  let reviews: Review[] = [];
+  try {
+    reviews = await reviewsApi.listForHotel(id);
+  } catch {
+    reviews = [];
+  }
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <div>
@@ -70,7 +80,10 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
       )}
 
       <div>
-        <h1 className="text-2xl font-semibold">{hotel.name}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-semibold">{hotel.name}</h1>
+          <FavoriteButton hotelId={id} />
+        </div>
         <p className="text-muted-foreground">
           {hotel.address}, {hotel.district ? `${hotel.district}, ` : ""}
           {hotel.city}
@@ -154,6 +167,29 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
             )}
           </div>
         )}
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Đánh giá từ khách hàng</h2>
+        {reviews.length === 0 && <p className="text-sm text-muted-foreground">Chưa có đánh giá nào.</p>}
+        {reviews.map((review) => (
+          <Card key={review.id}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">{review.reviewer_name}</CardTitle>
+                <span className="text-sm font-medium">{review.rating} / 5</span>
+              </div>
+              <CardDescription>{formatDate(review.created_at)}</CardDescription>
+            </CardHeader>
+            {review.comment && (
+              <CardContent>
+                <p className="text-sm">{review.comment}</p>
+              </CardContent>
+            )}
+          </Card>
+        ))}
       </div>
     </div>
   );

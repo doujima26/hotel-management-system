@@ -61,7 +61,12 @@ function LoginForm() {
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Mật khẩu</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Mật khẩu</Label>
+                <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>

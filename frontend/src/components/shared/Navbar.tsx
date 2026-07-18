@@ -44,10 +44,18 @@ export function Navbar() {
                 </Link>
               )}
               {user.role === "user" && (
-                <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
-                  Booking của tôi
-                </Link>
+                <>
+                  <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
+                    Booking của tôi
+                  </Link>
+                  <Link href="/account/wishlist" className="text-muted-foreground hover:text-foreground">
+                    Yêu thích
+                  </Link>
+                </>
               )}
+              <Link href="/account" className="text-muted-foreground hover:text-foreground">
+                Tài khoản
+              </Link>
               <span className="text-muted-foreground">{user.full_name}</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Đăng xuất
