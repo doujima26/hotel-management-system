@@ -64,3 +64,11 @@ def list_user_records(
         .all()
     )
     return users, total
+
+
+# Luu thay doi thong tin nguoi dung.
+def save_user(db: Session, user: User) -> User:
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

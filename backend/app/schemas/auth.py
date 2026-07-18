@@ -62,6 +62,8 @@ class UserPublicResponse(BaseModel):
     id: int
     email: str
     full_name: str
+    phone: str | None = None
+    avatar_url: str | None = None
     role: UserRole
     is_active: bool
     is_verified: bool
