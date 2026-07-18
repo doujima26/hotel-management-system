@@ -19,7 +19,7 @@ from app.repositories.booking_repository import (
 )
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
-from app.repositories.room_repository import get_room_type_by_id_for_update
+from app.repositories.room_repository import count_rooms_by_room_type, get_room_type_by_id_for_update
 from app.schemas.bookings import BookingResponse, BookingRoomResponse, CancelBookingRequest, CreateBookingRequest
 from app.services.hotel_service import get_approved_admin_hotel, get_operational_hotel
 
@@ -87,7 +87,10 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             )
 
         booked = get_booked_quantity_for_room_type(db, item.room_type_id, payload.check_in_date, payload.check_out_date)
-        available = room_type.total_rooms - booked
+        # Dung so phong vat ly that su da tao (bang rooms), khong dung room_type.total_rooms
+        # (chi la con so Admin tu khai bao, co the chua co phong vat ly nao tuong ung).
+        actual_room_count = count_rooms_by_room_type(db, item.room_type_id)
+        available = actual_room_count - booked
         if item.quantity > available:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -58,9 +58,14 @@ def get_room_type_by_id_for_update(db: Session, room_type_id: int) -> RoomType |
     return db.query(RoomType).filter(RoomType.id == room_type_id).with_for_update().first()
 
 
-# Dem so phong vat ly cua loai phong.
+# Dem so phong vat ly (con hoat dong) cua loai phong.
 def count_rooms_by_room_type(db: Session, room_type_id: int) -> int:
-    return db.query(func.count(Room.id)).filter(Room.room_type_id == room_type_id).scalar() or 0
+    return (
+        db.query(func.count(Room.id))
+        .filter(Room.room_type_id == room_type_id, Room.is_active.is_(True))
+        .scalar()
+        or 0
+    )
 
 
 # Lay phong vat ly theo id va khoa dong de gan phong khi check-in an toan.
@@ -100,6 +105,9 @@ def list_room_records(db: Session, room_type_id: int) -> list[Room]:
 
 
 # Lay tinh trang phong trong cua tung loai phong trong khach san theo khoang ngay.
+# Luu y: "trong" tinh theo SO PHONG VAT LY THAT SU da tao (bang rooms), khong dung
+# RoomType.total_rooms (chi la con so Admin tu khai bao luc tao loai phong, co the
+# chua co phong vat ly nao tuong ung) - tranh cho khach dat duoc loai phong "ao".
 def list_room_type_availability(
     db: Session,
     hotel_id: int,
@@ -108,18 +116,32 @@ def list_room_type_availability(
     num_guests: int | None,
 ) -> list[tuple[RoomType, int, int]]:
     booked_subquery = booked_quantity_subquery(db, check_in, check_out)
+    room_count_subquery = (
+        db.query(
+            Room.room_type_id.label("room_type_id"),
+            func.count(Room.id).label("room_count"),
+        )
+        .filter(Room.is_active.is_(True))
+        .group_by(Room.room_type_id)
+        .subquery()
+    )
     query = (
-        db.query(RoomType, func.coalesce(booked_subquery.c.booked_quantity, 0).label("booked_rooms"))
+        db.query(
+            RoomType,
+            func.coalesce(booked_subquery.c.booked_quantity, 0).label("booked_rooms"),
+            func.coalesce(room_count_subquery.c.room_count, 0).label("actual_room_count"),
+        )
         .outerjoin(booked_subquery, booked_subquery.c.room_type_id == RoomType.id)
+        .outerjoin(room_count_subquery, room_count_subquery.c.room_type_id == RoomType.id)
         .filter(RoomType.hotel_id == hotel_id, RoomType.is_active.is_(True))
     )
     if num_guests:
         query = query.filter(RoomType.max_guests >= num_guests)
 
     results = []
-    for room_type, booked_rooms in query.order_by(RoomType.base_price.asc()).all():
+    for room_type, booked_rooms, actual_room_count in query.order_by(RoomType.base_price.asc()).all():
         booked = int(booked_rooms)
-        available = max(room_type.total_rooms - booked, 0)
+        available = max(int(actual_room_count) - booked, 0)
         results.append((room_type, booked, available))
     return results
 
