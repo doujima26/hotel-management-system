@@ -13,6 +13,8 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
+  phone: string | null;
+  avatar_url: string | null;
   role: UserRole;
   is_active: boolean;
   is_verified: boolean;
@@ -343,4 +345,42 @@ export interface RoomStatusItem {
 
 export interface DeleteScheduleResult {
   id: number;
+}
+
+export interface Review {
+  id: number;
+  user_id: number;
+  reviewer_name: string;
+  hotel_id: number;
+  booking_id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface Favorite {
+  id: number;
+  hotel_id: number;
+  hotel_name: string;
+  city: string;
+  created_at: string;
+}
+
+export interface ChangePasswordResult {
+  user_id: number;
+}
+
+export interface ForgotPasswordResult {
+  email: string;
+  otp_mock: string | null;
+}
+
+export interface ResetPasswordResult {
+  user_id: number;
+}
+
+export interface SendVerifyOtpResult {
+  email: string;
+  otp_mock: string | null;
+  is_verified: boolean | null;
 }

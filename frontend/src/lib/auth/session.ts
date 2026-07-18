@@ -29,6 +29,8 @@ export function applyLoginResult(result: LoginResult) {
     id: result.user.id,
     email: result.user.email,
     full_name: result.user.full_name,
+    phone: null,
+    avatar_url: null,
     role: result.user.role,
     is_active: true,
     is_verified: true,
