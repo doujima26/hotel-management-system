@@ -38,6 +38,11 @@ export function Navbar() {
                   Quản lý khách sạn
                 </Link>
               )}
+              {user.role === "staff" && (
+                <Link href="/staff/bookings" className="text-muted-foreground hover:text-foreground">
+                  Vận hành
+                </Link>
+              )}
               {user.role === "user" && (
                 <Link href="/bookings" className="text-muted-foreground hover:text-foreground">
                   Booking của tôi

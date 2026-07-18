@@ -29,6 +29,9 @@ const TABS = [
   { href: "/admin/amenities", label: "Tiện nghi" },
   { href: "/admin/services", label: "Dịch vụ" },
   { href: "/admin/promotions", label: "Khuyến mãi" },
+  { href: "/admin/bookings", label: "Booking" },
+  { href: "/admin/dashboard", label: "Dashboard" },
+  { href: "/admin/staff", label: "Nhân viên" },
 ];
 
 export default function AdminHotelLayout({ children }: { children: React.ReactNode }) {
