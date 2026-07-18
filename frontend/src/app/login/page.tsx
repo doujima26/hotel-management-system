@@ -70,7 +70,7 @@ function LoginForm() {
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="rounded-full">
               {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
             </Button>
           </form>

@@ -96,7 +96,7 @@ export default function AdminRegisterPage() {
                 {otpMock && <p className="text-xs text-muted-foreground">Mã demo: {otpMock}</p>}
               </div>
               {verifyError && <p className="text-sm text-destructive">{verifyError}</p>}
-              <Button type="submit" disabled={verifyLoading}>
+              <Button type="submit" disabled={verifyLoading} className="rounded-full">
                 {verifyLoading ? "Đang xác thực..." : "Xác thực"}
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={handleResendOtp} disabled={resending}>
@@ -140,7 +140,7 @@ export default function AdminRegisterPage() {
               <Input id="phone" {...register("phone")} />
               {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="rounded-full">
               {isSubmitting ? "Đang xử lý..." : "Đăng ký kinh doanh"}
             </Button>
           </form>

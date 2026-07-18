@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +75,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
           <Label htmlFor="num_guests">Số khách</Label>
           <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={numGuests} />
         </div>
-        <Button type="submit" className="self-end">
+        <Button type="submit" className="self-end rounded-full">
           Tìm kiếm
         </Button>
       </form>
@@ -94,7 +95,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
               const detailHref = `/hotels/${hotel.id}${suffix ? `?${suffix}` : ""}`;
               return (
                 <Link key={hotel.id} href={detailHref}>
-                  <Card className="transition-colors hover:bg-muted/50">
+                  <Card className="transition-colors hover:border-primary/40 hover:bg-muted/50">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>{hotel.name}</CardTitle>
@@ -106,7 +107,8 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Star className="size-3.5 fill-primary text-primary" />
                         {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} đánh giá)
                       </p>
                     </CardContent>

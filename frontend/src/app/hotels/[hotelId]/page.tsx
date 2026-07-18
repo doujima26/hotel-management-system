@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,8 +89,9 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
           {hotel.address}, {hotel.district ? `${hotel.district}, ` : ""}
           {hotel.city}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           {hotel.star_rating ? `${hotel.star_rating} sao - ` : ""}
+          <Star className="size-3.5 fill-primary text-primary" />
           {hotel.avg_rating.toFixed(1)} / 5 ({hotel.total_reviews} đánh giá)
         </p>
         {hotel.description && <p className="mt-3 text-sm">{hotel.description}</p>}
@@ -110,7 +112,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
           <Label htmlFor="num_guests">Số khách</Label>
           <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={numGuests} />
         </div>
-        <Button type="submit" className="self-end">
+        <Button type="submit" className="self-end rounded-full">
           Xem phòng trống
         </Button>
       </form>
@@ -149,12 +151,12 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
                     {canBook ? (
                       <Link
                         href={`/checkout/${id}?${bookQs.toString()}`}
-                        className={cn(buttonVariants({ size: "sm" }))}
+                        className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
                       >
                         Đặt phòng
                       </Link>
                     ) : (
-                      <Button size="sm" disabled>
+                      <Button size="sm" disabled className="rounded-full">
                         Hết phòng
                       </Button>
                     )}

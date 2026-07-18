@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
                 />
               </div>
               {formError && <p className="text-sm text-destructive">{formError}</p>}
-              <Button type="submit" disabled={submitting || !otp || newPassword.length < 8}>
+              <Button type="submit" disabled={submitting || !otp || newPassword.length < 8} className="rounded-full">
                 {submitting ? "Đang xử lý..." : "Đặt lại mật khẩu"}
               </Button>
             </form>
@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
-            <Button type="submit" disabled={submitting || !email}>
+            <Button type="submit" disabled={submitting || !email} className="rounded-full">
               {submitting ? "Đang gửi..." : "Gửi mã OTP"}
             </Button>
           </form>
