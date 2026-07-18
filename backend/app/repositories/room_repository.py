@@ -107,7 +107,9 @@ def list_room_records(db: Session, room_type_id: int) -> list[Room]:
 # Lay tinh trang phong trong cua tung loai phong trong khach san theo khoang ngay.
 # Luu y: "trong" tinh theo SO PHONG VAT LY THAT SU da tao (bang rooms), khong dung
 # RoomType.total_rooms (chi la con so Admin tu khai bao luc tao loai phong, co the
-# chua co phong vat ly nao tuong ung) - tranh cho khach dat duoc loai phong "ao".
+# chua co phong vat ly nao tuong ung). Loai phong chua co phong vat ly nao (INNER
+# JOIN voi room_count_subquery) se bi loai han khoi ket qua - khac voi loai phong
+# da het phong cho khoang ngay nay (van con trong danh sach, available_rooms=0).
 def list_room_type_availability(
     db: Session,
     hotel_id: int,
@@ -129,10 +131,10 @@ def list_room_type_availability(
         db.query(
             RoomType,
             func.coalesce(booked_subquery.c.booked_quantity, 0).label("booked_rooms"),
-            func.coalesce(room_count_subquery.c.room_count, 0).label("actual_room_count"),
+            room_count_subquery.c.room_count.label("actual_room_count"),
         )
         .outerjoin(booked_subquery, booked_subquery.c.room_type_id == RoomType.id)
-        .outerjoin(room_count_subquery, room_count_subquery.c.room_type_id == RoomType.id)
+        .join(room_count_subquery, room_count_subquery.c.room_type_id == RoomType.id)
         .filter(RoomType.hotel_id == hotel_id, RoomType.is_active.is_(True))
     )
     if num_guests:
