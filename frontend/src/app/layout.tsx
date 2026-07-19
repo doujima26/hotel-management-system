@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/components/shared/QueryProvider";
 import { AuthBootstrap } from "@/components/shared/AuthBootstrap";
 import { Navbar } from "@/components/shared/Navbar";
+import { Footer } from "@/components/shared/Footer";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
           <AuthBootstrap />
           <Navbar />
           <main className="flex-1">{children}</main>
+          <Footer />
           <Toaster position="top-center" />
         </QueryProvider>
       </body>
