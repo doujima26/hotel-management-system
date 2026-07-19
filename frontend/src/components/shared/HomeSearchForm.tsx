@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,12 @@ const UNDERLINE_INPUT_CLASS = "rounded-none border-0 border-b px-0 shadow-none f
 // can state phia client, con lai trang chu van la Server Component.
 export function HomeSearchForm() {
   const [city, setCity] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <form
+      ref={formRef}
       action="/hotels"
       method="GET"
       className="flex flex-col gap-5 rounded-[1.75rem] border bg-card/95 p-5 shadow-2xl backdrop-blur-md sm:flex-row sm:items-end sm:gap-4 sm:p-6"
@@ -23,11 +26,17 @@ export function HomeSearchForm() {
         <Label htmlFor="city" className="text-xs tracking-wide text-muted-foreground uppercase">
           Thành phố
         </Label>
-        <input type="hidden" name="city" value={city} />
+        <input ref={cityInputRef} type="hidden" name="city" value={city} />
         <CityAutocomplete
           id="city"
           value={city}
           onValueChange={setCity}
+          onCommit={(committedCity) => {
+            // Dat truc tiep vao DOM truoc khi submit vi setCity (React state)
+            // chua kip render lai luc requestSubmit() doc gia tri form.
+            if (cityInputRef.current) cityInputRef.current.value = committedCity;
+            formRef.current?.requestSubmit();
+          }}
           placeholder="Bạn muốn đến đâu?"
           inputGroupClassName={UNDERLINE_INPUT_CLASS}
         />

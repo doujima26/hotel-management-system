@@ -149,9 +149,9 @@ export default function RegisterPage() {
             </Link>
           </p>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Bạn muốn đăng ký kinh doanh?{" "}
+            Đăng ký kinh doanh?{" "}
             <Link href="/admin/register" className="text-primary underline-offset-4 hover:underline">
-              Đăng ký làm chủ khách sạn
+              Đăng khách sạn của Quý vị
             </Link>
           </p>
         </CardContent>

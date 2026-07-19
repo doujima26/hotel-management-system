@@ -36,9 +36,6 @@ export function Navbar() {
           Hotel Booking
         </Link>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Link href="/hotels" className="text-muted-foreground hover:text-foreground">
-            Tìm khách sạn phù hợp
-          </Link>
           {isHydrated && user && (
             <>
               {user.role === "super_admin" && (

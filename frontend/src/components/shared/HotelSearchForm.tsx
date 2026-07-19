@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,17 +23,31 @@ export function HotelSearchForm({
   defaultNumGuests,
 }: HotelSearchFormProps) {
   const [city, setCity] = useState(defaultCity);
+  const formRef = useRef<HTMLFormElement>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <form
+      ref={formRef}
       action="/hotels"
       method="GET"
       className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-5"
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="city">Thành phố</Label>
-        <input type="hidden" name="city" value={city} />
-        <CityAutocomplete id="city" value={city} onValueChange={setCity} placeholder="Ví dụ: Đà Nẵng" />
+        <input ref={cityInputRef} type="hidden" name="city" value={city} />
+        <CityAutocomplete
+          id="city"
+          value={city}
+          onValueChange={setCity}
+          onCommit={(committedCity) => {
+            // Dat truc tiep vao DOM truoc khi submit vi setCity (React state)
+            // chua kip render lai luc requestSubmit() doc gia tri form.
+            if (cityInputRef.current) cityInputRef.current.value = committedCity;
+            formRef.current?.requestSubmit();
+          }}
+          placeholder="Ví dụ: Đà Nẵng"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="check_in">Nhận phòng</Label>
