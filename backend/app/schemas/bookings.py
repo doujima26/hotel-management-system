@@ -19,6 +19,7 @@ class CreateBookingRequest(BaseModel):
     num_guests: int = Field(gt=0)
     rooms: list[BookingRoomItem] = Field(min_length=1)
     special_requests: str | None = None
+    promotion_id: int | None = Field(default=None, gt=0)
 
 
 # Schema du lieu dau vao cho huy booking.
@@ -49,6 +50,7 @@ class BookingResponse(BaseModel):
     total_room_price: float
     total_service_price: float
     discount_amount: float
+    promotion_id: int | None = None
     total_amount: float
     status: BookingStatus
     special_requests: str | None = None

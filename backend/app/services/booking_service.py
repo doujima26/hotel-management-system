@@ -5,8 +5,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, HotelStatus, PaymentStatus
-from app.models.entities import Booking, BookingRoom, User
+from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus
+from app.models.entities import Booking, BookingRoom, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
     create_booking_room_record,
@@ -17,7 +17,7 @@ from app.repositories.booking_repository import (
     list_bookings_by_hotel,
     list_bookings_by_user,
 )
-from app.repositories.hotel_repository import get_hotel_by_id
+from app.repositories.hotel_repository import get_hotel_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
 from app.repositories.room_repository import count_rooms_by_room_type, get_room_type_by_id_for_update
 from app.schemas.bookings import BookingResponse, BookingRoomResponse, CancelBookingRequest, CreateBookingRequest
@@ -49,6 +49,7 @@ def serialize_booking(booking: Booking, rooms: list[BookingRoom]) -> dict:
         total_room_price=float(booking.total_room_price),
         total_service_price=float(booking.total_service_price),
         discount_amount=float(booking.discount_amount),
+        promotion_id=booking.promotion_id,
         total_amount=float(booking.total_amount),
         status=booking.status,
         special_requests=booking.special_requests,
@@ -58,7 +59,41 @@ def serialize_booking(booking: Booking, rooms: list[BookingRoom]) -> dict:
     ).model_dump(mode="json")
 
 
-# Xu ly tao booking moi: kiem tra trung lich, snapshot gia, chua ap dung khuyen mai.
+# Kiem tra va tinh muc giam gia tu 1 khuyen mai, khoa row de tranh vuot
+# usage_limit khi nhieu booking dung chung khuyen mai cung luc.
+def _apply_promotion(
+    db: Session, hotel_id: int, promotion_id: int, total_room_price: float, today: date
+) -> tuple[Promotion, float]:
+    promotion = get_promotion_by_id_for_update(db, promotion_id)
+    if not promotion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyen mai khong ton tai")
+    if promotion.hotel_id != hotel_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyen mai khong thuoc khach san nay")
+    if not promotion.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai da bi tat")
+    if today < promotion.start_date or today > promotion.end_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai khong con hieu luc")
+    if promotion.usage_limit is not None and promotion.used_count >= promotion.usage_limit:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai da het luot su dung")
+    if promotion.min_booking_amount is not None and total_room_price < float(promotion.min_booking_amount):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Don hang toi thieu {float(promotion.min_booking_amount)} moi duoc ap dung khuyen mai nay",
+        )
+
+    if promotion.discount_type == DiscountType.PERCENTAGE:
+        discount_amount = total_room_price * float(promotion.discount_value) / 100
+    else:
+        discount_amount = float(promotion.discount_value)
+
+    if promotion.max_discount_amount is not None:
+        discount_amount = min(discount_amount, float(promotion.max_discount_amount))
+    discount_amount = min(discount_amount, total_room_price)
+
+    return promotion, discount_amount
+
+
+# Xu ly tao booking moi: kiem tra trung lich, snapshot gia, ap dung khuyen mai neu co.
 def create_booking(db: Session, current_user: User, payload: CreateBookingRequest) -> dict:
     if payload.check_out_date <= payload.check_in_date:
         raise HTTPException(
@@ -110,8 +145,14 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             }
         )
 
-    # Chua ap dung khuyen mai o buoc nay, tong tien bang tong tien phong.
-    total_amount = total_room_price
+    promotion = None
+    discount_amount = 0.0
+    if payload.promotion_id is not None:
+        promotion, discount_amount = _apply_promotion(
+            db, hotel.id, payload.promotion_id, total_room_price, date.today()
+        )
+
+    total_amount = total_room_price - discount_amount
 
     try:
         booking = create_booking_record(
@@ -125,9 +166,15 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             total_room_price=total_room_price,
             total_amount=total_amount,
             special_requests=payload.special_requests,
+            discount_amount=discount_amount,
+            promotion_id=promotion.id if promotion else None,
         )
 
         rooms = [create_booking_room_record(db, booking_id=booking.id, **plan) for plan in booking_room_plans]
+
+        if promotion:
+            promotion.used_count += 1
+            db.add(promotion)
 
         db.commit()
     except IntegrityError as exc:
@@ -222,6 +269,14 @@ def _apply_cancellation(db: Session, booking: Booking, current_user: User, cance
     if payment and payment.payment_status == PaymentStatus.COMPLETED:
         payment.payment_status = PaymentStatus.REFUNDED
         db.add(payment)
+
+    # Huy booking thi tra lai luot dung khuyen mai (neu co ap dung), tranh mat oan
+    # luot khi khach/Admin huy.
+    if booking.promotion_id is not None:
+        promotion = get_promotion_by_id_for_update(db, booking.promotion_id)
+        if promotion and promotion.used_count > 0:
+            promotion.used_count -= 1
+            db.add(promotion)
 
     db.commit()
     db.refresh(booking)

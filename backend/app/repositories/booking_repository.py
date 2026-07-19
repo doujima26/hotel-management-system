@@ -48,6 +48,8 @@ def create_booking_record(
     total_room_price: float,
     total_amount: float,
     special_requests: str | None,
+    discount_amount: float = 0,
+    promotion_id: int | None = None,
 ) -> Booking:
     booking = Booking(
         booking_code=booking_code,
@@ -58,7 +60,8 @@ def create_booking_record(
         num_guests=num_guests,
         total_room_price=total_room_price,
         total_service_price=0,
-        discount_amount=0,
+        discount_amount=discount_amount,
+        promotion_id=promotion_id,
         total_amount=total_amount,
         status=BookingStatus.PENDING,
         special_requests=special_requests,

@@ -20,6 +20,7 @@ from app.repositories.hotel_repository import (
     list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
+    list_valid_promotion_records,
     save_hotel,
     save_hotel_service,
     save_promotion,
@@ -251,6 +252,19 @@ def create_promotion(db: Session, current_user: User, payload: CreatePromotionRe
 def list_promotions(db: Session, current_user: User) -> list[dict]:
     hotel = get_approved_admin_hotel(db, current_user)
     promotions = list_promotion_records(db, hotel.id)
+    return [serialize_promotion(item) for item in promotions]
+
+
+# Xu ly cong khai lay danh sach khuyen mai dang hop le cua 1 khach san, de
+# khach xem truoc khi dat phong.
+def list_valid_promotions_for_hotel(db: Session, hotel_id: int) -> list[dict]:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel or hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khach san khong ton tai hoac chua duoc duyet",
+        )
+    promotions = list_valid_promotion_records(db, hotel.id, date.today())
     return [serialize_promotion(item) for item in promotions]
 
 

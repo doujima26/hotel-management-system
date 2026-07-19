@@ -158,6 +158,30 @@ def get_promotion_by_id(db: Session, promotion_id: int) -> Promotion | None:
     return db.query(Promotion).filter(Promotion.id == promotion_id).first()
 
 
+# Lay khuyen mai theo id va khoa dong de ap dung vao booking an toan (tranh
+# race condition tren used_count).
+def get_promotion_by_id_for_update(db: Session, promotion_id: int) -> Promotion | None:
+    return db.query(Promotion).filter(Promotion.id == promotion_id).with_for_update().first()
+
+
+# Lay danh sach khuyen mai dang hop le (con hieu luc) cua khach san, dung cho
+# endpoint cong khai de khach xem truoc khi dat - khac list_promotion_records
+# (Admin xem tat ca, khong loc ngay/trang thai).
+def list_valid_promotion_records(db: Session, hotel_id: int, today: date) -> list[Promotion]:
+    return (
+        db.query(Promotion)
+        .filter(
+            Promotion.hotel_id == hotel_id,
+            Promotion.is_active.is_(True),
+            Promotion.start_date <= today,
+            Promotion.end_date >= today,
+        )
+        .filter((Promotion.usage_limit.is_(None)) | (Promotion.used_count < Promotion.usage_limit))
+        .order_by(Promotion.start_date.desc())
+        .all()
+    )
+
+
 # Tao khuyen mai.
 def create_promotion_record(db: Session, hotel_id: int, payload: CreatePromotionRequest) -> Promotion:
     promotion = Promotion(
