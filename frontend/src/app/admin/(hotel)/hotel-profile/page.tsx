@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { useAdminHotel } from "../layout";
@@ -33,6 +34,7 @@ export default function AdminHotelProfilePage() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
@@ -90,7 +92,13 @@ export default function AdminHotelProfilePage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="city">Thành phố</Label>
-                <Input id="city" {...register("city")} />
+                <Controller
+                  control={control}
+                  name="city"
+                  render={({ field }) => (
+                    <CityAutocomplete id="city" value={field.value} onValueChange={field.onChange} />
+                  )}
+                />
                 {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">

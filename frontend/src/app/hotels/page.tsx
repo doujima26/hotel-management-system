@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
+import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
 
 interface HotelsPageProps {
   searchParams: Promise<{
@@ -54,31 +53,12 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
-      <form
-        action="/hotels"
-        method="GET"
-        className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-5"
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="city">Thành phố</Label>
-          <Input id="city" name="city" defaultValue={city} placeholder="Ví dụ: Đà Nẵng" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_in">Nhận phòng</Label>
-          <Input id="check_in" name="check_in" type="date" defaultValue={checkIn} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="check_out">Trả phòng</Label>
-          <Input id="check_out" name="check_out" type="date" defaultValue={checkOut} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="num_guests">Số khách</Label>
-          <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={numGuests} />
-        </div>
-        <Button type="submit" className="self-end rounded-full">
-          Tìm kiếm
-        </Button>
-      </form>
+      <HotelSearchForm
+        defaultCity={city}
+        defaultCheckIn={checkIn}
+        defaultCheckOut={checkOut}
+        defaultNumGuests={numGuests}
+      />
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 

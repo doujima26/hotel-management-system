@@ -28,7 +28,7 @@ seeded_hotel AS (
         'Sunrise Hotel Da Nang',
         'Khach san 4 sao gan bien My Khe',
         '123 Vo Nguyen Giap',
-        'Da Nang',
+        'Đà Nẵng',
         'Son Tra',
         16.071463,
         108.245727,

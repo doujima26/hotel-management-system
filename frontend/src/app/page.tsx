@@ -1,64 +1,47 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { HomeSearchForm } from "@/components/shared/HomeSearchForm";
 
-const POPULAR_CITIES = ["Hà Nội", "Đà Nẵng", "TP. Hồ Chí Minh", "Nha Trang", "Đà Lạt"];
+// Phai khop 100% chinh ta voi VIETNAM_PROVINCES (Nha Trang thuoc Khanh Hoa,
+// Da Lat thuoc Lam Dong - dung ten tinh de dam bao khop tim kiem theo city).
+const POPULAR_CITIES = ["Hà Nội", "Đà Nẵng", "TP. Hồ Chí Minh", "Khánh Hòa", "Lâm Đồng"];
 
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="mx-auto grid w-full max-w-5xl flex-1 items-center gap-10 px-4 py-12 md:grid-cols-12 md:gap-8 md:py-20">
-        <div className="flex flex-col gap-4 md:col-span-5">
-          <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Tìm khách sạn phù hợp với bạn
-          </h1>
-          <p className="max-w-sm text-muted-foreground">
-            So sánh giá theo ngày, xem đánh giá thật từ khách đã ở, đặt phòng và thanh toán chỉ trong vài bước.
-          </p>
-        </div>
-
-        <form
-          action="/hotels"
-          method="GET"
-          className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-lg md:col-span-7 md:p-6"
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="city">Thành phố</Label>
-              <Input id="city" name="city" placeholder="Ví dụ: Đà Nẵng" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="check_in">Nhận phòng</Label>
-              <Input id="check_in" name="check_in" type="date" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="check_out">Trả phòng</Label>
-              <Input id="check_out" name="check_out" type="date" />
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="num_guests">Số khách</Label>
-              <Input id="num_guests" name="num_guests" type="number" min={1} placeholder="2" />
-            </div>
+      <section className="px-3 pt-4 sm:px-6 sm:pt-6">
+        <div className="relative mx-auto h-[440px] max-w-6xl overflow-hidden rounded-[2rem] shadow-xl sm:h-[500px] md:h-[560px]">
+          <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/35 to-black/65" />
+          <div className="relative flex h-full flex-col items-center justify-center px-4 pb-24 text-center sm:pb-28">
+            <p className="text-xs font-semibold tracking-[0.3em] text-white/85 uppercase">Khám phá điểm đến</p>
+            <h1 className="mt-4 max-w-2xl text-3xl leading-tight font-extrabold text-balance text-white uppercase sm:text-4xl md:text-5xl">
+              Tìm khách sạn
+              <br />
+              <span className="text-primary">phù hợp với bạn</span>
+            </h1>
           </div>
-          <Button type="submit" size="lg" className="rounded-full">
-            Tìm kiếm
-          </Button>
-        </form>
+        </div>
       </section>
 
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-3 px-4 py-6">
-          <span className="text-sm text-muted-foreground">Điểm đến phổ biến:</span>
-          {POPULAR_CITIES.map((city) => (
-            <Link
-              key={city}
-              href={`/hotels?city=${encodeURIComponent(city)}`}
-              className="rounded-full border bg-background px-3.5 py-1.5 text-sm transition-colors hover:border-primary hover:text-primary"
-            >
-              {city}
-            </Link>
-          ))}
+      <div className="mx-auto -mt-16 w-full max-w-4xl px-4 sm:-mt-20">
+        <HomeSearchForm />
+      </div>
+
+      <section className="mt-16 sm:mt-20">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-16">
+          <h2 className="text-xl font-extrabold sm:text-2xl">Điểm đến phổ biến</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            {POPULAR_CITIES.map((city) => (
+              <Link
+                key={city}
+                href={`/hotels?city=${encodeURIComponent(city)}`}
+                className="rounded-full border bg-background px-3.5 py-1.5 text-sm transition-colors hover:border-primary hover:text-primary"
+              >
+                {city}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     </div>
