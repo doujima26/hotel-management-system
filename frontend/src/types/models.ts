@@ -120,6 +120,7 @@ export interface Booking {
   total_room_price: number;
   total_service_price: number;
   discount_amount: number;
+  promotion_id: number | null;
   total_amount: number;
   status: BookingStatus;
   special_requests: string | null;

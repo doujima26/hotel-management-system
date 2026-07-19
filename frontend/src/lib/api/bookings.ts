@@ -9,6 +9,7 @@ export interface CreateBookingPayload {
   num_guests: number;
   rooms: { room_type_id: number; quantity: number }[];
   special_requests?: string;
+  promotion_id?: number;
 }
 
 export interface CancelBookingPayload {
