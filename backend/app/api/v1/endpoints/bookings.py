@@ -82,12 +82,13 @@ def admin_cancel_booking(
     return ok(data, "Huy booking thanh cong")
 
 
-# Khach xem chi tiet 1 booking cua minh. Dat cuoi file de khong nuot route "/hotel".
+# Khach xem chi tiet booking cua minh, hoac Admin/Staff xem booking cua khach san minh
+# (can cho man hinh check-in/check-out). Dat cuoi file de khong nuot route "/hotel".
 @router.get("/{booking_id}")
 def get_booking_detail(
     booking_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.USER)),
+    current_user: User = Depends(require_roles(UserRole.USER, UserRole.STAFF, UserRole.ADMIN)),
 ):
     data = get_booking_detail_action(db, current_user, booking_id)
     return ok(data, "Chi tiet booking")

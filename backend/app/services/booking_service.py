@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus
+from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus, UserRole
 from app.models.entities import Booking, BookingRoom, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
@@ -194,7 +194,8 @@ def list_my_bookings(db: Session, current_user: User) -> list[dict]:
     return [serialize_booking(booking, list_booking_rooms(db, booking.id)) for booking in bookings]
 
 
-# Xu ly lay chi tiet 1 booking, chi cho chinh chu xem.
+# Xu ly lay chi tiet 1 booking - chinh chu (User) hoac Admin/Staff cua khach san
+# so huu booking do (can cho man hinh check-in/check-out) moi duoc xem.
 def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict:
     booking = get_booking_by_id(db, booking_id)
     if not booking:
@@ -202,11 +203,20 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking khong ton tai",
         )
-    if booking.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xem booking cua minh",
-        )
+
+    if current_user.role == UserRole.USER:
+        if booking.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Ban chi duoc xem booking cua minh",
+            )
+    else:
+        hotel = get_operational_hotel(db, current_user)
+        if booking.hotel_id != hotel.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Ban chi duoc xem booking cua khach san minh",
+            )
 
     rooms = list_booking_rooms(db, booking.id)
     return serialize_booking(booking, rooms)
