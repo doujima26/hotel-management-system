@@ -23,6 +23,8 @@ from app.services.hotel_service import (
     create_hotel_service as create_hotel_service_action,
     create_promotion as create_promotion_service_action,
     delete_hotel_image as delete_hotel_image_action,
+    delete_hotel_service as delete_hotel_service_action,
+    delete_promotion as delete_promotion_service_action,
     get_hotel_detail as get_hotel_detail_action,
     get_my_hotel as get_my_hotel_action,
     list_hotel_images as list_hotel_images_action,
@@ -134,6 +136,17 @@ def update_hotel_service(
     return ok(data, "Cap nhat dich vu khach san thanh cong")
 
 
+# Admin xoa cung dich vu cua khach san minh (chi khi chua tung duoc khach dat).
+@router.delete("/services/{service_id}")
+def delete_hotel_service(
+    service_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_hotel_service_action(db, current_user, service_id)
+    return ok(data, "Xoa dich vu khach san thanh cong")
+
+
 # Admin tao khuyen mai cho khach san cua minh.
 @router.post("/promotions")
 def create_promotion(
@@ -165,6 +178,17 @@ def update_promotion(
 ):
     data = update_promotion_service_action(db, current_user, promotion_id, payload)
     return ok(data, "Cap nhat khuyen mai thanh cong")
+
+
+# Admin xoa cung khuyen mai cua khach san minh (chi khi chua co booking nao dung).
+@router.delete("/promotions/{promotion_id}")
+def delete_promotion(
+    promotion_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_promotion_service_action(db, current_user, promotion_id)
+    return ok(data, "Xoa khuyen mai thanh cong")
 
 
 # Admin them anh cho khach san cua minh.

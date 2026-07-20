@@ -35,6 +35,13 @@ def get_booked_quantity_for_room_type(db: Session, room_type_id: int, check_in: 
     return int(result or 0)
 
 
+# Dem TAT CA booking (moi trang thai, ke ca da huy) da tung dung khuyen mai
+# nay - dung de kiem tra co an toan xoa cung khuyen mai khong (FK khong co
+# ON DELETE CASCADE tren bookings.promotion_id nen con row la bi chan).
+def count_bookings_by_promotion_id(db: Session, promotion_id: int) -> int:
+    return db.query(func.count(Booking.id)).filter(Booking.promotion_id == promotion_id).scalar() or 0
+
+
 # Tao booking moi. Khong commit ngay de giu khoa row cua room_type toi khi tao xong het booking_rooms.
 def create_booking_record(
     db: Session,

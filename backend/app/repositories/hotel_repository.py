@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelStatus
-from app.models.entities import Hotel, HotelImage, HotelService, Promotion, RoomType
+from app.models.entities import BookingService, Hotel, HotelImage, HotelService, Promotion, RoomType
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -153,6 +153,18 @@ def save_hotel_service(db: Session, service: HotelService) -> HotelService:
     return service
 
 
+# Dem so lan dich vu nay da tung duoc khach dat (booking_services) - dich vu
+# da tung dung thi khong the xoa cung (FK RESTRICT tren booking_services.service_id).
+def count_booking_services_by_service(db: Session, service_id: int) -> int:
+    return db.query(func.count(BookingService.id)).filter(BookingService.service_id == service_id).scalar() or 0
+
+
+# Xoa cung dich vu khach san (chi goi sau khi da kiem tra chua tung duoc dat).
+def delete_hotel_service_record(db: Session, service: HotelService) -> None:
+    db.delete(service)
+    db.commit()
+
+
 # Lay khuyen mai theo id.
 def get_promotion_by_id(db: Session, promotion_id: int) -> Promotion | None:
     return db.query(Promotion).filter(Promotion.id == promotion_id).first()
@@ -215,6 +227,12 @@ def save_promotion(db: Session, promotion: Promotion) -> Promotion:
     db.commit()
     db.refresh(promotion)
     return promotion
+
+
+# Xoa cung khuyen mai (chi goi sau khi da kiem tra chua co booking nao dung).
+def delete_promotion_record(db: Session, promotion: Promotion) -> None:
+    db.delete(promotion)
+    db.commit()
 
 
 # Tao anh moi cho khach san.

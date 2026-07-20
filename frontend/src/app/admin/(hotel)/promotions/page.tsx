@@ -44,6 +44,8 @@ export default function AdminPromotionsPage() {
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     data: promotions,
@@ -85,6 +87,20 @@ export default function AdminPromotionsPage() {
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    }
+  }
+
+  async function handleDelete(promotionId: number) {
+    setDeleteError(null);
+    setDeleteBusyId(promotionId);
+    try {
+      await hotelsApi.deletePromotion(promotionId);
+      toast.success("Xóa khuyến mãi thành công");
+      await queryClient.invalidateQueries({ queryKey: ["promotions"] });
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -180,6 +196,7 @@ export default function AdminPromotionsPage() {
               {error instanceof ApiError ? error.message : "Không thể tải danh sách khuyến mãi"}
             </p>
           )}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           {promotions?.map((promotion) => (
             <Card key={promotion.id}>
               <CardHeader>
@@ -207,6 +224,15 @@ export default function AdminPromotionsPage() {
                   onClick={() => handleToggleActive(promotion)}
                 >
                   {promotion.is_active ? "Tắt" : "Bật lại"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDelete(promotion.id)}
+                  disabled={deleteBusyId === promotion.id}
+                >
+                  Xóa
                 </Button>
               </CardContent>
             </Card>

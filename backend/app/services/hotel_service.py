@@ -5,12 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelStatus, UserRole
 from app.models.entities import Hotel, HotelImage, HotelService, Promotion, User
+from app.repositories.booking_repository import count_bookings_by_promotion_id
 from app.repositories.hotel_repository import (
+    count_booking_services_by_service,
     create_hotel_image_record,
     create_hotel_record,
     create_hotel_service_record,
     create_promotion_record,
     delete_hotel_image_record,
+    delete_hotel_service_record,
+    delete_promotion_record,
     get_hotel_by_id,
     get_hotel_by_owner,
     get_hotel_image_by_id,
@@ -34,6 +38,8 @@ from app.schemas.hotels import (
     CreateHotelServiceRequest,
     CreatePromotionRequest,
     DeleteHotelImageResponse,
+    DeleteHotelServiceResponse,
+    DeletePromotionResponse,
     HotelDetailResponse,
     HotelImageResponse,
     HotelResponse,
@@ -240,6 +246,33 @@ def update_hotel_service(
     return serialize_hotel_service(service)
 
 
+# Xu ly xoa cung dich vu khach san - chi cho phep khi dich vu nay chua tung
+# duoc khach dat (booking_services), FK RESTRICT se chan neu da tung dung.
+def delete_hotel_service(db: Session, current_user: User, service_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    service = get_hotel_service_by_id(db, service_id)
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dich vu khong ton tai",
+        )
+    if service.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly dich vu cua khach san minh",
+        )
+
+    usage_count = count_booking_services_by_service(db, service_id)
+    if usage_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dich vu nay da tung duoc khach dat, khong the xoa - hay tat (is_active=false) thay vi xoa",
+        )
+
+    delete_hotel_service_record(db, service)
+    return DeleteHotelServiceResponse(id=service_id).model_dump(mode="json")
+
+
 # Xu ly tao khuyen mai.
 def create_promotion(db: Session, current_user: User, payload: CreatePromotionRequest) -> dict:
     hotel = get_approved_admin_hotel(db, current_user)
@@ -303,6 +336,33 @@ def update_promotion(
 
     promotion = save_promotion(db, promotion)
     return serialize_promotion(promotion)
+
+
+# Xu ly xoa cung khuyen mai - chi cho phep khi chua co booking nao dung khuyen
+# mai nay (ke ca booking da huy, vi FK khong CASCADE nen con row la bi chan).
+def delete_promotion(db: Session, current_user: User, promotion_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    promotion = get_promotion_by_id(db, promotion_id)
+    if not promotion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khuyen mai khong ton tai",
+        )
+    if promotion.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly khuyen mai cua khach san minh",
+        )
+
+    usage_count = count_bookings_by_promotion_id(db, promotion_id)
+    if usage_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khuyen mai nay da tung duoc dung trong booking, khong the xoa - hay tat thay vi xoa",
+        )
+
+    delete_promotion_record(db, promotion)
+    return DeletePromotionResponse(id=promotion_id).model_dump(mode="json")
 
 
 # Xu ly tim kiem khach san cong khai theo thanh pho va tinh trang phong trong.

@@ -170,6 +170,16 @@ class DeleteHotelImageResponse(BaseModel):
     id: int
 
 
+# Schema du lieu tra ve sau khi xoa dich vu khach san.
+class DeleteHotelServiceResponse(BaseModel):
+    id: int
+
+
+# Schema du lieu tra ve sau khi xoa khuyen mai.
+class DeletePromotionResponse(BaseModel):
+    id: int
+
+
 # Schema du lieu tra ve chi tiet khach san cong khai (cho khach hang).
 class HotelDetailResponse(BaseModel):
     id: int

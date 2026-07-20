@@ -3,6 +3,8 @@ import { apiFetch } from "./client";
 import type {
   AdminHotel,
   DeleteHotelImageResult,
+  DeleteHotelServiceResult,
+  DeletePromotionResult,
   HotelDetail,
   HotelImage,
   HotelSearchResult,
@@ -85,12 +87,16 @@ export const hotelsApi = {
   listServices: () => apiFetch<HotelServiceItem[]>("/hotels/services", { auth: true }),
   updateService: (serviceId: number, payload: UpdateHotelServicePayload) =>
     apiFetch<HotelServiceItem>(`/hotels/services/${serviceId}`, { method: "PATCH", body: payload, auth: true }),
+  deleteService: (serviceId: number) =>
+    apiFetch<DeleteHotelServiceResult>(`/hotels/services/${serviceId}`, { method: "DELETE", auth: true }),
 
   createPromotion: (payload: CreatePromotionPayload) =>
     apiFetch<Promotion>("/hotels/promotions", { method: "POST", body: payload, auth: true }),
   listPromotions: () => apiFetch<Promotion[]>("/hotels/promotions", { auth: true }),
   updatePromotion: (promotionId: number, payload: UpdatePromotionPayload) =>
     apiFetch<Promotion>(`/hotels/promotions/${promotionId}`, { method: "PATCH", body: payload, auth: true }),
+  deletePromotion: (promotionId: number) =>
+    apiFetch<DeletePromotionResult>(`/hotels/promotions/${promotionId}`, { method: "DELETE", auth: true }),
 
   createImage: (payload: CreateHotelImagePayload) =>
     apiFetch<HotelImage>("/hotels/images", { method: "POST", body: payload, auth: true }),

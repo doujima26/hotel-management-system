@@ -256,6 +256,14 @@ export interface DeleteHotelImageResult {
   id: number;
 }
 
+export interface DeleteHotelServiceResult {
+  id: number;
+}
+
+export interface DeletePromotionResult {
+  id: number;
+}
+
 export interface RoomType {
   id: number;
   hotel_id: number;

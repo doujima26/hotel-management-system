@@ -38,6 +38,8 @@ export default function AdminServicesPage() {
   const [editUnit, setEditUnit] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     data: services,
@@ -72,6 +74,20 @@ export default function AdminServicesPage() {
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    }
+  }
+
+  async function handleDelete(serviceId: number) {
+    setDeleteError(null);
+    setDeleteBusyId(serviceId);
+    try {
+      await hotelsApi.deleteService(serviceId);
+      toast.success("Xóa dịch vụ thành công");
+      await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -147,6 +163,7 @@ export default function AdminServicesPage() {
               {error instanceof ApiError ? error.message : "Không thể tải danh sách dịch vụ"}
             </p>
           )}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           {services?.map((service) => (
             <Card key={service.id}>
               <CardHeader>
@@ -167,6 +184,15 @@ export default function AdminServicesPage() {
                 </Button>
                 <Button size="sm" variant={service.is_active ? "destructive" : "default"} onClick={() => handleToggleActive(service)}>
                   {service.is_active ? "Tắt" : "Bật lại"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDelete(service.id)}
+                  disabled={deleteBusyId === service.id}
+                >
+                  Xóa
                 </Button>
               </CardContent>
             </Card>
