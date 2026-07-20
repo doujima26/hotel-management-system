@@ -3,7 +3,9 @@ import { apiFetch } from "./client";
 import type {
   Amenity,
   DeleteAmenityResult,
+  DeleteRoomResult,
   DeleteRoomTypeImageResult,
+  DeleteRoomTypeResult,
   RoomAvailability,
   RoomItem,
   RoomListResult,
@@ -84,12 +86,15 @@ export const roomsApi = {
     apiFetch<RoomType[]>("/rooms/room-types", { params: { hotel_id: hotelId }, auth: true }),
   updateRoomType: (roomTypeId: number, payload: UpdateRoomTypePayload) =>
     apiFetch<RoomType>(`/rooms/room-types/${roomTypeId}`, { method: "PATCH", body: payload, auth: true }),
+  deleteRoomType: (roomTypeId: number) =>
+    apiFetch<DeleteRoomTypeResult>(`/rooms/room-types/${roomTypeId}`, { method: "DELETE", auth: true }),
 
   createRoom: (payload: CreateRoomPayload) => apiFetch<RoomItem>("/rooms", { method: "POST", body: payload, auth: true }),
   listRooms: (roomTypeId: number) =>
     apiFetch<RoomListResult>("/rooms/list", { params: { room_type_id: roomTypeId }, auth: true }),
   updateRoom: (roomId: number, payload: UpdateRoomPayload) =>
     apiFetch<RoomItem>(`/rooms/${roomId}`, { method: "PATCH", body: payload, auth: true }),
+  deleteRoom: (roomId: number) => apiFetch<DeleteRoomResult>(`/rooms/${roomId}`, { method: "DELETE", auth: true }),
 
   createAmenity: (payload: CreateAmenityPayload) =>
     apiFetch<Amenity>("/rooms/amenities", { method: "POST", body: payload, auth: true }),

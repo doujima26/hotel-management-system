@@ -10,12 +10,17 @@ from app.repositories.room_repository import (
     count_rooms_by_room_type,
     create_amenity_record,
     create_room_record,
+    count_all_rooms_by_room_type,
+    count_booking_room_units_by_room,
+    count_booking_rooms_by_room_type,
     create_room_type_amenity_link,
     create_room_type_image_record,
     create_room_type_record,
     delete_amenity_record,
+    delete_room_record,
     delete_room_type_amenity_link,
     delete_room_type_image_record,
+    delete_room_type_record,
     get_amenity_by_id,
     get_hotel_by_id,
     get_hotel_by_owner,
@@ -42,7 +47,9 @@ from app.schemas.rooms import (
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
     DeleteAmenityResponse,
+    DeleteRoomResponse,
     DeleteRoomTypeImageResponse,
+    DeleteRoomTypeResponse,
     RoomAvailabilityResponse,
     RoomListResponse,
     RoomResponse,
@@ -172,6 +179,28 @@ def update_room_type(db: Session, current_user: User, room_type_id: int, payload
     return serialize_room_type(room_type)
 
 
+# Xu ly xoa cung loai phong - chi cho phep khi chua tung co phong vat ly hoac
+# booking nao thuoc loai phong nay (FK RESTRICT se chan neu con, nen kiem tra
+# truoc de bao loi ro nghia thay vi de DB nem IntegrityError kho hieu).
+def delete_room_type(db: Session, current_user: User, room_type_id: int) -> dict:
+    room_type = get_room_type_by_id_for_update(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    room_count = count_all_rooms_by_room_type(db, room_type_id)
+    booking_count = count_booking_rooms_by_room_type(db, room_type_id)
+    if room_count > 0 or booking_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Loai phong nay dang co {room_count} phong vat ly va {booking_count} booking lien quan, "
+                "khong the xoa - hay tat (is_active=false) thay vi xoa"
+            ),
+        )
+
+    delete_room_type_record(db, room_type)
+    return DeleteRoomTypeResponse(id=room_type_id).model_dump(mode="json")
+
+
 # Xu ly tao phong vat ly.
 def create_room(db: Session, current_user: User, payload: CreateRoomRequest) -> dict:
     room_type = get_room_type_by_id_for_update(db, payload.room_type_id)
@@ -241,6 +270,27 @@ def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRo
         ) from exc
 
     return serialize_room(room)
+
+
+# Xu ly xoa cung phong vat ly - chi cho phep khi phong nay chua tung duoc gan
+# cho khach check-in (FK RESTRICT tren booking_room_units se chan neu da tung dung).
+def delete_room(db: Session, current_user: User, room_id: int) -> dict:
+    room = get_room_by_id_for_update(db, room_id)
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+
+    room_type = get_room_type_by_id(db, room.room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    usage_count = count_booking_room_units_by_room(db, room_id)
+    if usage_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phong nay da tung duoc gan cho khach check-in, khong the xoa - hay tat thay vi xoa",
+        )
+
+    delete_room_record(db, room)
+    return DeleteRoomResponse(id=room_id).model_dump(mode="json")
 
 
 # Xu ly tao tien nghi cho khach san.

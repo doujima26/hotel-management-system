@@ -311,6 +311,14 @@ export interface DeleteAmenityResult {
   id: number;
 }
 
+export interface DeleteRoomTypeResult {
+  id: number;
+}
+
+export interface DeleteRoomResult {
+  id: number;
+}
+
 export interface StaffMember {
   id: number;
   user_id: number;

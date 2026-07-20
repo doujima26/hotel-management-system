@@ -42,6 +42,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [toggleBusyId, setToggleBusyId] = useState<number | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
 
   const {
     data: roomList,
@@ -62,6 +63,20 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       setToggleError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setToggleBusyId(null);
+    }
+  }
+
+  async function handleDeleteRoom(room: RoomItem) {
+    setToggleError(null);
+    setDeleteBusyId(room.id);
+    try {
+      await roomsApi.deleteRoom(room.id);
+      toast.success("Xóa phòng thành công");
+      await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+    } catch (err) {
+      setToggleError(err instanceof ApiError ? err.message : "Xóa thất bại");
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -160,7 +175,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
                   <Badge variant={room.status === "available" ? "secondary" : "outline"}>{room.status}</Badge>
                   {!room.is_active && <Badge variant="destructive">Đã tắt</Badge>}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditing(room)}>
                     Sửa
                   </Button>
@@ -171,6 +186,15 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
                     disabled={toggleBusyId === room.id}
                   >
                     {room.is_active ? "Tắt" : "Bật lại"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteRoom(room)}
+                    disabled={deleteBusyId === room.id}
+                  >
+                    Xóa
                   </Button>
                 </div>
               </CardContent>

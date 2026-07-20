@@ -38,6 +38,8 @@ export default function AdminRoomTypesPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [toggleBusyId, setToggleBusyId] = useState<number | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data: roomTypes, isLoading, error } = useQuery({
     queryKey: ["room-types", hotel.id],
@@ -53,6 +55,20 @@ export default function AdminRoomTypesPage() {
       toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
       setToggleBusyId(null);
+    }
+  }
+
+  async function handleDelete(roomTypeId: number) {
+    setDeleteError(null);
+    setDeleteBusyId(roomTypeId);
+    try {
+      await roomsApi.deleteRoomType(roomTypeId);
+      toast.success("Xóa loại phòng thành công");
+      await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -108,7 +124,7 @@ export default function AdminRoomTypesPage() {
           <CardTitle>Tạo loại phòng mới</CardTitle>
           <CardDescription>
             {approved
-              ? "Có thể sửa lại hoặc tắt loại phòng sau khi tạo."
+              ? "Có thể sửa, tắt hoặc xóa loại phòng sau khi tạo (chỉ xóa được khi chưa có phòng vật lý/booking nào)."
               : "Khách sạn cần được duyệt trước khi tạo loại phòng."}
           </CardDescription>
         </CardHeader>
@@ -170,6 +186,7 @@ export default function AdminRoomTypesPage() {
             {error instanceof ApiError ? error.message : "Không thể tải danh sách loại phòng"}
           </p>
         )}
+        {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
         {roomTypes?.map((roomType) => (
           <Card key={roomType.id}>
             <CardHeader>
@@ -200,6 +217,15 @@ export default function AdminRoomTypesPage() {
                 disabled={toggleBusyId === roomType.id}
               >
                 {roomType.is_active ? "Tắt" : "Bật lại"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDelete(roomType.id)}
+                disabled={deleteBusyId === roomType.id}
+              >
+                Xóa
               </Button>
             </CardContent>
           </Card>

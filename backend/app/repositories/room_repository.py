@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import RoomStatus
-from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
+from app.models.entities import Amenity, BookingRoom, BookingRoomUnit, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.rooms import (
     CreateAmenityRequest,
@@ -51,6 +51,24 @@ def save_room_type(db: Session, room_type: RoomType) -> RoomType:
     return room_type
 
 
+# Dem TAT CA phong vat ly (khong loc is_active) cua loai phong - dung de kiem
+# tra co an toan xoa cung loai phong khong (con row la con bi FK RESTRICT chan).
+def count_all_rooms_by_room_type(db: Session, room_type_id: int) -> int:
+    return db.query(func.count(Room.id)).filter(Room.room_type_id == room_type_id).scalar() or 0
+
+
+# Dem so dong booking_rooms da tung dat loai phong nay - loai phong da tung
+# duoc dat thi khong the xoa cung (FK RESTRICT), du phong vat ly co the da bi xoa.
+def count_booking_rooms_by_room_type(db: Session, room_type_id: int) -> int:
+    return db.query(func.count(BookingRoom.id)).filter(BookingRoom.room_type_id == room_type_id).scalar() or 0
+
+
+# Xoa cung loai phong (chi goi sau khi da kiem tra khong con phong vat ly/booking nao).
+def delete_room_type_record(db: Session, room_type: RoomType) -> None:
+    db.delete(room_type)
+    db.commit()
+
+
 # Lay danh sach loai phong theo khach san.
 def list_room_type_records(db: Session, hotel_id: int) -> list[RoomType]:
     return db.query(RoomType).filter(RoomType.hotel_id == hotel_id).all()
@@ -92,6 +110,18 @@ def save_room(db: Session, room: Room) -> Room:
     db.commit()
     db.refresh(room)
     return room
+
+
+# Dem so lan phong vat ly nay da tung duoc gan cho khach check-in - phong da
+# tung dung thi khong the xoa cung (FK RESTRICT tren booking_room_units.room_id).
+def count_booking_room_units_by_room(db: Session, room_id: int) -> int:
+    return db.query(func.count(BookingRoomUnit.id)).filter(BookingRoomUnit.room_id == room_id).scalar() or 0
+
+
+# Xoa cung phong vat ly (chi goi sau khi da kiem tra chua tung duoc gan check-in).
+def delete_room_record(db: Session, room: Room) -> None:
+    db.delete(room)
+    db.commit()
 
 
 # Lay danh sach phong vat ly kem ten loai phong theo khach san, dung cho so do phong.

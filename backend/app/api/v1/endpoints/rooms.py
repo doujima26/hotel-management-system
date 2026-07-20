@@ -25,6 +25,8 @@ from app.services.room_service import (
     create_room_type as create_room_type_action,
     create_room_type_image as create_room_type_image_action,
     delete_amenity as delete_amenity_action,
+    delete_room as delete_room_action,
+    delete_room_type as delete_room_type_action,
     delete_room_type_image as delete_room_type_image_action,
     get_room_availability as get_room_availability_action,
     list_amenities as list_amenities_action,
@@ -105,6 +107,17 @@ def update_room_type(
     return ok(data, "Cap nhat loai phong thanh cong")
 
 
+# Admin xoa cung loai phong (chi khi chua co phong vat ly/booking nao lien quan).
+@router.delete("/room-types/{room_type_id}")
+def delete_room_type(
+    room_type_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_room_type_action(db, current_user, room_type_id)
+    return ok(data, "Xoa loai phong thanh cong")
+
+
 # Admin tao phong vat ly theo loai phong cua khach san minh.
 @router.post("")
 def create_room(
@@ -137,6 +150,17 @@ def update_room(
 ):
     data = update_room_action(db, current_user, room_id, payload)
     return ok(data, "Cap nhat phong thanh cong")
+
+
+# Admin xoa cung phong vat ly (chi khi chua tung duoc gan cho khach check-in).
+@router.delete("/{room_id}")
+def delete_room(
+    room_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_room_action(db, current_user, room_id)
+    return ok(data, "Xoa phong thanh cong")
 
 
 # Admin tao tien nghi moi cho khach san cua minh.

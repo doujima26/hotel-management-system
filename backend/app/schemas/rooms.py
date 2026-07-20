@@ -59,6 +59,16 @@ class UpdateAmenityRequest(BaseModel):
     category: str | None = Field(default=None, max_length=50)
 
 
+# Schema du lieu tra ve sau khi xoa loai phong.
+class DeleteRoomTypeResponse(BaseModel):
+    id: int
+
+
+# Schema du lieu tra ve sau khi xoa phong vat ly.
+class DeleteRoomResponse(BaseModel):
+    id: int
+
+
 # Schema du lieu tra ve loai phong.
 class RoomTypeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
