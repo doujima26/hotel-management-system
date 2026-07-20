@@ -2,16 +2,19 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus
+from app.core.enums import BookingStatus, UserRole
 from app.models.entities import Review, User
 from app.repositories.booking_repository import get_booking_by_id
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.review_repository import (
     create_review_record,
+    delete_review_record,
+    get_review_by_id,
     get_review_by_user_and_booking,
     list_reviews_with_user_by_hotel,
+    save_review,
 )
-from app.schemas.reviews import CreateReviewRequest, ReviewResponse
+from app.schemas.reviews import CreateReviewRequest, DeleteReviewResponse, ReviewResponse, UpdateReviewRequest
 
 
 # Chuyen Review + User thanh du lieu tra ve.
@@ -65,3 +68,42 @@ def list_hotel_reviews(db: Session, hotel_id: int) -> list[dict]:
 
     rows = list_reviews_with_user_by_hotel(db, hotel_id)
     return [_serialize_review(review, user) for review, user in rows]
+
+
+# Xu ly khach tu sua danh gia cua chinh minh. Trigger DB tu cap nhat lai
+# avg_rating cua khach san khi rating doi.
+def update_review(db: Session, current_user: User, review_id: int, payload: UpdateReviewRequest) -> dict:
+    review = get_review_by_id(db, review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh gia khong ton tai")
+    if review.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc sua danh gia cua minh")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(review, field, value)
+
+    review = save_review(db, review)
+    return _serialize_review(review, current_user)
+
+
+# Xu ly xoa danh gia - tac gia tu xoa, hoac Admin cua khach san go danh gia vi pham.
+def delete_review(db: Session, current_user: User, review_id: int) -> dict:
+    review = get_review_by_id(db, review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh gia khong ton tai")
+
+    is_author = review.user_id == current_user.id
+    is_hotel_admin = False
+    if current_user.role == UserRole.ADMIN:
+        hotel = get_hotel_by_id(db, review.hotel_id)
+        is_hotel_admin = bool(hotel and hotel.owner_id == current_user.id)
+
+    if not is_author and not is_hotel_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc xoa danh gia cua minh hoac cua khach san minh quan ly",
+        )
+
+    delete_review_record(db, review)
+    return DeleteReviewResponse(id=review_id).model_dump(mode="json")

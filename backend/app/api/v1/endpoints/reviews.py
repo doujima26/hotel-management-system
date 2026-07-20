@@ -6,8 +6,13 @@ from app.core.enums import UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.reviews import CreateReviewRequest
-from app.services.review_service import create_review as create_review_action, list_hotel_reviews as list_hotel_reviews_action
+from app.schemas.reviews import CreateReviewRequest, UpdateReviewRequest
+from app.services.review_service import (
+    create_review as create_review_action,
+    delete_review as delete_review_action,
+    list_hotel_reviews as list_hotel_reviews_action,
+    update_review as update_review_action,
+)
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -31,3 +36,26 @@ def list_hotel_reviews(
 ):
     data = list_hotel_reviews_action(db, hotel_id)
     return ok(data, "Danh sach danh gia")
+
+
+# Khach tu sua danh gia cua chinh minh.
+@router.patch("/{review_id}")
+def update_review(
+    review_id: int,
+    payload: UpdateReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = update_review_action(db, current_user, review_id, payload)
+    return ok(data, "Cap nhat danh gia thanh cong")
+
+
+# Khach tu xoa danh gia cua minh, hoac Admin go danh gia vi pham cua khach san minh.
+@router.delete("/{review_id}")
+def delete_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER, UserRole.ADMIN)),
+):
+    data = delete_review_action(db, current_user, review_id)
+    return ok(data, "Xoa danh gia thanh cong")

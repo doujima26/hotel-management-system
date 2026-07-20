@@ -32,3 +32,23 @@ def list_reviews_with_user_by_hotel(db: Session, hotel_id: int) -> list[tuple[Re
         .order_by(Review.created_at.desc())
         .all()
     )
+
+
+# Lay danh gia theo id.
+def get_review_by_id(db: Session, review_id: int) -> Review | None:
+    return db.query(Review).filter(Review.id == review_id).first()
+
+
+# Luu thay doi danh gia (sua rating/comment).
+def save_review(db: Session, review: Review) -> Review:
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+# Xoa danh gia. Trigger DB (fn_update_hotel_rating) tu dong cap nhat lai
+# avg_rating/total_reviews cua khach san, khong can code them.
+def delete_review_record(db: Session, review: Review) -> None:
+    db.delete(review)
+    db.commit()

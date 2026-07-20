@@ -16,6 +16,7 @@ import { bookingsApi } from "@/lib/api/bookings";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 import { BOOKING_STATUS_LABELS } from "@/types/enums";
+import type { Review } from "@/types/models";
 
 interface BookingDetailPageProps {
   params: Promise<{ bookingId: string }>;
@@ -35,11 +36,11 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [rating, setRating] = useState("5");
   const [comment, setComment] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState(false);
 
   const bookingQuery = useQuery({
     queryKey: ["booking-detail", id],
@@ -48,6 +49,13 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
   });
 
   const booking = bookingQuery.data;
+
+  const reviewsQuery = useQuery({
+    queryKey: ["hotel-reviews", booking?.hotel_id],
+    queryFn: () => reviewsApi.listForHotelClient(booking!.hotel_id),
+    enabled: Boolean(booking && booking.status === "checked_out"),
+  });
+  const myReview = reviewsQuery.data?.find((review) => review.booking_id === id);
 
   const invoiceQuery = useQuery({
     queryKey: ["booking-invoice", id],
@@ -81,16 +89,50 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
     try {
       await reviewsApi.create({ booking_id: booking.id, rating: Number(rating), comment: comment || undefined });
       toast.success("Đánh giá thành công");
-      setReviewSubmitted(true);
+      await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setReviewSubmitted(true);
-      } else {
-        setReviewError(err instanceof ApiError ? err.message : "Đánh giá thất bại");
-      }
+      setReviewError(err instanceof ApiError ? err.message : "Đánh giá thất bại");
     } finally {
       setReviewSubmitting(false);
     }
+  }
+
+  async function handleUpdateReview() {
+    if (!booking || !myReview) return;
+    setReviewError(null);
+    setReviewSubmitting(true);
+    try {
+      await reviewsApi.update(myReview.id, { rating: Number(rating), comment: comment || undefined });
+      toast.success("Cập nhật đánh giá thành công");
+      await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
+      setEditingReview(false);
+    } catch (err) {
+      setReviewError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
+  async function handleDeleteReview() {
+    if (!booking || !myReview) return;
+    setReviewError(null);
+    setReviewSubmitting(true);
+    try {
+      await reviewsApi.remove(myReview.id);
+      toast.success("Đã xóa đánh giá");
+      await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
+    } catch (err) {
+      setReviewError(err instanceof ApiError ? err.message : "Xóa thất bại");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
+  function startEditingReview(review: Review) {
+    setRating(String(review.rating));
+    setComment(review.comment ?? "");
+    setEditingReview(true);
+    setReviewError(null);
   }
 
   if (bookingQuery.isLoading) {
@@ -179,10 +221,10 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
         </Button>
       )}
 
-      {booking.status === "checked_out" && !reviewSubmitted && (
+      {booking.status === "checked_out" && (!myReview || editingReview) && (
         <Card>
           <CardHeader>
-            <CardTitle>Viết đánh giá</CardTitle>
+            <CardTitle>{editingReview ? "Sửa đánh giá" : "Viết đánh giá"}</CardTitle>
             <CardDescription>Chia sẻ trải nghiệm của bạn về kỳ nghỉ này.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -212,14 +254,42 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
               />
             </div>
             {reviewError && <p className="text-sm text-destructive">{reviewError}</p>}
-            <Button onClick={handleSubmitReview} disabled={reviewSubmitting} className="self-start">
-              {reviewSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={editingReview ? handleUpdateReview : handleSubmitReview}
+                disabled={reviewSubmitting}
+                className="self-start"
+              >
+                {reviewSubmitting ? "Đang lưu..." : editingReview ? "Lưu thay đổi" : "Gửi đánh giá"}
+              </Button>
+              {editingReview && (
+                <Button variant="outline" onClick={() => setEditingReview(false)} disabled={reviewSubmitting}>
+                  Hủy
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
-      {booking.status === "checked_out" && reviewSubmitted && (
-        <p className="text-sm text-muted-foreground">Cảm ơn bạn đã đánh giá kỳ nghỉ này!</p>
+      {booking.status === "checked_out" && myReview && !editingReview && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Đánh giá của bạn</CardTitle>
+            <CardDescription>{myReview.rating} sao</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {myReview.comment && <p className="text-sm">{myReview.comment}</p>}
+            {reviewError && <p className="text-sm text-destructive">{reviewError}</p>}
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => startEditingReview(myReview)}>
+                Sửa
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleDeleteReview} disabled={reviewSubmitting}>
+                Xóa
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
