@@ -43,6 +43,14 @@ def create_room_type_record(db: Session, payload: CreateRoomTypeRequest) -> Room
     return room_type
 
 
+# Luu thay doi loai phong (dung cho sua thong tin/tat mo is_active).
+def save_room_type(db: Session, room_type: RoomType) -> RoomType:
+    db.add(room_type)
+    db.commit()
+    db.refresh(room_type)
+    return room_type
+
+
 # Lay danh sach loai phong theo khach san.
 def list_room_type_records(db: Session, hotel_id: int) -> list[RoomType]:
     return db.query(RoomType).filter(RoomType.hotel_id == hotel_id).all()

@@ -27,6 +27,7 @@ from app.repositories.room_repository import (
     list_room_type_availability,
     list_room_type_image_records,
     list_room_type_records,
+    save_room_type,
     set_room_type_image_primary,
 )
 from app.schemas.rooms import (
@@ -43,6 +44,7 @@ from app.schemas.rooms import (
     RoomTypeAvailabilityResponse,
     RoomTypeImageResponse,
     RoomTypeResponse,
+    UpdateRoomTypeRequest,
 )
 
 
@@ -138,6 +140,28 @@ def list_room_types(db: Session, current_user: User, hotel_id: int) -> list[dict
     validate_admin_hotel(hotel, current_user)
     room_types = list_room_type_records(db, hotel_id)
     return [serialize_room_type(item) for item in room_types]
+
+
+# Xu ly sua loai phong. Khoa row vi co the doi total_rooms - tranh dua voi
+# create_room dang kiem tra suc chua cung luc.
+def update_room_type(db: Session, current_user: User, room_type_id: int, payload: UpdateRoomTypeRequest) -> dict:
+    room_type = get_room_type_by_id_for_update(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if "total_rooms" in update_data:
+        current_rooms = count_rooms_by_room_type(db, room_type_id)
+        if update_data["total_rooms"] < current_rooms:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Loai phong nay da co {current_rooms} phong vat ly, khong the giam total_rooms xuong thap hon",
+            )
+
+    for field, value in update_data.items():
+        setattr(room_type, field, value)
+
+    room_type = save_room_type(db, room_type)
+    return serialize_room_type(room_type)
 
 
 # Xu ly tao phong vat ly.

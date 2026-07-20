@@ -17,6 +17,18 @@ class CreateRoomTypeRequest(BaseModel):
     total_rooms: int = Field(gt=0)
 
 
+# Schema du lieu dau vao cho sua loai phong (tat ca field tuy chon).
+class UpdateRoomTypeRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    description: str | None = None
+    base_price: float | None = Field(default=None, gt=0)
+    max_guests: int | None = Field(default=None, gt=0)
+    area_sqm: float | None = Field(default=None, gt=0)
+    bed_type: str | None = Field(default=None, max_length=100)
+    total_rooms: int | None = Field(default=None, gt=0)
+    is_active: bool | None = None
+
+
 # Schema du lieu dau vao cho tao phong vat ly.
 class CreateRoomRequest(BaseModel):
     room_type_id: int = Field(gt=0)

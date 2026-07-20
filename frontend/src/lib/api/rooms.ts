@@ -31,6 +31,17 @@ export interface CreateRoomTypePayload {
   total_rooms: number;
 }
 
+export interface UpdateRoomTypePayload {
+  name?: string;
+  description?: string;
+  base_price?: number;
+  max_guests?: number;
+  area_sqm?: number;
+  bed_type?: string;
+  total_rooms?: number;
+  is_active?: boolean;
+}
+
 export interface CreateRoomPayload {
   room_type_id: number;
   room_number: string;
@@ -58,6 +69,8 @@ export const roomsApi = {
     apiFetch<RoomType>("/rooms/room-types", { method: "POST", body: payload, auth: true }),
   listRoomTypes: (hotelId: number) =>
     apiFetch<RoomType[]>("/rooms/room-types", { params: { hotel_id: hotelId }, auth: true }),
+  updateRoomType: (roomTypeId: number, payload: UpdateRoomTypePayload) =>
+    apiFetch<RoomType>(`/rooms/room-types/${roomTypeId}`, { method: "PATCH", body: payload, auth: true }),
 
   createRoom: (payload: CreateRoomPayload) => apiFetch<RoomItem>("/rooms", { method: "POST", body: payload, auth: true }),
   listRooms: (roomTypeId: number) =>
