@@ -48,6 +48,12 @@ export interface CreateRoomPayload {
   floor?: number;
 }
 
+export interface UpdateRoomPayload {
+  room_number?: string;
+  floor?: number;
+  is_active?: boolean;
+}
+
 export interface CreateAmenityPayload {
   name: string;
   icon?: string;
@@ -75,6 +81,8 @@ export const roomsApi = {
   createRoom: (payload: CreateRoomPayload) => apiFetch<RoomItem>("/rooms", { method: "POST", body: payload, auth: true }),
   listRooms: (roomTypeId: number) =>
     apiFetch<RoomListResult>("/rooms/list", { params: { room_type_id: roomTypeId }, auth: true }),
+  updateRoom: (roomId: number, payload: UpdateRoomPayload) =>
+    apiFetch<RoomItem>(`/rooms/${roomId}`, { method: "PATCH", body: payload, auth: true }),
 
   createAmenity: (payload: CreateAmenityPayload) =>
     apiFetch<Amenity>("/rooms/amenities", { method: "POST", body: payload, auth: true }),

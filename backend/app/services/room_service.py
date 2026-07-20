@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus
+from app.core.enums import HotelStatus, RoomStatus
 from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeImage, User
 from app.repositories.room_repository import (
     count_rooms_by_room_type,
@@ -17,6 +17,7 @@ from app.repositories.room_repository import (
     get_amenity_by_id,
     get_hotel_by_id,
     get_hotel_by_owner,
+    get_room_by_id_for_update,
     get_room_type_amenity_link,
     get_room_type_by_id,
     get_room_type_by_id_for_update,
@@ -27,6 +28,7 @@ from app.repositories.room_repository import (
     list_room_type_availability,
     list_room_type_image_records,
     list_room_type_records,
+    save_room,
     save_room_type,
     set_room_type_image_primary,
 )
@@ -44,6 +46,7 @@ from app.schemas.rooms import (
     RoomTypeAvailabilityResponse,
     RoomTypeImageResponse,
     RoomTypeResponse,
+    UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
 
@@ -201,6 +204,38 @@ def list_rooms(db: Session, current_user: User, room_type_id: int) -> dict:
         max_rooms=room_type.total_rooms,
         remaining_rooms=max(room_type.total_rooms - len(items), 0),
     ).model_dump(mode="json")
+
+
+# Xu ly sua phong vat ly (so phong/tang/tat mo is_active). Khoa row vi co the
+# doi is_active - tranh dua voi check-in dang gan phong cung luc.
+def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRoomRequest) -> dict:
+    room = get_room_by_id_for_update(db, room_id)
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+
+    room_type = get_room_type_by_id(db, room.room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if update_data.get("is_active") is False and room.status != RoomStatus.AVAILABLE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chi tat duoc phong dang o trang thai available",
+        )
+
+    for field, value in update_data.items():
+        setattr(room, field, value)
+
+    try:
+        room = save_room(db, room)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="So phong da ton tai trong loai phong nay",
+        ) from exc
+
+    return serialize_room(room)
 
 
 # Xu ly tao tien nghi cho khach san.

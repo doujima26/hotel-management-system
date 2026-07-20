@@ -9,8 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
+import type { RoomItem } from "@/types/models";
 import { useAdminHotel } from "../../../layout";
 
 interface RoomsPageProps {
@@ -28,6 +37,11 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
   const [floor, setFloor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RoomItem | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [toggleBusyId, setToggleBusyId] = useState<number | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const {
     data: roomList,
@@ -37,6 +51,38 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
     queryKey: ["rooms", id],
     queryFn: () => roomsApi.listRooms(id),
   });
+
+  async function handleToggleActive(room: RoomItem) {
+    setToggleError(null);
+    setToggleBusyId(room.id);
+    try {
+      await roomsApi.updateRoom(room.id, { is_active: !room.is_active });
+      await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+    } catch (err) {
+      setToggleError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setToggleBusyId(null);
+    }
+  }
+
+  async function saveEdit(values: { room_number: string; floor: string }) {
+    if (!editing) return;
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      await roomsApi.updateRoom(editing.id, {
+        room_number: values.room_number.trim(),
+        floor: values.floor ? Number(values.floor) : undefined,
+      });
+      toast.success("Cập nhật phòng thành công");
+      await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+      setEditing(null);
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
 
   async function handleAddRoom() {
     setFormError(null);
@@ -103,13 +149,30 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
             {error instanceof ApiError ? error.message : "Không thể tải danh sách phòng"}
           </p>
         )}
+        {toggleError && <p className="text-sm text-destructive">{toggleError}</p>}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {roomList?.items.map((room) => (
             <Card key={room.id}>
               <CardContent className="flex flex-col items-center gap-2 py-4">
                 <span className="text-lg font-semibold">{room.room_number}</span>
                 <span className="text-xs text-muted-foreground">{room.floor ? `Tầng ${room.floor}` : "Chưa rõ tầng"}</span>
-                <Badge variant={room.status === "available" ? "secondary" : "outline"}>{room.status}</Badge>
+                <div className="flex gap-1.5">
+                  <Badge variant={room.status === "available" ? "secondary" : "outline"}>{room.status}</Badge>
+                  {!room.is_active && <Badge variant="destructive">Đã tắt</Badge>}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(room)}>
+                    Sửa
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={room.is_active ? "destructive" : "default"}
+                    onClick={() => handleToggleActive(room)}
+                    disabled={toggleBusyId === room.id}
+                  >
+                    {room.is_active ? "Tắt" : "Bật lại"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -120,7 +183,64 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       </div>
 
       <RoomTypeImagesSection roomTypeId={id} />
+
+      {editing && (
+        <EditRoomDialog
+          room={editing}
+          error={editError}
+          submitting={editSubmitting}
+          onClose={() => setEditing(null)}
+          onSave={saveEdit}
+        />
+      )}
     </div>
+  );
+}
+
+function EditRoomDialog({
+  room,
+  error,
+  submitting,
+  onClose,
+  onSave,
+}: {
+  room: RoomItem;
+  error: string | null;
+  submitting: boolean;
+  onClose: () => void;
+  onSave: (values: { room_number: string; floor: string }) => void;
+}) {
+  const [roomNumber, setRoomNumber] = useState(room.room_number);
+  const [floor, setFloor] = useState(room.floor ? String(room.floor) : "");
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sửa phòng</DialogTitle>
+          <DialogDescription>Cập nhật số phòng/tầng.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_room_number">Số phòng</Label>
+            <Input id="edit_room_number" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_room_floor">Tầng (không bắt buộc)</Label>
+            <Input id="edit_room_floor" type="number" value={floor} onChange={(e) => setFloor(e.target.value)} />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button onClick={() => onSave({ room_number: roomNumber, floor })} disabled={submitting}>
+            Lưu
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

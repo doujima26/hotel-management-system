@@ -81,6 +81,19 @@ def get_room_by_id_for_update(db: Session, room_id: int) -> Room | None:
     return db.query(Room).filter(Room.id == room_id).with_for_update().first()
 
 
+# Lay phong vat ly theo id, khong khoa dong (dung de xem/kiem tra quyen).
+def get_room_by_id(db: Session, room_id: int) -> Room | None:
+    return db.query(Room).filter(Room.id == room_id).first()
+
+
+# Luu thay doi phong vat ly (dung cho sua so phong/tang/tat mo is_active).
+def save_room(db: Session, room: Room) -> Room:
+    db.add(room)
+    db.commit()
+    db.refresh(room)
+    return room
+
+
 # Lay danh sach phong vat ly kem ten loai phong theo khach san, dung cho so do phong.
 def list_rooms_with_type_by_hotel(db: Session, hotel_id: int) -> list[tuple[Room, RoomType]]:
     return (

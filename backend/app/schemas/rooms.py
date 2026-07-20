@@ -36,6 +36,15 @@ class CreateRoomRequest(BaseModel):
     floor: int | None = None
 
 
+# Schema du lieu dau vao cho sua phong vat ly (tat ca field tuy chon).
+# Khong cho sua "status" qua day - trang thai phong quan ly rieng qua luong
+# check-in/check-out (co ghi room_status_logs), tranh bo qua audit trail.
+class UpdateRoomRequest(BaseModel):
+    room_number: str | None = Field(default=None, min_length=1, max_length=20)
+    floor: int | None = None
+    is_active: bool | None = None
+
+
 # Schema du lieu dau vao cho tao tien nghi.
 class CreateAmenityRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)

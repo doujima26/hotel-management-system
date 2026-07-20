@@ -13,6 +13,7 @@ from app.schemas.rooms import (
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
+    UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
 from app.services.checkin_service import get_room_status_board as get_room_status_board_action
@@ -30,6 +31,7 @@ from app.services.room_service import (
     list_room_types as list_room_types_action,
     list_rooms as list_rooms_action,
     set_primary_room_type_image as set_primary_room_type_image_action,
+    update_room as update_room_action,
     update_room_type as update_room_type_action,
 )
 
@@ -119,6 +121,18 @@ def list_rooms(
 ):
     data = list_rooms_action(db, current_user, room_type_id)
     return ok(data, "Danh sach phong vat ly")
+
+
+# Admin sua phong vat ly (so phong/tang/tat mo is_active) cua khach san minh.
+@router.patch("/{room_id}")
+def update_room(
+    room_id: int,
+    payload: UpdateRoomRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = update_room_action(db, current_user, room_id, payload)
+    return ok(data, "Cap nhat phong thanh cong")
 
 
 # Admin tao tien nghi moi cho khach san cua minh.
