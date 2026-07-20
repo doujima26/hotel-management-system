@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Footer chi hien o khu vuc marketing/cong khai (theo DESIGN.md) - khu vuc app
@@ -9,18 +8,11 @@ import { usePathname } from "next/navigation";
 // dashboard SaaS that.
 const NO_FOOTER_PREFIXES = ["/staff", "/super-admin", "/checkout", "/bookings", "/account"];
 
-const EXPLORE_LINKS = [
-  { href: "/", label: "Trang chủ" },
-  { href: "/hotels", label: "Tìm khách sạn" },
-  { href: "/admin/register", label: "Đăng ký khách sạn" },
-];
+// Footer chi mang tinh tuong trung (khong phai component dieu huong that), nen
+// cac muc ben duoi la text thuong, khong phai link co the bam.
+const EXPLORE_ITEMS = ["Trang chủ", "Tìm khách sạn", "Đăng ký khách sạn"];
 
-const SUPPORT_LINKS = [
-  { href: "/login", label: "Đăng nhập" },
-  { href: "/register", label: "Đăng ký" },
-  { href: "/bookings", label: "Booking của tôi" },
-  { href: "/forgot-password", label: "Quên mật khẩu" },
-];
+const SUPPORT_ITEMS = ["Đăng nhập", "Đăng ký", "Booking của tôi", "Quên mật khẩu"];
 
 const CONTACT_EMAIL = "hdung261204@gmail.com";
 
@@ -52,12 +44,8 @@ export function Footer() {
             Khám phá
           </h3>
           <ul className="mt-4 flex flex-col gap-3 text-sm">
-            {EXPLORE_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="transition-colors hover:text-primary">
-                  {link.label}
-                </Link>
-              </li>
+            {EXPLORE_ITEMS.map((label) => (
+              <li key={label}>{label}</li>
             ))}
           </ul>
         </div>
@@ -67,12 +55,8 @@ export function Footer() {
             Hỗ trợ
           </h3>
           <ul className="mt-4 flex flex-col gap-3 text-sm">
-            {SUPPORT_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="transition-colors hover:text-primary">
-                  {link.label}
-                </Link>
-              </li>
+            {SUPPORT_ITEMS.map((label) => (
+              <li key={label}>{label}</li>
             ))}
           </ul>
         </div>
@@ -82,11 +66,7 @@ export function Footer() {
             Liên hệ
           </h3>
           <ul className="mt-4 flex flex-col gap-3 text-sm">
-            <li>
-              <a href={`mailto:${CONTACT_EMAIL}`} className="transition-colors hover:text-primary">
-                {CONTACT_EMAIL}
-              </a>
-            </li>
+            <li>{CONTACT_EMAIL}</li>
           </ul>
         </div>
       </div>
