@@ -193,6 +193,26 @@ def get_amenity_by_id(db: Session, amenity_id: int) -> Amenity | None:
     return db.query(Amenity).filter(Amenity.id == amenity_id).first()
 
 
+# Luu thay doi tien nghi (sua ten/icon/category).
+def save_amenity(db: Session, amenity: Amenity) -> Amenity:
+    db.add(amenity)
+    db.commit()
+    db.refresh(amenity)
+    return amenity
+
+
+# Xoa tien nghi (DB tu dong xoa cac lien ket room_type_amenities nho ON DELETE CASCADE).
+def delete_amenity_record(db: Session, amenity: Amenity) -> None:
+    db.delete(amenity)
+    db.commit()
+
+
+# Xoa 1 lien ket loai phong - tien nghi cu the (go tien nghi khoi loai phong, khong xoa amenity).
+def delete_room_type_amenity_link(db: Session, link: RoomTypeAmenity) -> None:
+    db.delete(link)
+    db.commit()
+
+
 # Lay lien ket loai phong va tien nghi.
 def get_room_type_amenity_link(db: Session, room_type_id: int, amenity_id: int) -> RoomTypeAmenity | None:
     return (

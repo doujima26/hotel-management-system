@@ -52,6 +52,13 @@ class CreateAmenityRequest(BaseModel):
     category: str | None = Field(default=None, max_length=50)
 
 
+# Schema du lieu dau vao cho sua tien nghi (tat ca field tuy chon).
+class UpdateAmenityRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    icon: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=50)
+
+
 # Schema du lieu tra ve loai phong.
 class RoomTypeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -96,10 +103,15 @@ class AmenityResponse(BaseModel):
     category: str | None = None
 
 
-# Schema du lieu tra ve sau khi gan tien nghi vao loai phong.
+# Schema du lieu tra ve sau khi gan/go tien nghi khoi loai phong.
 class RoomTypeAmenityLinkResponse(BaseModel):
     room_type_id: int
     amenity_id: int
+
+
+# Schema du lieu tra ve sau khi xoa tien nghi.
+class DeleteAmenityResponse(BaseModel):
+    id: int
 
 
 # Schema tinh trang trong cua mot loai phong theo khoang ngay.

@@ -8,9 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
+import type { Amenity } from "@/types/models";
 import { useAdminHotel } from "../layout";
 
 export default function AdminAmenitiesPage() {
@@ -24,6 +33,11 @@ export default function AdminAmenitiesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Amenity | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     data: amenities,
@@ -77,6 +91,54 @@ export default function AdminAmenitiesPage() {
     }
   }
 
+  async function handleUnassign(amenityId: number) {
+    if (roomTypeId === null) return;
+    setAssignError(null);
+    try {
+      await roomsApi.unassignAmenityFromRoomType(roomTypeId, amenityId);
+      toast.success("Đã gỡ tiện nghi khỏi loại phòng");
+      await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
+    } catch (err) {
+      setAssignError(err instanceof ApiError ? err.message : "Gỡ tiện nghi thất bại");
+    }
+  }
+
+  async function handleDelete(amenityId: number) {
+    setDeleteError(null);
+    setDeleteBusyId(amenityId);
+    try {
+      await roomsApi.deleteAmenity(amenityId);
+      toast.success("Xóa tiện nghi thành công");
+      await queryClient.invalidateQueries({ queryKey: ["amenities"] });
+      if (roomTypeId !== null) {
+        await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
+      }
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Xóa tiện nghi thất bại");
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
+
+  async function saveEdit(values: { name: string; category: string }) {
+    if (!editing) return;
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      await roomsApi.updateAmenity(editing.id, {
+        name: values.name.trim(),
+        category: values.category.trim() || undefined,
+      });
+      toast.success("Cập nhật tiện nghi thành công");
+      await queryClient.invalidateQueries({ queryKey: ["amenities"] });
+      setEditing(null);
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
   const assignedIds = new Set(assignedAmenities?.map((a) => a.id));
 
   return (
@@ -120,12 +182,30 @@ export default function AdminAmenitiesPage() {
                 {error instanceof ApiError ? error.message : "Không thể tải danh sách tiện nghi"}
               </p>
             )}
+            {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
             <div className="flex flex-wrap gap-2">
               {amenities?.map((amenity) => (
-                <Badge key={amenity.id} variant="outline">
-                  {amenity.name}
-                  {amenity.category ? ` · ${amenity.category}` : ""}
-                </Badge>
+                <div key={amenity.id} className="flex items-center gap-1 rounded-full border px-1 py-1 pl-3">
+                  <Badge variant="outline" className="border-0 p-0">
+                    {amenity.name}
+                    {amenity.category ? ` · ${amenity.category}` : ""}
+                  </Badge>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(amenity)}
+                    className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(amenity.id)}
+                    disabled={deleteBusyId === amenity.id}
+                    className="px-1.5 text-xs text-destructive hover:underline"
+                  >
+                    Xóa
+                  </button>
+                </div>
               ))}
               {amenities && amenities.length === 0 && <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào.</p>}
             </div>
@@ -167,10 +247,9 @@ export default function AdminAmenitiesPage() {
                         type="button"
                         size="sm"
                         variant={assigned ? "secondary" : "outline"}
-                        disabled={assigned}
-                        onClick={() => handleAssign(amenity.id)}
+                        onClick={() => (assigned ? handleUnassign(amenity.id) : handleAssign(amenity.id))}
                       >
-                        {amenity.name} {assigned ? "✓" : ""}
+                        {amenity.name} {assigned ? "✓ (bấm để gỡ)" : ""}
                       </Button>
                     );
                   })}
@@ -183,6 +262,63 @@ export default function AdminAmenitiesPage() {
           </Card>
         </>
       )}
+
+      {editing && (
+        <EditAmenityDialog
+          amenity={editing}
+          error={editError}
+          submitting={editSubmitting}
+          onClose={() => setEditing(null)}
+          onSave={saveEdit}
+        />
+      )}
     </div>
+  );
+}
+
+function EditAmenityDialog({
+  amenity,
+  error,
+  submitting,
+  onClose,
+  onSave,
+}: {
+  amenity: Amenity;
+  error: string | null;
+  submitting: boolean;
+  onClose: () => void;
+  onSave: (values: { name: string; category: string }) => void;
+}) {
+  const [name, setName] = useState(amenity.name);
+  const [category, setCategory] = useState(amenity.category ?? "");
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sửa tiện nghi</DialogTitle>
+          <DialogDescription>Cập nhật tên/danh mục tiện nghi.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_amenity_name">Tên tiện nghi</Label>
+            <Input id="edit_amenity_name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_amenity_category">Danh mục (không bắt buộc)</Label>
+            <Input id="edit_amenity_category" value={category} onChange={(e) => setCategory(e.target.value)} />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button onClick={() => onSave({ name, category })} disabled={submitting}>
+            Lưu
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

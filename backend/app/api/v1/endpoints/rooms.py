@@ -13,6 +13,7 @@ from app.schemas.rooms import (
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
+    UpdateAmenityRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
@@ -23,6 +24,7 @@ from app.services.room_service import (
     create_room as create_room_action,
     create_room_type as create_room_type_action,
     create_room_type_image as create_room_type_image_action,
+    delete_amenity as delete_amenity_action,
     delete_room_type_image as delete_room_type_image_action,
     get_room_availability as get_room_availability_action,
     list_amenities as list_amenities_action,
@@ -31,6 +33,8 @@ from app.services.room_service import (
     list_room_types as list_room_types_action,
     list_rooms as list_rooms_action,
     set_primary_room_type_image as set_primary_room_type_image_action,
+    unassign_amenity_from_room_type as unassign_amenity_from_room_type_action,
+    update_amenity as update_amenity_action,
     update_room as update_room_action,
     update_room_type as update_room_type_action,
 )
@@ -156,6 +160,29 @@ def list_amenities(
     return ok(data, "Danh sach tien nghi")
 
 
+# Admin sua tien nghi cua khach san minh.
+@router.patch("/amenities/{amenity_id}")
+def update_amenity(
+    amenity_id: int,
+    payload: UpdateAmenityRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = update_amenity_action(db, current_user, amenity_id, payload)
+    return ok(data, "Cap nhat tien nghi thanh cong")
+
+
+# Admin xoa tien nghi cua khach san minh (tu dong go khoi cac loai phong da gan).
+@router.delete("/amenities/{amenity_id}")
+def delete_amenity(
+    amenity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = delete_amenity_action(db, current_user, amenity_id)
+    return ok(data, "Xoa tien nghi thanh cong")
+
+
 # Admin gan tien nghi vao loai phong cua khach san minh.
 @router.post("/room-types/{room_type_id}/amenities/{amenity_id}")
 def assign_amenity_to_room_type(
@@ -166,6 +193,18 @@ def assign_amenity_to_room_type(
 ):
     data = assign_amenity_to_room_type_action(db, current_user, room_type_id, amenity_id)
     return ok(data, "Gan tien nghi vao loai phong thanh cong")
+
+
+# Admin go 1 tien nghi khoi loai phong (khong xoa amenity, chi xoa lien ket).
+@router.delete("/room-types/{room_type_id}/amenities/{amenity_id}")
+def unassign_amenity_from_room_type(
+    room_type_id: int,
+    amenity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = unassign_amenity_from_room_type_action(db, current_user, room_type_id, amenity_id)
+    return ok(data, "Go tien nghi khoi loai phong thanh cong")
 
 
 # Admin xem danh sach tien nghi cua loai phong.

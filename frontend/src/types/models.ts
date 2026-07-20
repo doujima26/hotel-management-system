@@ -307,6 +307,10 @@ export interface DeleteRoomTypeImageResult {
   id: number;
 }
 
+export interface DeleteAmenityResult {
+  id: number;
+}
+
 export interface StaffMember {
   id: number;
   user_id: number;
