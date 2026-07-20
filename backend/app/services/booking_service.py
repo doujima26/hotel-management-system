@@ -100,6 +100,11 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ngay tra phong phai sau ngay nhan phong",
         )
+    if payload.check_in_date < date.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay nhan phong khong duoc o qua khu",
+        )
 
     hotel = get_hotel_by_id(db, payload.hotel_id)
     if not hotel or hotel.status != HotelStatus.APPROVED:

@@ -1,37 +1,31 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent, SyntheticEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 
 const PAST_CHECK_IN_MESSAGE = "Ngày nhận phòng không được ở quá khứ.";
 const CHECK_OUT_BEFORE_CHECK_IN_MESSAGE = "Ngày trả phòng phải sau ngày nhận phòng.";
 
-interface HotelSearchFormProps {
-  defaultCity: string;
+interface HotelDetailSearchFormProps {
   defaultCheckIn: string;
   defaultCheckOut: string;
   defaultNumGuests: string;
 }
 
-// Form tim kiem o trang ket qua /hotels - tach thanh client component vi
-// CityAutocomplete can state phia client, trang cha van la Server Component
-// fetch du lieu (giong pattern FavoriteButton nhung trong trang hotels/[id]).
-export function HotelSearchForm({
-  defaultCity,
+// Form chon ngay xem phong trong o trang chi tiet khach san - tach thanh
+// client component vi can gioi han min/max dong theo ngay da chon (giong
+// HotelSearchForm), trang cha van la Server Component fetch du lieu.
+export function HotelDetailSearchForm({
   defaultCheckIn,
   defaultCheckOut,
   defaultNumGuests,
-}: HotelSearchFormProps) {
-  const [city, setCity] = useState(defaultCity);
+}: HotelDetailSearchFormProps) {
   const [checkIn, setCheckIn] = useState(defaultCheckIn);
   const [checkOut, setCheckOut] = useState(defaultCheckOut);
-  const formRef = useRef<HTMLFormElement>(null);
-  const cityInputRef = useRef<HTMLInputElement>(null);
 
   const today = todayDateString();
   const minCheckOut = addDaysToDateString(checkIn || today, 1);
@@ -54,28 +48,7 @@ export function HotelSearchForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      action="/hotels"
-      method="GET"
-      className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-5"
-    >
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="city">Thành phố</Label>
-        <input ref={cityInputRef} type="hidden" name="city" value={city} />
-        <CityAutocomplete
-          id="city"
-          value={city}
-          onValueChange={setCity}
-          onCommit={(committedCity) => {
-            // Dat truc tiep vao DOM truoc khi submit vi setCity (React state)
-            // chua kip render lai luc requestSubmit() doc gia tri form.
-            if (cityInputRef.current) cityInputRef.current.value = committedCity;
-            formRef.current?.requestSubmit();
-          }}
-          placeholder="Ví dụ: Đà Nẵng"
-        />
-      </div>
+    <form className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="check_in">Nhận phòng</Label>
         <Input
@@ -86,6 +59,7 @@ export function HotelSearchForm({
           value={checkIn}
           onChange={handleCheckInChange}
           onInvalid={handleCheckInInvalid}
+          required
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -101,6 +75,7 @@ export function HotelSearchForm({
             setCheckOut(e.currentTarget.value);
           }}
           onInvalid={handleCheckOutInvalid}
+          required
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -108,7 +83,7 @@ export function HotelSearchForm({
         <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={defaultNumGuests} />
       </div>
       <Button type="submit" className="self-end rounded-full">
-        Tìm kiếm
+        Xem phòng trống
       </Button>
     </form>
   );

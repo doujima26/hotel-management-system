@@ -422,6 +422,11 @@ def get_room_availability(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ngay tra phong phai sau ngay nhan phong",
         )
+    if check_in < date.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay nhan phong khong duoc o qua khu",
+        )
 
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel or hotel.status != HotelStatus.APPROVED:

@@ -386,6 +386,11 @@ def search_hotels(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ngay tra phong phai sau ngay nhan phong",
         )
+    if check_in and check_in < date.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay nhan phong khong duoc o qua khu",
+        )
 
     hotels, total = search_hotel_records(
         db,
