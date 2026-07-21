@@ -24,6 +24,14 @@ def get_hotel_by_id(db: Session, hotel_id: int) -> Hotel | None:
     return db.query(Hotel).filter(Hotel.id == hotel_id).first()
 
 
+# Lay nhieu khach san theo danh sach id, tra ve dict de tra cuu nhanh theo id.
+def get_hotels_by_ids(db: Session, hotel_ids: list[int]) -> dict[int, Hotel]:
+    if not hotel_ids:
+        return {}
+    hotels = db.query(Hotel).filter(Hotel.id.in_(hotel_ids)).all()
+    return {hotel.id: hotel for hotel in hotels}
+
+
 # Tao khach san moi.
 def create_hotel_record(db: Session, owner_id: int, payload: CreateHotelRequest) -> Hotel:
     hotel = Hotel(
@@ -50,6 +58,20 @@ def save_hotel(db: Session, hotel: Hotel) -> Hotel:
     db.commit()
     db.refresh(hotel)
     return hotel
+
+
+# Lay danh sach khach san da duyet, xep theo diem danh gia trung binh va so
+# luot danh gia giam dan - dung cho muc "Khach san duoc yeu thich" o trang chu.
+# Chi lay khach san da co it nhat 1 danh gia (tranh hien khach san chua ai
+# danh gia, avg_rating dang mac dinh la 0).
+def list_top_rated_hotel_records(db: Session, limit: int) -> list[Hotel]:
+    return (
+        db.query(Hotel)
+        .filter(Hotel.status == HotelStatus.APPROVED, Hotel.total_reviews > 0)
+        .order_by(Hotel.avg_rating.desc(), Hotel.total_reviews.desc())
+        .limit(limit)
+        .all()
+    )
 
 
 # Tim kiem khach san da duyet theo thanh pho va tinh trang phong trong trong khoang ngay.
@@ -192,6 +214,56 @@ def list_valid_promotion_records(db: Session, hotel_id: int, today: date) -> lis
         .order_by(Promotion.start_date.desc())
         .all()
     )
+
+
+# Lay tat ca khuyen mai dang hop le (con hieu luc) cua CAC khach san da duyet -
+# dung cho trang chu de tim khach san dang co uu dai, khac list_valid_promotion_records
+# (loc theo 1 khach san cu the).
+def list_valid_promotions_for_approved_hotels(db: Session, today: date) -> list[Promotion]:
+    return (
+        db.query(Promotion)
+        .join(Hotel, Hotel.id == Promotion.hotel_id)
+        .filter(
+            Hotel.status == HotelStatus.APPROVED,
+            Promotion.is_active.is_(True),
+            Promotion.start_date <= today,
+            Promotion.end_date >= today,
+        )
+        .filter((Promotion.usage_limit.is_(None)) | (Promotion.used_count < Promotion.usage_limit))
+        .all()
+    )
+
+
+# Lay gia phong re nhat (dang hoat dong) cua tung khach san trong danh sach id -
+# dung lam gia tham chieu de tinh % giam gia hien thi o trang chu.
+def get_min_active_room_price_by_hotel_ids(db: Session, hotel_ids: list[int]) -> dict[int, float]:
+    if not hotel_ids:
+        return {}
+    rows = (
+        db.query(RoomType.hotel_id, func.min(RoomType.base_price))
+        .filter(RoomType.hotel_id.in_(hotel_ids), RoomType.is_active.is_(True))
+        .group_by(RoomType.hotel_id)
+        .all()
+    )
+    return {hotel_id: float(price) for hotel_id, price in rows}
+
+
+# Lay anh dai dien (hoac anh dau tien neu chua dat dai dien) cua tung khach san
+# trong danh sach id - dung cho cac khoi hien thi rut gon o trang chu.
+def get_primary_image_url_by_hotel_ids(db: Session, hotel_ids: list[int]) -> dict[int, str]:
+    if not hotel_ids:
+        return {}
+    images = (
+        db.query(HotelImage)
+        .filter(HotelImage.hotel_id.in_(hotel_ids))
+        .order_by(HotelImage.hotel_id.asc(), HotelImage.is_primary.desc(), HotelImage.sort_order.asc())
+        .all()
+    )
+    result: dict[int, str] = {}
+    for image in images:
+        if image.hotel_id not in result:
+            result[image.hotel_id] = image.image_url
+    return result
 
 
 # Tao khuyen mai.

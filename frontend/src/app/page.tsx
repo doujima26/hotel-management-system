@@ -1,12 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Flame } from "lucide-react";
 import { HomeSearchForm } from "@/components/shared/HomeSearchForm";
+import { HotelHighlightScroller } from "@/components/shared/HotelHighlightScroller";
+import { hotelsApi } from "@/lib/api/hotels";
+import type { HotelHighlight } from "@/types/models";
 
-// Phai khop 100% chinh ta voi VIETNAM_PROVINCES (Nha Trang thuoc Khanh Hoa,
-// Da Lat thuoc Lam Dong - dung ten tinh de dam bao khop tim kiem theo city).
-const POPULAR_CITIES = ["Hà Nội", "Đà Nẵng", "TP. Hồ Chí Minh", "Khánh Hòa", "Lâm Đồng"];
+// city phai khop 100% chinh ta voi VIETNAM_PROVINCES de dam bao khop tim kiem
+// (Nha Trang thuoc tinh Khanh Hoa, Da Lat thuoc tinh Lam Dong - label van hien
+// ten thanh pho du lich quen thuoc, nhung link tim kiem phai dung ten tinh).
+const TRENDING_DESTINATIONS = [
+  { label: "TP. Hồ Chí Minh", city: "TP. Hồ Chí Minh", image: "/TP-HoChiMinh.jpg" },
+  { label: "Hà Nội", city: "Hà Nội", image: "/TP-HaNoi.jpg" },
+  { label: "Đà Nẵng", city: "Đà Nẵng", image: "/TP-DaNang.jpg" },
+  { label: "Đà Lạt", city: "Lâm Đồng", image: "/TP-DaLat.jpg" },
+  { label: "Nha Trang", city: "Khánh Hòa", image: "/TP-NhaTrang.jpg" },
+];
 
-export default function Home() {
+export default async function Home() {
+  const [trendingDealsResult, topRatedHotelsResult] = await Promise.allSettled([
+    hotelsApi.listTrendingDeals(15),
+    hotelsApi.listTopRatedHotels(15),
+  ]);
+  const trendingDeals: HotelHighlight[] = trendingDealsResult.status === "fulfilled" ? trendingDealsResult.value : [];
+  const topRatedHotels: HotelHighlight[] = topRatedHotelsResult.status === "fulfilled" ? topRatedHotelsResult.value : [];
+
   return (
     <div className="flex flex-1 flex-col">
       <section className="px-3 pt-4 sm:px-6 sm:pt-6">
@@ -24,24 +42,60 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="mx-auto -mt-16 w-full max-w-4xl px-4 sm:-mt-20">
+      <div className="mx-auto -mt-16 w-full max-w-6xl px-4 sm:-mt-20">
         <HomeSearchForm />
       </div>
 
       <section className="mt-16 sm:mt-20">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-16">
-          <h2 className="text-xl font-extrabold sm:text-2xl">Điểm đến phổ biến</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            {POPULAR_CITIES.map((city) => (
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-16">
+          <div>
+            <h2 className="text-xl font-extrabold sm:text-2xl">Điểm đến đang thịnh hành</h2>
+            <p className="text-sm text-muted-foreground">Các lựa chọn phổ biến nhất cho du khách từ Việt Nam</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+            {TRENDING_DESTINATIONS.map((destination, index) => (
               <Link
-                key={city}
-                href={`/hotels?city=${encodeURIComponent(city)}`}
-                className="rounded-full border bg-background px-3.5 py-1.5 text-sm transition-colors hover:border-primary hover:text-primary"
+                key={destination.city}
+                href={`/hotels?city=${encodeURIComponent(destination.city)}`}
+                className={`group relative h-40 overflow-hidden rounded-xl sm:h-48 ${
+                  index < 2 ? "col-span-2 sm:col-span-3" : "col-span-1 sm:col-span-2"
+                }`}
               >
-                {city}
+                <Image
+                  src={destination.image}
+                  alt={destination.label}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
+                  <Flame className="size-3.5 fill-primary text-primary" />
+                  <span className="text-sm font-semibold text-white">{destination.label}</span>
+                </div>
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto w-full max-w-6xl px-4 pb-16">
+          <HotelHighlightScroller
+            title="Ưu đãi giảm sâu"
+            subtitle="Những khách sạn đang giảm giá sâu nhất, đặt ngay kẻo lỡ"
+            items={trendingDeals}
+          />
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto w-full max-w-6xl px-4 pb-16">
+          <HotelHighlightScroller
+            title="Khách sạn được yêu thích"
+            subtitle="Đánh giá cao nhất từ những khách đã từng lưu trú"
+            items={topRatedHotels}
+          />
         </div>
       </section>
     </div>

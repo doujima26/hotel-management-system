@@ -54,6 +54,19 @@ export interface HotelSearchItem {
   total_reviews: number;
 }
 
+export interface HotelHighlight {
+  id: number;
+  name: string;
+  city: string;
+  star_rating: number | null;
+  avg_rating: number;
+  total_reviews: number;
+  primary_image_url: string | null;
+  from_price: number | null;
+  discounted_price: number | null;
+  discount_percent: number | null;
+}
+
 export interface HotelSearchResult {
   items: HotelSearchItem[];
   page: number;

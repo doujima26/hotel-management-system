@@ -30,6 +30,8 @@ from app.services.hotel_service import (
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
+    list_top_rated_hotels as list_top_rated_hotels_action,
+    list_trending_deals as list_trending_deals_action,
     list_valid_promotions_for_hotel as list_valid_promotions_for_hotel_action,
     search_hotels as search_hotels_action,
     set_primary_hotel_image as set_primary_hotel_image_action,
@@ -68,6 +70,28 @@ def search_hotels_endpoint(
         page_size=page_size,
     )
     return ok(data, "Danh sach khach san")
+
+
+# Khach xem danh sach khach san dang co uu dai giam gia sau nhat, dung cho
+# trang chu - cong khai, khong can dang nhap.
+@router.get("/highlights/deals")
+def list_trending_deals_endpoint(
+    limit: int = Query(default=15, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    data = list_trending_deals_action(db, limit=limit)
+    return ok(data, "Danh sach khach san dang uu dai")
+
+
+# Khach xem danh sach khach san duoc yeu thich nhat (diem/so luot danh gia cao
+# nhat), dung cho trang chu - cong khai, khong can dang nhap.
+@router.get("/highlights/top-rated")
+def list_top_rated_hotels_endpoint(
+    limit: int = Query(default=15, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    data = list_top_rated_hotels_action(db, limit=limit)
+    return ok(data, "Danh sach khach san duoc yeu thich")
 
 
 # Admin dang ky khach san moi de cho super admin duyet.

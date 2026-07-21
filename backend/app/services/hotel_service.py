@@ -20,11 +20,16 @@ from app.repositories.hotel_repository import (
     get_hotel_image_by_id,
     get_hotel_service_by_id,
     get_hotel_service_by_name,
+    get_hotels_by_ids,
+    get_min_active_room_price_by_hotel_ids,
+    get_primary_image_url_by_hotel_ids,
     get_promotion_by_id,
     list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
+    list_top_rated_hotel_records,
     list_valid_promotion_records,
+    list_valid_promotions_for_approved_hotels,
     save_hotel,
     save_hotel_service,
     save_promotion,
@@ -41,6 +46,7 @@ from app.schemas.hotels import (
     DeleteHotelServiceResponse,
     DeletePromotionResponse,
     HotelDetailResponse,
+    HotelHighlightResponse,
     HotelImageResponse,
     HotelResponse,
     HotelSearchItemResponse,
@@ -299,6 +305,108 @@ def list_valid_promotions_for_hotel(db: Session, hotel_id: int) -> list[dict]:
         )
     promotions = list_valid_promotion_records(db, hotel.id, date.today())
     return [serialize_promotion(item) for item in promotions]
+
+
+# Tinh so tien va % giam gia thuc te cua 1 khuyen mai tren 1 muc gia tham
+# chieu (gia phong re nhat con hoat dong cua khach san) - cung cong thuc voi
+# _apply_promotion o booking_service.py (percentage/fixed_amount, chan boi
+# max_discount_amount va khong vuot qua gia tham chieu) nhung khong co
+# side-effect, dung de xep hang hien thi o trang chu. Tra ve None neu chua
+# dat min_booking_amount.
+def _calc_effective_discount(promotion: Promotion, reference_price: float) -> tuple[float, float] | None:
+    if reference_price <= 0:
+        return None
+    if promotion.min_booking_amount is not None and reference_price < float(promotion.min_booking_amount):
+        return None
+
+    if promotion.discount_type == DiscountType.PERCENTAGE:
+        discount_amount = reference_price * float(promotion.discount_value) / 100
+    else:
+        discount_amount = float(promotion.discount_value)
+
+    if promotion.max_discount_amount is not None:
+        discount_amount = min(discount_amount, float(promotion.max_discount_amount))
+    discount_amount = min(discount_amount, reference_price)
+
+    return discount_amount, discount_amount / reference_price * 100
+
+
+# Xu ly cong khai lay danh sach khach san dang co uu dai giam gia sau nhat cho
+# trang chu - xep theo % giam gia hieu qua (tinh tren gia phong re nhat con
+# hoat dong cua khach san) giam dan.
+def list_trending_deals(db: Session, limit: int = 15) -> list[dict]:
+    promotions = list_valid_promotions_for_approved_hotels(db, date.today())
+    if not promotions:
+        return []
+
+    hotel_ids = list({promotion.hotel_id for promotion in promotions})
+    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+    hotels_by_id = get_hotels_by_ids(db, hotel_ids)
+
+    best_deal_by_hotel: dict[int, tuple[float, float]] = {}
+    for promotion in promotions:
+        reference_price = min_prices.get(promotion.hotel_id)
+        if reference_price is None:
+            continue
+        result = _calc_effective_discount(promotion, reference_price)
+        if result is None:
+            continue
+        discount_amount, discount_percent = result
+        if discount_percent <= 0:
+            continue
+        current_best = best_deal_by_hotel.get(promotion.hotel_id)
+        if current_best is None or discount_percent > current_best[1]:
+            best_deal_by_hotel[promotion.hotel_id] = (discount_amount, discount_percent)
+
+    ranked = sorted(best_deal_by_hotel.items(), key=lambda item: item[1][1], reverse=True)[:limit]
+
+    items = []
+    for hotel_id, (discount_amount, discount_percent) in ranked:
+        hotel = hotels_by_id[hotel_id]
+        reference_price = min_prices[hotel_id]
+        items.append(
+            HotelHighlightResponse(
+                id=hotel.id,
+                name=hotel.name,
+                city=hotel.city,
+                star_rating=hotel.star_rating,
+                avg_rating=float(hotel.avg_rating),
+                total_reviews=hotel.total_reviews,
+                primary_image_url=image_urls.get(hotel_id),
+                from_price=reference_price,
+                discounted_price=reference_price - discount_amount,
+                discount_percent=round(discount_percent, 1),
+            )
+        )
+    return [item.model_dump(mode="json") for item in items]
+
+
+# Xu ly cong khai lay danh sach khach san duoc yeu thich nhat cho trang chu -
+# xep theo diem danh gia trung binh va so luot danh gia giam dan.
+def list_top_rated_hotels(db: Session, limit: int = 15) -> list[dict]:
+    hotels = list_top_rated_hotel_records(db, limit)
+    if not hotels:
+        return []
+
+    hotel_ids = [hotel.id for hotel in hotels]
+    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+
+    items = [
+        HotelHighlightResponse(
+            id=hotel.id,
+            name=hotel.name,
+            city=hotel.city,
+            star_rating=hotel.star_rating,
+            avg_rating=float(hotel.avg_rating),
+            total_reviews=hotel.total_reviews,
+            primary_image_url=image_urls.get(hotel.id),
+            from_price=min_prices.get(hotel.id),
+        )
+        for hotel in hotels
+    ]
+    return [item.model_dump(mode="json") for item in items]
 
 
 # Xu ly cap nhat khuyen mai.

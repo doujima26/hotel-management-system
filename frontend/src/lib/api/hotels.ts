@@ -6,6 +6,7 @@ import type {
   DeleteHotelServiceResult,
   DeletePromotionResult,
   HotelDetail,
+  HotelHighlight,
   HotelImage,
   HotelSearchResult,
   HotelServiceItem,
@@ -76,6 +77,10 @@ export const hotelsApi = {
   // Endpoint cong khai, chi goi tu Server Component (xem lib/api/server.ts).
   search: (params: SearchHotelsParams) => serverFetch<HotelSearchResult>("/hotels/search", { params }),
   getDetail: (hotelId: number) => serverFetch<HotelDetail>(`/hotels/${hotelId}`),
+  listTrendingDeals: (limit?: number) =>
+    serverFetch<HotelHighlight[]>("/hotels/highlights/deals", { params: { limit } }),
+  listTopRatedHotels: (limit?: number) =>
+    serverFetch<HotelHighlight[]>("/hotels/highlights/top-rated", { params: { limit } }),
 
   // Cac ham ben duoi danh cho Admin (Client Component, can auth), goi qua rewrites proxy.
   getMine: () => apiFetch<AdminHotel>("/hotels/me", { auth: true }),

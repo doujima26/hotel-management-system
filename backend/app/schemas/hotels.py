@@ -180,6 +180,21 @@ class DeletePromotionResponse(BaseModel):
     id: int
 
 
+# Schema 1 khach san rut gon dung cho cac khoi goi y o trang chu (uu dai,
+# duoc yeu thich...) - discount_percent chi co gia tri o khoi uu dai.
+class HotelHighlightResponse(BaseModel):
+    id: int
+    name: str
+    city: str
+    star_rating: int | None = None
+    avg_rating: float
+    total_reviews: int
+    primary_image_url: str | None = None
+    from_price: float | None = None
+    discounted_price: float | None = None
+    discount_percent: float | None = None
+
+
 # Schema du lieu tra ve chi tiet khach san cong khai (cho khach hang).
 class HotelDetailResponse(BaseModel):
     id: int
