@@ -1,7 +1,12 @@
 -- Seed data cho hotel-management-system (BIGSERIAL/BIGINT version).
--- Muc tieu: du lieu kho hang day du (khach san/loai phong/phong vat ly/tien nghi/
--- dich vu/khuyen mai) o 2 thanh phong khac nhau, KHONG co san booking/thanh toan/
--- danh gia - de tu tay test tron ven luong tim -> dat -> thanh toan -> xac nhan.
+-- Phan 1 (2 khach san dau, Sunrise + Hanoi Grand): du lieu kho hang day du
+-- (khach san/loai phong/phong vat ly/tien nghi/dich vu/khuyen mai), KHONG co
+-- san booking/thanh toan/danh gia - de tu tay test tron ven luong tim -> dat ->
+-- thanh toan -> xac nhan.
+-- Phan 2 (13 khach san bo sung ben duoi, moi statement doc lap): them du lieu
+-- trai rong 5 thanh pho thinh hanh + mot so khuyen mai/danh gia lich su (booking
+-- checked_out qua khu, KHONG anh huong luong dat phong moi bang ngay tuong lai)
+-- de test day du cac muc trang chu (uu dai giam sau / duoc yeu thich).
 -- Mat khau dang nhap chung cho MOI tai khoan seed: Password123!
 -- (hash bcrypt that, tao tu app.core.security.hash_password - dang nhap duoc ngay).
 
@@ -240,5 +245,1759 @@ hotel2_staff AS (
     VALUES ((SELECT id FROM staff_user2), (SELECT id FROM hotel2), 'Le tan', true, CURRENT_DATE - INTERVAL '60 days')
 )
 SELECT 'Seed completed' AS result;
+
+-- ============================================================
+-- Bo sung 13 khach san moi (tong 15) + user + danh gia lien quan
+-- de test day du cac muc trang chu (uu dai giam sau / duoc yeu
+-- thich / diem den thinh hanh). Moi statement doc lap, tra cuu
+-- cheo bang email/ten (khong dung chung 1 chuoi CTE khong lo).
+-- ============================================================
+
+-- Them tai khoan chu khach san (owner3-15) va khach hang (user3-6) moi.
+INSERT INTO users (email, password_hash, full_name, phone, role, is_active, is_verified)
+VALUES
+    ('owner3@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 3', '0900000103', 'admin', true, true),
+    ('owner4@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 4', '0900000104', 'admin', true, true),
+    ('owner5@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 5', '0900000105', 'admin', true, true),
+    ('owner6@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 6', '0900000106', 'admin', true, true),
+    ('owner7@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 7', '0900000107', 'admin', true, true),
+    ('owner8@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 8', '0900000108', 'admin', true, true),
+    ('owner9@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 9', '0900000109', 'admin', true, true),
+    ('owner10@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 10', '0900000110', 'admin', true, true),
+    ('owner11@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 11', '0900000111', 'admin', true, true),
+    ('owner12@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 12', '0900000112', 'admin', true, true),
+    ('owner13@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 13', '0900000113', 'admin', true, true),
+    ('owner14@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 14', '0900000114', 'admin', true, true),
+    ('owner15@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Chu KS 15', '0900000115', 'admin', true, true),
+    ('user3@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Khach Hang 3', '0900000203', 'user', true, true),
+    ('user4@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Khach Hang 4', '0900000204', 'user', true, true),
+    ('user5@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Khach Hang 5', '0900000205', 'user', true, true),
+    ('user6@gmail.com', '$2b$12$/lPdvh0JDnYp5nv/kANFUOTdfzUS4eQPUYcHqDxHxy.qtIbuC/0Um', 'Khach Hang 6', '0900000206', 'user', true, true);
+
+-- ------------------------------------------------------------
+-- Khach san: Danang Beach Resort (Đà Nẵng)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner3@gmail.com'),
+        'Danang Beach Resort',
+        'Resort 5 sao sat bien My Khe',
+        '68 Vo Nguyen Giap',
+        'Đà Nẵng',
+        'Sơn Trà',
+        16.062,
+        108.247,
+        '02363000003',
+        'contact3@gmail.com',
+        5,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h3=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h3=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Ocean View Deluxe',
+        'Phong huong bien rong rai',
+        1600000,
+        3,
+        38,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h3-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '601', 6, 'available', true),
+        ((SELECT id FROM new_room_type), '602', 6, 'available', true),
+        ((SELECT id FROM new_room_type), '603', 6, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
+        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Airport Pickup', 'Don san bay', 350000, 'chuyen', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Ocean Deal',
+        'Giam 20% cho don tu 1 trieu',
+        'percentage',
+        20,
+        1000000,
+        800000,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Han River Boutique Hotel (Đà Nẵng)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner4@gmail.com'),
+        'Han River Boutique Hotel',
+        'Khach san boutique canh song Han',
+        '12 Bach Dang',
+        'Đà Nẵng',
+        'Hải Châu',
+        16.07,
+        108.223,
+        '02363000004',
+        'contact4@gmail.com',
+        3,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h4=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h4=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Standard',
+        'Phong tieu chuan view song',
+        550000,
+        2,
+        20,
+        'Queen',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h4-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '101', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '102', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '103', 1, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Air Conditioner', 'snowflake', 'room')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Laundry', 'Giat ui', 40000, 'kg', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Uu dai song Han',
+        'Giam thang 100k',
+        'fixed_amount',
+        100000,
+        NULL,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Old Quarter Charm Hotel (Hà Nội)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner5@gmail.com'),
+        'Old Quarter Charm Hotel',
+        'Khach san nho giua long pho co',
+        '20 Hang Bac',
+        'Hà Nội',
+        'Hoàn Kiếm',
+        21.033,
+        105.85,
+        '02436000005',
+        'contact5@gmail.com',
+        3,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h5=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h5=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Standard',
+        'Phong tieu chuan pho co',
+        650000,
+        2,
+        18,
+        'Queen',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h5-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '201', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '202', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '203', 2, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Airport Pickup', 'Don san bay', 300000, 'chuyen', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Kham pha pho co',
+        'Giam 15% cho don tu 500k',
+        'percentage',
+        15,
+        500000,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Westlake Serenity Hotel (Hà Nội)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner6@gmail.com'),
+        'Westlake Serenity Hotel',
+        'Khach san yen tinh canh Ho Tay',
+        '88 Xuan Dieu',
+        'Hà Nội',
+        'Tây Hồ',
+        21.058,
+        105.823,
+        '02436000006',
+        'contact6@gmail.com',
+        4,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h6=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h6=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Lake View Deluxe',
+        'Phong huong ho',
+        1100000,
+        3,
+        30,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h6-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '301', 3, 'available', true),
+        ((SELECT id FROM new_room_type), '302', 3, 'available', true),
+        ((SELECT id FROM new_room_type), '303', 3, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
+        ((SELECT id FROM new_hotel), 'Lake View', 'waves', 'view')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Spa', 'Dich vu spa thu gian', 450000, 'lan', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Uu dai Ho Tay',
+        'Giam thang 300k cho don tu 2 trieu',
+        'fixed_amount',
+        300000,
+        2000000,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Saigon Central Hotel (TP. Hồ Chí Minh)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner7@gmail.com'),
+        'Saigon Central Hotel',
+        'Khach san trung tam Quan 1',
+        '150 Nguyen Hue',
+        'TP. Hồ Chí Minh',
+        'Quận 1',
+        10.7745,
+        106.703,
+        '02839000007',
+        'contact7@gmail.com',
+        4,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h7=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h7=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Executive',
+        'Phong cao cap trung tam',
+        1200000,
+        3,
+        32,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h7-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '401', 4, 'available', true),
+        ((SELECT id FROM new_room_type), '402', 4, 'available', true),
+        ((SELECT id FROM new_room_type), '403', 4, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
+        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Airport Pickup', 'Don san bay', 400000, 'chuyen', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Sai Gon Sale',
+        'Giam 25%, toi da 400k',
+        'percentage',
+        25,
+        NULL,
+        400000,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Bitexco View Hotel (TP. Hồ Chí Minh)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner8@gmail.com'),
+        'Bitexco View Hotel',
+        'Khach san 5 sao view Bitexco',
+        '2 Hai Trieu',
+        'TP. Hồ Chí Minh',
+        'Quận 1',
+        10.7715,
+        106.704,
+        '02839000008',
+        'contact8@gmail.com',
+        5,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h8=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h8=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Sky Suite',
+        'Phong suite tren cao view thanh pho',
+        2000000,
+        4,
+        48,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h8-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '2001', 20, 'available', true),
+        ((SELECT id FROM new_room_type), '2002', 20, 'available', true),
+        ((SELECT id FROM new_room_type), '2003', 20, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
+        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Spa', 'Dich vu spa cao cap', 700000, 'lan', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Sky Deal',
+        'Giam 10%',
+        'percentage',
+        10,
+        NULL,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Pham Ngu Lao Backpacker Inn (TP. Hồ Chí Minh)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner9@gmail.com'),
+        'Pham Ngu Lao Backpacker Inn',
+        'Nha nghi gia re khu Tay ba lo',
+        '220 Pham Ngu Lao',
+        'TP. Hồ Chí Minh',
+        'Quận 1',
+        10.768,
+        106.693,
+        '02839000009',
+        'contact9@gmail.com',
+        2,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h9=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h9=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Dormitory',
+        'Phong tap the gia re',
+        350000,
+        2,
+        14,
+        'Twin',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h9-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '11', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '12', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '13', 1, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Laundry', 'Giat ui', 30000, 'kg', true)
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Dalat Pine Hill Resort (Lâm Đồng)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner10@gmail.com'),
+        'Dalat Pine Hill Resort',
+        'Resort giua rung thong Da Lat',
+        '5 Tran Hung Dao',
+        'Lâm Đồng',
+        'Đà Lạt',
+        11.946,
+        108.438,
+        '02633000010',
+        'contact10@gmail.com',
+        4,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h10=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h10=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Pine View Deluxe',
+        'Phong huong rung thong',
+        1300000,
+        3,
+        34,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h10-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '101', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '102', 1, 'available', true),
+        ((SELECT id FROM new_room_type), '103', 1, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general'),
+        ((SELECT id FROM new_hotel), 'Fireplace', 'flame', 'room')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Bonfire Night', 'Dem lua trai', 200000, 'lan', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Thong Xanh Sale',
+        'Giam thang 250k cho don tu 1 trieu',
+        'fixed_amount',
+        250000,
+        1000000,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Xuan Huong Lakeside Hotel (Lâm Đồng)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner11@gmail.com'),
+        'Xuan Huong Lakeside Hotel',
+        'Khach san canh Ho Xuan Huong',
+        '30 Tran Quoc Toan',
+        'Lâm Đồng',
+        'Đà Lạt',
+        11.941,
+        108.442,
+        '02633000011',
+        'contact11@gmail.com',
+        3,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h11=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h11=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Standard',
+        'Phong tieu chuan huong ho',
+        700000,
+        2,
+        22,
+        'Queen',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h11-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '201', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '202', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '203', 2, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Bike Rental', 'Thue xe dap', 50000, 'ngay', true)
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Cau Dat Tea Village Homestay (Lâm Đồng)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner12@gmail.com'),
+        'Cau Dat Tea Village Homestay',
+        'Homestay giua doi che Cau Dat',
+        'Thon Cau Dat',
+        'Lâm Đồng',
+        'Xuân Trường',
+        11.87,
+        108.47,
+        '02633000012',
+        'contact12@gmail.com',
+        2,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h12=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h12=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Garden Bungalow',
+        'Bungalow giua doi che',
+        450000,
+        2,
+        16,
+        'Queen',
+        2,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h12-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), 'B1', 1, 'available', true),
+        ((SELECT id FROM new_room_type), 'B2', 1, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Tea Garden Tour', 'leaf', 'activity')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Tea Tour', 'Tham quan doi che', 100000, 'luot', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Doi Che Sale',
+        'Giam 30% cho don tu 300k',
+        'percentage',
+        30,
+        300000,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Nha Trang Ocean Pearl Resort (Khánh Hòa)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner13@gmail.com'),
+        'Nha Trang Ocean Pearl Resort',
+        'Resort 5 sao doc bien Tran Phu',
+        '86 Tran Phu',
+        'Khánh Hòa',
+        'Nha Trang',
+        12.238,
+        109.197,
+        '02583000013',
+        'contact13@gmail.com',
+        5,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h13=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h13=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Ocean Suite',
+        'Suite huong bien',
+        1900000,
+        4,
+        46,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h13-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '1501', 15, 'available', true),
+        ((SELECT id FROM new_room_type), '1502', 15, 'available', true),
+        ((SELECT id FROM new_room_type), '1503', 15, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
+        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Diving Tour', 'Tour lan bien', 600000, 'luot', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Pearl Deal',
+        'Giam 12%, toi da 300k',
+        'percentage',
+        12,
+        NULL,
+        300000,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Vinpearl View Hotel (Khánh Hòa)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner14@gmail.com'),
+        'Vinpearl View Hotel',
+        'Khach san view Vinpearl tu dat lien',
+        '10 Pham Van Dong',
+        'Khánh Hòa',
+        'Nha Trang',
+        12.25,
+        109.193,
+        '02583000014',
+        'contact14@gmail.com',
+        4,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h14=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h14=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Deluxe',
+        'Phong huong bien Vinpearl',
+        1250000,
+        3,
+        30,
+        'King',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h14-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '801', 8, 'available', true),
+        ((SELECT id FROM new_room_type), '802', 8, 'available', true),
+        ((SELECT id FROM new_room_type), '803', 8, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
+        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
+        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Airport Pickup', 'Don san bay', 300000, 'chuyen', true)
+)
+SELECT 1;
+
+-- ------------------------------------------------------------
+-- Khach san: Beachfront Backpacker Nha Trang (Khánh Hòa)
+-- ------------------------------------------------------------
+WITH new_hotel AS (
+    INSERT INTO hotels (
+        owner_id, name, description, address, city, district, latitude, longitude,
+        phone, email, star_rating, status, avg_rating, total_reviews
+    )
+    VALUES (
+        (SELECT id FROM users WHERE email = 'owner15@gmail.com'),
+        'Beachfront Backpacker Nha Trang',
+        'Nha nghi gia re sat bien',
+        '88 Nguyen Thien Thuat',
+        'Khánh Hòa',
+        'Nha Trang',
+        12.241,
+        109.195,
+        '02583000015',
+        'contact15@gmail.com',
+        2,
+        'approved',
+        0,
+        0
+    )
+    RETURNING id
+),
+new_images AS (
+    INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
+    VALUES
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h15=1', true, 1),
+        ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h15=2', false, 2)
+),
+new_room_type AS (
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Standard',
+        'Phong tieu chuan gan bien',
+        380000,
+        2,
+        16,
+        'Twin',
+        3,
+        true
+    )
+    RETURNING id
+),
+new_room_type_image AS (
+    INSERT INTO room_type_images (room_type_id, image_url, is_primary, sort_order)
+    VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h15-room=1', true, 1)
+),
+new_rooms AS (
+    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    VALUES
+        ((SELECT id FROM new_room_type), '21', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '22', 2, 'available', true),
+        ((SELECT id FROM new_room_type), '23', 2, 'available', true)
+),
+new_amenities AS (
+    INSERT INTO amenities (hotel_id, name, icon, category)
+    VALUES
+        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general')
+    RETURNING id
+),
+new_rta AS (
+    INSERT INTO room_type_amenities (room_type_id, amenity_id)
+    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+),
+new_service AS (
+    INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
+    VALUES ((SELECT id FROM new_hotel), 'Bike Rental', 'Thue xe may', 120000, 'ngay', true)
+)
+,
+new_promo AS (
+    INSERT INTO promotions (
+        hotel_id, name, description, discount_type, discount_value,
+        min_booking_amount, max_discount_amount, start_date, end_date,
+        usage_limit, used_count, is_active
+    )
+    VALUES (
+        (SELECT id FROM new_hotel),
+        'Backpacker Deal',
+        'Giam thang 50k',
+        'fixed_amount',
+        50000,
+        NULL,
+        NULL,
+        CURRENT_DATE - INTERVAL '5 days',
+        CURRENT_DATE + INTERVAL '25 days',
+        100,
+        0,
+        true
+    )
+)
+SELECT 1;
+
+-- Danh gia cho Saigon Central Hotel
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-001',
+        (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1200000,
+        1200000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Vi tri rat trung tam, tien di lai';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-002',
+        (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1200000,
+        1200000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
+    (SELECT id FROM seed_booking),
+    3,
+    'On, hoi on ao';
+
+-- Danh gia cho Bitexco View Hotel
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-003',
+        (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        2000000,
+        2000000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Tuyet voi, view dep khong the che';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-004',
+        (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        2000000,
+        2000000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Dich vu 5 sao dung nghia';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-005',
+        (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        2000000,
+        2000000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Rat tot, gia hoi cao';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-006',
+        (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        2000000,
+        2000000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Se quay lai lan sau';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-007',
+        (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        2000000,
+        2000000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Phong sach dep, nhan vien nhiet tinh';
+
+-- Danh gia cho Dalat Pine Hill Resort
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-008',
+        (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1300000,
+        1300000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Khong khi mat me, view thong dep';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-009',
+        (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1300000,
+        1300000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Rat thich hop nghi duong';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-010',
+        (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1300000,
+        1300000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Dich vu tot, gia hop ly';
+
+-- Danh gia cho Xuan Huong Lakeside Hotel
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-011',
+        (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        700000,
+        700000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
+    (SELECT id FROM seed_booking),
+    3,
+    'Vi tri dep nhung phong hoi cu';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-012',
+        (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        700000,
+        700000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'On trong tam gia';
+
+-- Danh gia cho Cau Dat Tea Village Homestay
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-013',
+        (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Cau Dat Tea Village Homestay'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        450000,
+        450000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Cau Dat Tea Village Homestay'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Trai nghiem doc dao, view doi che tuyet dep';
+
+-- Danh gia cho Nha Trang Ocean Pearl Resort
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-014',
+        (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1900000,
+        1900000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Bien dep, resort sang trong';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-015',
+        (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1900000,
+        1900000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user3@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Dang tien tung dong';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-016',
+        (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1900000,
+        1900000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user4@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Ky nghi tuyet voi ben gia dinh';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-017',
+        (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1900000,
+        1900000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user5@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Rat tot, do an hoi dat';
+
+-- Danh gia cho Vinpearl View Hotel
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-018',
+        (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1250000,
+        1250000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user2@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'View dep, gan bien';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-019',
+        (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1250000,
+        1250000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user6@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+    (SELECT id FROM seed_booking),
+    5,
+    'Rat hai long';
+
+WITH seed_booking AS (
+    INSERT INTO bookings (
+        booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
+        total_room_price, total_amount, status
+    )
+    VALUES (
+        'BK-SEED-020',
+        (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+        (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+        CURRENT_DATE - INTERVAL '30 days',
+        CURRENT_DATE - INTERVAL '27 days',
+        2,
+        1250000,
+        1250000,
+        'checked_out'
+    )
+    RETURNING id
+)
+INSERT INTO reviews (user_id, hotel_id, booking_id, rating, comment)
+SELECT
+    (SELECT id FROM users WHERE email = 'user1@gmail.com'),
+    (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
+    (SELECT id FROM seed_booking),
+    4,
+    'Sach se, nhan vien than thien';
 
 COMMIT;
