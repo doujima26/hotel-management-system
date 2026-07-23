@@ -160,6 +160,16 @@ class HotelSearchResponse(BaseModel):
     total_pages: int
 
 
+# Schema danh sach option cho sidebar loc (theo thanh pho dang xem) - dung
+# render checkbox quan/tien nghi/dich vu va khoang gia cho thanh ngan sach.
+class HotelSearchFiltersResponse(BaseModel):
+    price_min: float | None = None
+    price_max: float | None = None
+    districts: list[str] = []
+    amenities: list[str] = []
+    services: list[str] = []
+
+
 # Schema du lieu dau vao cho them anh khach san.
 class CreateHotelImageRequest(BaseModel):
     image_url: str = Field(min_length=1, max_length=2048)

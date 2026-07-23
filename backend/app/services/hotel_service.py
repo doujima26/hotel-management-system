@@ -25,6 +25,7 @@ from app.repositories.hotel_repository import (
     get_primary_image_url_by_hotel_ids,
     get_promotion_by_id,
     get_reference_room_type_by_hotel_ids,
+    get_search_facets,
     list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
@@ -51,6 +52,7 @@ from app.schemas.hotels import (
     HotelHighlightResponse,
     HotelImageResponse,
     HotelResponse,
+    HotelSearchFiltersResponse,
     HotelSearchItemResponse,
     HotelSearchResponse,
     HotelServiceResponse,
@@ -484,6 +486,14 @@ def search_hotels(
     check_out: date | None,
     num_guests: int | None,
     sort: HotelSortOption = HotelSortOption.RECOMMENDED,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    star_ratings: list[int] | None = None,
+    min_rating: float | None = None,
+    districts: list[str] | None = None,
+    amenities: list[str] | None = None,
+    services: list[str] | None = None,
+    has_promotion: bool = False,
     page: int,
     page_size: int,
 ) -> dict:
@@ -510,6 +520,14 @@ def search_hotels(
         check_out=check_out,
         num_guests=num_guests,
         sort=sort,
+        min_price=min_price,
+        max_price=max_price,
+        star_ratings=star_ratings,
+        min_rating=min_rating,
+        districts=districts,
+        amenities=amenities,
+        services=services,
+        has_promotion=has_promotion,
         page=page,
         page_size=page_size,
     )
@@ -576,6 +594,30 @@ def search_hotels(
         total=total,
         total_pages=total_pages,
     ).model_dump(mode="json")
+
+
+# Xu ly lay danh sach option cho sidebar loc theo bo loc vi tri co ban.
+def get_search_filters(
+    db: Session,
+    *,
+    city: str | None,
+    check_in: date | None,
+    check_out: date | None,
+    num_guests: int | None,
+) -> dict:
+    if bool(check_in) != bool(check_out):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phai cung cap ca check_in va check_out",
+        )
+    facets = get_search_facets(
+        db,
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+    )
+    return HotelSearchFiltersResponse(**facets).model_dump(mode="json")
 
 
 # Xu ly them anh cho khach san cua admin.

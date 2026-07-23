@@ -4,7 +4,7 @@ from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelSortOption, HotelStatus
-from app.models.entities import BookingService, Hotel, HotelImage, HotelService, Promotion, RoomType
+from app.models.entities import Amenity, BookingService, Hotel, HotelImage, HotelService, Promotion, RoomType
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -116,18 +116,18 @@ def _build_hotel_sort(sort: HotelSortOption, db: Session, num_guests: int | None
     return [Hotel.avg_rating.desc(), Hotel.id.asc()]
 
 
-def search_hotel_records(
+# Ap dung cac bo loc vi tri co ban (trang thai duyet, thanh pho, con phong
+# trong theo ngay/so khach) - dung chung cho ca search va facets.
+def _apply_base_filters(
     db: Session,
+    query,
     *,
     city: str | None,
     check_in: date | None,
     check_out: date | None,
     num_guests: int | None,
-    sort: HotelSortOption = HotelSortOption.RECOMMENDED,
-    page: int,
-    page_size: int,
-) -> tuple[list[Hotel], int]:
-    query = db.query(Hotel).filter(Hotel.status == HotelStatus.APPROVED)
+):
+    query = query.filter(Hotel.status == HotelStatus.APPROVED)
 
     if city:
         query = query.filter(Hotel.city.ilike(f"%{city}%"))
@@ -146,6 +146,125 @@ def search_hotel_records(
             available_hotel_ids = available_hotel_ids.filter(RoomType.max_guests >= num_guests)
         query = query.filter(Hotel.id.in_(available_hotel_ids.distinct().scalar_subquery()))
 
+    return query
+
+
+# Ap dung cac bo loc nang cao tu sidebar (ngan sach, hang sao, diem danh gia,
+# quan, tien nghi, dich vu, dang co khuyen mai).
+def _apply_advanced_filters(
+    db: Session,
+    query,
+    *,
+    num_guests: int | None,
+    min_price: float | None,
+    max_price: float | None,
+    star_ratings: list[int] | None,
+    min_rating: float | None,
+    districts: list[str] | None,
+    amenities: list[str] | None,
+    services: list[str] | None,
+    has_promotion: bool,
+):
+    # Ngan sach: loc tren gia phong tham khao/dem (theo so khach neu co).
+    if min_price is not None or max_price is not None:
+        ref_price = _reference_price_expr(db, num_guests)
+        if min_price is not None:
+            query = query.filter(ref_price >= min_price)
+        if max_price is not None:
+            query = query.filter(ref_price <= max_price)
+
+    # Hang sao: OR (thuoc 1 trong cac hang da chon).
+    if star_ratings:
+        query = query.filter(Hotel.star_rating.in_(star_ratings))
+
+    # Diem danh gia: nguong toi thieu (thang 5 sao).
+    if min_rating is not None:
+        query = query.filter(Hotel.avg_rating >= min_rating)
+
+    # Quan/khu vuc: OR.
+    if districts:
+        query = query.filter(Hotel.district.in_(districts))
+
+    # Tien nghi: AND (khach san phai co tat ca tien nghi da chon).
+    if amenities:
+        wanted = set(amenities)
+        amenity_ids = (
+            db.query(Amenity.hotel_id)
+            .filter(Amenity.name.in_(wanted))
+            .group_by(Amenity.hotel_id)
+            .having(func.count(func.distinct(Amenity.name)) == len(wanted))
+        )
+        query = query.filter(Hotel.id.in_(amenity_ids.scalar_subquery()))
+
+    # Dich vu: AND (chi tinh dich vu dang bat).
+    if services:
+        wanted_services = set(services)
+        service_ids = (
+            db.query(HotelService.hotel_id)
+            .filter(HotelService.name.in_(wanted_services), HotelService.is_active.is_(True))
+            .group_by(HotelService.hotel_id)
+            .having(func.count(func.distinct(HotelService.name)) == len(wanted_services))
+        )
+        query = query.filter(Hotel.id.in_(service_ids.scalar_subquery()))
+
+    # Dang co khuyen mai hop le (con hieu luc, chua het luot).
+    if has_promotion:
+        today = date.today()
+        valid_promo = (
+            db.query(Promotion.hotel_id)
+            .filter(
+                Promotion.is_active.is_(True),
+                Promotion.start_date <= today,
+                Promotion.end_date >= today,
+            )
+            .filter((Promotion.usage_limit.is_(None)) | (Promotion.used_count < Promotion.usage_limit))
+        )
+        query = query.filter(Hotel.id.in_(valid_promo.scalar_subquery()))
+
+    return query
+
+
+def search_hotel_records(
+    db: Session,
+    *,
+    city: str | None,
+    check_in: date | None,
+    check_out: date | None,
+    num_guests: int | None,
+    sort: HotelSortOption = HotelSortOption.RECOMMENDED,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    star_ratings: list[int] | None = None,
+    min_rating: float | None = None,
+    districts: list[str] | None = None,
+    amenities: list[str] | None = None,
+    services: list[str] | None = None,
+    has_promotion: bool = False,
+    page: int,
+    page_size: int,
+) -> tuple[list[Hotel], int]:
+    query = _apply_base_filters(
+        db,
+        db.query(Hotel),
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+    )
+    query = _apply_advanced_filters(
+        db,
+        query,
+        num_guests=num_guests,
+        min_price=min_price,
+        max_price=max_price,
+        star_ratings=star_ratings,
+        min_rating=min_rating,
+        districts=districts,
+        amenities=amenities,
+        services=services,
+        has_promotion=has_promotion,
+    )
+
     total = query.count()
     hotels = (
         query.order_by(*_build_hotel_sort(sort, db, num_guests))
@@ -154,6 +273,64 @@ def search_hotel_records(
         .all()
     )
     return hotels, total
+
+
+# Lay danh sach option cho sidebar loc (quan, tien nghi, dich vu, khoang gia)
+# theo bo loc vi tri co ban - khong tinh cac facet dang tick de danh sach on dinh.
+def get_search_facets(
+    db: Session,
+    *,
+    city: str | None,
+    check_in: date | None,
+    check_out: date | None,
+    num_guests: int | None,
+) -> dict:
+    base_ids = _apply_base_filters(
+        db,
+        db.query(Hotel.id),
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+    ).scalar_subquery()
+
+    districts = [
+        d
+        for (d,) in db.query(Hotel.district)
+        .filter(Hotel.id.in_(base_ids), Hotel.district.isnot(None))
+        .distinct()
+        .order_by(Hotel.district.asc())
+        .all()
+    ]
+    amenities = [
+        a
+        for (a,) in db.query(Amenity.name)
+        .filter(Amenity.hotel_id.in_(base_ids))
+        .distinct()
+        .order_by(Amenity.name.asc())
+        .all()
+    ]
+    services = [
+        s
+        for (s,) in db.query(HotelService.name)
+        .filter(HotelService.hotel_id.in_(base_ids), HotelService.is_active.is_(True))
+        .distinct()
+        .order_by(HotelService.name.asc())
+        .all()
+    ]
+    price_min, price_max = (
+        db.query(func.min(RoomType.base_price), func.max(RoomType.base_price))
+        .filter(RoomType.hotel_id.in_(base_ids), RoomType.is_active.is_(True))
+        .one()
+    )
+
+    return {
+        "price_min": float(price_min) if price_min is not None else None,
+        "price_max": float(price_max) if price_max is not None else None,
+        "districts": districts,
+        "amenities": amenities,
+        "services": services,
+    }
 
 
 # Lay danh sach khach san cho super admin duyet, loc theo trang thai (khong loc neu None).

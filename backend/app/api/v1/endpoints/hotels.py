@@ -27,6 +27,7 @@ from app.services.hotel_service import (
     delete_promotion as delete_promotion_service_action,
     get_hotel_detail as get_hotel_detail_action,
     get_my_hotel as get_my_hotel_action,
+    get_search_filters as get_search_filters_action,
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
@@ -57,6 +58,14 @@ def search_hotels_endpoint(
     check_out: date | None = Query(default=None),
     num_guests: int | None = Query(default=None, gt=0),
     sort: HotelSortOption = Query(default=HotelSortOption.RECOMMENDED),
+    min_price: float | None = Query(default=None, ge=0),
+    max_price: float | None = Query(default=None, ge=0),
+    stars: list[int] | None = Query(default=None),
+    min_rating: float | None = Query(default=None, ge=0, le=5),
+    districts: list[str] | None = Query(default=None),
+    amenities: list[str] | None = Query(default=None),
+    services: list[str] | None = Query(default=None),
+    has_promotion: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -68,10 +77,37 @@ def search_hotels_endpoint(
         check_out=check_out,
         num_guests=num_guests,
         sort=sort,
+        min_price=min_price,
+        max_price=max_price,
+        star_ratings=stars,
+        min_rating=min_rating,
+        districts=districts,
+        amenities=amenities,
+        services=services,
+        has_promotion=has_promotion,
         page=page,
         page_size=page_size,
     )
     return ok(data, "Danh sach khach san")
+
+
+# Khach lay danh sach option cho sidebar loc theo thanh pho dang xem - cong khai.
+@router.get("/search/filters")
+def get_search_filters_endpoint(
+    city: str | None = Query(default=None, min_length=1, max_length=100),
+    check_in: date | None = Query(default=None),
+    check_out: date | None = Query(default=None),
+    num_guests: int | None = Query(default=None, gt=0),
+    db: Session = Depends(get_db),
+):
+    data = get_search_filters_action(
+        db,
+        city=city,
+        check_in=check_in,
+        check_out=check_out,
+        num_guests=num_guests,
+    )
+    return ok(data, "Bo loc tim kiem")
 
 
 # Khach xem danh sach khach san dang co uu dai giam gia sau nhat, dung cho
