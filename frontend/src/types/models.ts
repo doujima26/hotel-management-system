@@ -86,6 +86,14 @@ export interface HotelSearchResult {
   total_pages: number;
 }
 
+export interface HotelSearchFilters {
+  price_min: number | null;
+  price_max: number | null;
+  districts: string[];
+  amenities: string[];
+  services: string[];
+}
+
 export interface HotelImage {
   id: number;
   hotel_id: number;

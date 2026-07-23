@@ -8,6 +8,7 @@ import type {
   HotelDetail,
   HotelHighlight,
   HotelImage,
+  HotelSearchFilters,
   HotelSearchResult,
   HotelServiceItem,
   Promotion,
@@ -20,8 +21,24 @@ export interface SearchHotelsParams {
   check_out?: string;
   num_guests?: number;
   sort?: string;
+  min_price?: number;
+  max_price?: number;
+  stars?: number[];
+  min_rating?: number;
+  districts?: string[];
+  amenities?: string[];
+  services?: string[];
+  has_promotion?: boolean;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | string[] | number[] | undefined;
+}
+
+export interface SearchFiltersParams {
+  city?: string;
+  check_in?: string;
+  check_out?: string;
+  num_guests?: number;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -77,6 +94,8 @@ export interface CreateHotelImagePayload {
 export const hotelsApi = {
   // Endpoint cong khai, chi goi tu Server Component (xem lib/api/server.ts).
   search: (params: SearchHotelsParams) => serverFetch<HotelSearchResult>("/hotels/search", { params }),
+  getSearchFilters: (params: SearchFiltersParams) =>
+    serverFetch<HotelSearchFilters>("/hotels/search/filters", { params }),
   getDetail: (hotelId: number) => serverFetch<HotelDetail>(`/hotels/${hotelId}`),
   listTrendingDeals: (limit?: number) =>
     serverFetch<HotelHighlight[]>("/hotels/highlights/deals", { params: { limit } }),

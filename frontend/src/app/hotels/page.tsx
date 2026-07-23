@@ -7,7 +7,9 @@ import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
 import { HotelSortSelect } from "@/components/shared/HotelSortSelect";
+import { HotelFilterSidebar } from "@/components/shared/HotelFilterSidebar";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
+import type { HotelSearchFilters } from "@/types/models";
 
 interface HotelsPageProps {
   searchParams: Promise<{
@@ -16,9 +18,31 @@ interface HotelsPageProps {
     check_out?: string;
     num_guests?: string;
     sort?: string;
+    min_price?: string;
+    max_price?: string;
+    min_rating?: string;
+    has_promotion?: string;
+    stars?: string | string[];
+    districts?: string | string[];
+    amenities?: string | string[];
+    services?: string | string[];
     page?: string;
   }>;
 }
+
+// Chuyen param URL (co the la chuoi hoac mang khi lap lai) ve mang.
+function toArray(value: string | string[] | undefined): string[] {
+  if (value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+const EMPTY_FACETS: HotelSearchFilters = {
+  price_min: null,
+  price_max: null,
+  districts: [],
+  amenities: [],
+  services: [],
+};
 
 export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   const params = await searchParams;
@@ -27,37 +51,91 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   const checkOut = params.check_out ?? "";
   const numGuests = params.num_guests ?? "";
   const sort = params.sort ?? "recommended";
+  const minPrice = params.min_price ?? "";
+  const maxPrice = params.max_price ?? "";
+  const minRating = params.min_rating ?? "";
+  const hasPromotion = params.has_promotion === "true";
+  const stars = toArray(params.stars);
+  const districts = toArray(params.districts);
+  const amenities = toArray(params.amenities);
+  const services = toArray(params.services);
   const page = Number(params.page ?? "1") || 1;
 
   let errorMessage: string | null = null;
   let result: Awaited<ReturnType<typeof hotelsApi.search>> | null = null;
-  try {
-    result = await hotelsApi.search({
+  let facets: HotelSearchFilters = EMPTY_FACETS;
+  const [searchResult, facetsResult] = await Promise.allSettled([
+    hotelsApi.search({
       city: city || undefined,
       check_in: checkIn || undefined,
       check_out: checkOut || undefined,
       num_guests: numGuests ? Number(numGuests) : undefined,
       sort: sort !== "recommended" ? sort : undefined,
+      min_price: minPrice ? Number(minPrice) : undefined,
+      max_price: maxPrice ? Number(maxPrice) : undefined,
+      min_rating: minRating ? Number(minRating) : undefined,
+      stars: stars.length ? stars.map(Number) : undefined,
+      districts: districts.length ? districts : undefined,
+      amenities: amenities.length ? amenities : undefined,
+      services: services.length ? services : undefined,
+      has_promotion: hasPromotion || undefined,
       page,
       page_size: 10,
-    });
-  } catch (err) {
-    errorMessage = err instanceof ApiError ? err.message : "Không thể tải danh sách khách sạn";
+    }),
+    hotelsApi.getSearchFilters({
+      city: city || undefined,
+      check_in: checkIn || undefined,
+      check_out: checkOut || undefined,
+      num_guests: numGuests ? Number(numGuests) : undefined,
+    }),
+  ]);
+  if (searchResult.status === "fulfilled") {
+    result = searchResult.value;
+  } else {
+    errorMessage =
+      searchResult.reason instanceof ApiError ? searchResult.reason.message : "Không thể tải danh sách khách sạn";
+  }
+  if (facetsResult.status === "fulfilled") {
+    facets = facetsResult.value;
   }
 
+  // Cac param loc hien tai (khong gom sort/page) - dung cho sort va phan trang
+  // giu nguyen bo loc; dang mang cap de giu duoc param lap lai.
+  function filterEntries(): [string, string][] {
+    const entries: [string, string][] = [];
+    if (city) entries.push(["city", city]);
+    if (checkIn) entries.push(["check_in", checkIn]);
+    if (checkOut) entries.push(["check_out", checkOut]);
+    if (numGuests) entries.push(["num_guests", numGuests]);
+    if (minPrice) entries.push(["min_price", minPrice]);
+    if (maxPrice) entries.push(["max_price", maxPrice]);
+    if (minRating) entries.push(["min_rating", minRating]);
+    if (hasPromotion) entries.push(["has_promotion", "true"]);
+    stars.forEach((s) => entries.push(["stars", s]));
+    districts.forEach((d) => entries.push(["districts", d]));
+    amenities.forEach((a) => entries.push(["amenities", a]));
+    services.forEach((s) => entries.push(["services", s]));
+    return entries;
+  }
+
+  // Cac param giu lai khi doi bo loc o sidebar (city/ngay/khach/sort, don gia tri).
+  const baseParams: Record<string, string> = {
+    ...(city ? { city } : {}),
+    ...(checkIn ? { check_in: checkIn } : {}),
+    ...(checkOut ? { check_out: checkOut } : {}),
+    ...(numGuests ? { num_guests: numGuests } : {}),
+    ...(sort !== "recommended" ? { sort } : {}),
+  };
+
   function buildPageHref(targetPage: number) {
-    const qs = new URLSearchParams();
-    if (city) qs.set("city", city);
-    if (checkIn) qs.set("check_in", checkIn);
-    if (checkOut) qs.set("check_out", checkOut);
-    if (numGuests) qs.set("num_guests", numGuests);
+    const qs = new URLSearchParams(filterEntries());
     if (sort !== "recommended") qs.set("sort", sort);
     qs.set("page", String(targetPage));
     return `/hotels?${qs.toString()}`;
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <HotelSearchForm
         defaultCity={city}
         defaultCheckIn={checkIn}
@@ -68,18 +146,26 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       {result && (
-        <>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="lg:w-64 lg:shrink-0">
+            <HotelFilterSidebar
+              facets={facets}
+              baseParams={baseParams}
+              selectedStars={stars.map(Number)}
+              selectedDistricts={districts}
+              selectedAmenities={amenities}
+              selectedServices={services}
+              minRating={minRating}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              hasPromotion={hasPromotion}
+            />
+          </div>
+
+          <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">Tìm thấy {result.total} khách sạn</p>
-            <HotelSortSelect
-              value={sort}
-              preservedParams={{
-                ...(city ? { city } : {}),
-                ...(checkIn ? { check_in: checkIn } : {}),
-                ...(checkOut ? { check_out: checkOut } : {}),
-                ...(numGuests ? { num_guests: numGuests } : {}),
-              }}
-            />
+            <HotelSortSelect value={sort} preserved={filterEntries()} />
           </div>
           <div className="flex flex-col gap-4">
             {result.items.map((hotel) => {
@@ -228,7 +314,8 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
               </Link>
             </div>
           )}
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

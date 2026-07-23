@@ -16,19 +16,21 @@ const SORT_OPTIONS = [
 
 interface HotelSortSelectProps {
   value: string;
-  // Cac filter can giu lai khi doi cach sap xep (city, check_in...), trang cha
-  // truyen xuong de khong phai dung useSearchParams (tranh yeu cau Suspense).
-  preservedParams: Record<string, string>;
+  // Cac filter can giu lai khi doi cach sap xep (city, check_in, cac bo loc...),
+  // dang mang cap [key, value] de giu duoc param lap lai (stars, districts...).
+  // Khong bao gom "sort" va "page". Trang cha truyen xuong de khong phai dung
+  // useSearchParams (tranh yeu cau Suspense).
+  preserved: [string, string][];
 }
 
 // Dropdown sap xep ket qua tim kiem - client component vi can dieu huong URL,
 // giu nguyen cac filter khac va reset ve trang 1 khi doi cach sap xep.
-export function HotelSortSelect({ value, preservedParams }: HotelSortSelectProps) {
+export function HotelSortSelect({ value, preserved }: HotelSortSelectProps) {
   const router = useRouter();
 
   function handleChange(next: string | null) {
     if (!next) return;
-    const params = new URLSearchParams(preservedParams);
+    const params = new URLSearchParams(preserved);
     if (next !== "recommended") {
       params.set("sort", next);
     }
