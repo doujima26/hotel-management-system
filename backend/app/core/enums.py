@@ -68,3 +68,13 @@ class ShiftType(StrEnum):
 class CheckType(StrEnum):
     CHECK_IN = 'check_in'
     CHECK_OUT = 'check_out'
+
+
+# Dinh nghia cach sap xep ket qua tim kiem khach san.
+class HotelSortOption(StrEnum):
+    RECOMMENDED = 'recommended'
+    PRICE_ASC = 'price_asc'
+    PRICE_DESC = 'price_desc'
+    RATING_DESC = 'rating_desc'
+    STAR_DESC = 'star_desc'
+    STAR_ASC = 'star_asc'

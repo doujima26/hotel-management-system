@@ -6,6 +6,7 @@ import { formatMoney, getRatingLabel, toTenPointScore } from "@/lib/utils/format
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
+import { HotelSortSelect } from "@/components/shared/HotelSortSelect";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
 
 interface HotelsPageProps {
@@ -14,6 +15,7 @@ interface HotelsPageProps {
     check_in?: string;
     check_out?: string;
     num_guests?: string;
+    sort?: string;
     page?: string;
   }>;
 }
@@ -24,6 +26,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   const checkIn = params.check_in ?? "";
   const checkOut = params.check_out ?? "";
   const numGuests = params.num_guests ?? "";
+  const sort = params.sort ?? "recommended";
   const page = Number(params.page ?? "1") || 1;
 
   let errorMessage: string | null = null;
@@ -34,6 +37,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       check_in: checkIn || undefined,
       check_out: checkOut || undefined,
       num_guests: numGuests ? Number(numGuests) : undefined,
+      sort: sort !== "recommended" ? sort : undefined,
       page,
       page_size: 10,
     });
@@ -47,6 +51,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
     if (checkIn) qs.set("check_in", checkIn);
     if (checkOut) qs.set("check_out", checkOut);
     if (numGuests) qs.set("num_guests", numGuests);
+    if (sort !== "recommended") qs.set("sort", sort);
     qs.set("page", String(targetPage));
     return `/hotels?${qs.toString()}`;
   }
@@ -64,7 +69,18 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
 
       {result && (
         <>
-          <p className="text-sm text-muted-foreground">Tìm thấy {result.total} khách sạn</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Tìm thấy {result.total} khách sạn</p>
+            <HotelSortSelect
+              value={sort}
+              preservedParams={{
+                ...(city ? { city } : {}),
+                ...(checkIn ? { check_in: checkIn } : {}),
+                ...(checkOut ? { check_out: checkOut } : {}),
+                ...(numGuests ? { num_guests: numGuests } : {}),
+              }}
+            />
+          </div>
           <div className="flex flex-col gap-4">
             {result.items.map((hotel) => {
               const detailQs = new URLSearchParams();

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
-from app.core.enums import UserRole
+from app.core.enums import HotelSortOption, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
@@ -56,6 +56,7 @@ def search_hotels_endpoint(
     check_in: date | None = Query(default=None),
     check_out: date | None = Query(default=None),
     num_guests: int | None = Query(default=None, gt=0),
+    sort: HotelSortOption = Query(default=HotelSortOption.RECOMMENDED),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -66,6 +67,7 @@ def search_hotels_endpoint(
         check_in=check_in,
         check_out=check_out,
         num_guests=num_guests,
+        sort=sort,
         page=page,
         page_size=page_size,
     )

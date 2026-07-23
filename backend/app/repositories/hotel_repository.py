@@ -1,9 +1,9 @@
 from datetime import date
 
-from sqlalchemy import func
+from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, HotelStatus
+from app.core.enums import DiscountType, HotelSortOption, HotelStatus
 from app.models.entities import BookingService, Hotel, HotelImage, HotelService, Promotion, RoomType
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
@@ -75,6 +75,47 @@ def list_top_rated_hotel_records(db: Session, limit: int) -> list[Hotel]:
 
 
 # Tim kiem khach san da duyet theo thanh pho va tinh trang phong trong trong khoang ngay.
+# Dung bieu thuc gia phong tham khao cua tung khach san de sap xep theo gia -
+# lay MIN gia phong con hoat dong hop so khach, neu khong co thi fallback MIN
+# gia phong bat ky (khop logic get_reference_room_type_by_hotel_ids).
+def _reference_price_expr(db: Session, num_guests: int | None):
+    min_all = (
+        db.query(func.min(RoomType.base_price))
+        .filter(RoomType.hotel_id == Hotel.id, RoomType.is_active.is_(True))
+        .correlate(Hotel)
+        .scalar_subquery()
+    )
+    if not num_guests:
+        return min_all
+    min_fit = (
+        db.query(func.min(RoomType.base_price))
+        .filter(
+            RoomType.hotel_id == Hotel.id,
+            RoomType.is_active.is_(True),
+            RoomType.max_guests >= num_guests,
+        )
+        .correlate(Hotel)
+        .scalar_subquery()
+    )
+    return func.coalesce(min_fit, min_all)
+
+
+# Dung danh sach order_by theo lua chon sap xep - luon them Hotel.id.asc() lam
+# tiebreak de phan trang on dinh.
+def _build_hotel_sort(sort: HotelSortOption, db: Session, num_guests: int | None):
+    if sort == HotelSortOption.PRICE_ASC:
+        return [nullslast(_reference_price_expr(db, num_guests).asc()), Hotel.id.asc()]
+    if sort == HotelSortOption.PRICE_DESC:
+        return [nullslast(_reference_price_expr(db, num_guests).desc()), Hotel.id.asc()]
+    if sort == HotelSortOption.RATING_DESC:
+        return [Hotel.avg_rating.desc(), Hotel.total_reviews.desc(), Hotel.id.asc()]
+    if sort == HotelSortOption.STAR_DESC:
+        return [nullslast(Hotel.star_rating.desc()), Hotel.id.asc()]
+    if sort == HotelSortOption.STAR_ASC:
+        return [nullslast(Hotel.star_rating.asc()), Hotel.id.asc()]
+    return [Hotel.avg_rating.desc(), Hotel.id.asc()]
+
+
 def search_hotel_records(
     db: Session,
     *,
@@ -82,6 +123,7 @@ def search_hotel_records(
     check_in: date | None,
     check_out: date | None,
     num_guests: int | None,
+    sort: HotelSortOption = HotelSortOption.RECOMMENDED,
     page: int,
     page_size: int,
 ) -> tuple[list[Hotel], int]:
@@ -106,7 +148,7 @@ def search_hotel_records(
 
     total = query.count()
     hotels = (
-        query.order_by(Hotel.avg_rating.desc(), Hotel.id.asc())
+        query.order_by(*_build_hotel_sort(sort, db, num_guests))
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()

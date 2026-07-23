@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, HotelStatus, UserRole
+from app.core.enums import DiscountType, HotelSortOption, HotelStatus, UserRole
 from app.models.entities import Hotel, HotelImage, HotelService, Promotion, User
 from app.repositories.booking_repository import count_bookings_by_promotion_id
 from app.repositories.hotel_repository import (
@@ -483,6 +483,7 @@ def search_hotels(
     check_in: date | None,
     check_out: date | None,
     num_guests: int | None,
+    sort: HotelSortOption = HotelSortOption.RECOMMENDED,
     page: int,
     page_size: int,
 ) -> dict:
@@ -508,6 +509,7 @@ def search_hotels(
         check_in=check_in,
         check_out=check_out,
         num_guests=num_guests,
+        sort=sort,
         page=page,
         page_size=page_size,
     )

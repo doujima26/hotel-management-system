@@ -19,6 +19,7 @@ export interface SearchHotelsParams {
   check_in?: string;
   check_out?: string;
   num_guests?: number;
+  sort?: string;
   page?: number;
   page_size?: number;
   [key: string]: string | number | boolean | undefined;
