@@ -17,8 +17,8 @@ const CHECK_OUT_BEFORE_CHECK_IN_MESSAGE = "Ngày trả phòng phải sau ngày n
 // can state phia client, con lai trang chu van la Server Component.
 export function HomeSearchForm() {
   const [city, setCity] = useState("");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [checkIn, setCheckIn] = useState(todayDateString());
+  const [checkOut, setCheckOut] = useState(addDaysToDateString(todayDateString(), 1));
   const formRef = useRef<HTMLFormElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
 
@@ -115,7 +115,7 @@ export function HomeSearchForm() {
           name="num_guests"
           type="number"
           min={1}
-          placeholder="2"
+          defaultValue={1}
           className={UNDERLINE_INPUT_CLASS}
         />
       </div>

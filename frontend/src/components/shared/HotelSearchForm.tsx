@@ -28,8 +28,8 @@ export function HotelSearchForm({
   defaultNumGuests,
 }: HotelSearchFormProps) {
   const [city, setCity] = useState(defaultCity);
-  const [checkIn, setCheckIn] = useState(defaultCheckIn);
-  const [checkOut, setCheckOut] = useState(defaultCheckOut);
+  const [checkIn, setCheckIn] = useState(defaultCheckIn || todayDateString());
+  const [checkOut, setCheckOut] = useState(defaultCheckOut || addDaysToDateString(defaultCheckIn || todayDateString(), 1));
   const formRef = useRef<HTMLFormElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,7 +105,7 @@ export function HotelSearchForm({
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="num_guests">Số khách</Label>
-        <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={defaultNumGuests} />
+        <Input id="num_guests" name="num_guests" type="number" min={1} defaultValue={defaultNumGuests || 1} />
       </div>
       <Button type="submit" className="self-end rounded-full">
         Tìm kiếm
