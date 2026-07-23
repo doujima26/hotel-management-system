@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Slider } from "@base-ui/react/slider";
 import { Star } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatMoney } from "@/lib/utils/format";
 import type { HotelSearchFilters } from "@/types/models";
+
+// Khoang gia thanh keo ngan sach: 0 -> 20 trieu, buoc 100k. Keo toi 20 trieu
+// coi nhu khong gioi han tren (hien dau "+", khong gui max_price).
+const PRICE_MIN = 0;
+const PRICE_MAX = 20000000;
+const PRICE_STEP = 100000;
 
 // Cac muc diem danh gia: nhan thang 10 (giong Booking) -> gia tri gui la thang 5 sao.
 const RATING_OPTIONS = [
@@ -59,8 +64,10 @@ export function HotelFilterSidebar({
   hasPromotion,
 }: HotelFilterSidebarProps) {
   const router = useRouter();
-  const [priceFrom, setPriceFrom] = useState(minPrice);
-  const [priceTo, setPriceTo] = useState(maxPrice);
+  const [priceRange, setPriceRange] = useState<number[]>([
+    minPrice ? Number(minPrice) : PRICE_MIN,
+    maxPrice ? Number(maxPrice) : PRICE_MAX,
+  ]);
 
   function navigate(overrides: NavigateOverrides) {
     const stars = overrides.stars ?? selectedStars;
@@ -93,6 +100,16 @@ export function HotelFilterSidebar({
     return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
   }
 
+  // Keo xong (commit) thi tim ngay: gia 0 -> bo min_price, gia toi da -> bo
+  // max_price (khong gioi han tren).
+  function commitPrice(range: number[]) {
+    const [low, high] = range;
+    navigate({
+      minPrice: low > PRICE_MIN ? String(low) : "",
+      maxPrice: high < PRICE_MAX ? String(high) : "",
+    });
+  }
+
   const hasActiveFilter =
     selectedStars.length > 0 ||
     selectedDistricts.length > 0 ||
@@ -118,46 +135,37 @@ export function HotelFilterSidebar({
         )}
       </div>
 
-      {/* Ngan sach moi dem */}
+      {/* Ngan sach moi dem - thanh keo 2 diem, keo xong tim ngay */}
       <div className="flex flex-col gap-2">
         <p className="font-medium">Ngân sách (mỗi đêm)</p>
-        {facets.price_min != null && facets.price_max != null && (
-          <p className="text-xs text-muted-foreground">
-            {formatMoney(facets.price_min)} - {formatMoney(facets.price_max)}
-          </p>
-        )}
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="price_from" className="text-xs text-muted-foreground">
-              Từ
-            </Label>
-            <Input
-              id="price_from"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={priceFrom}
-              onChange={(e) => setPriceFrom(e.currentTarget.value)}
-              onBlur={() => priceFrom !== minPrice && navigate({ minPrice: priceFrom })}
-              className="h-9"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="price_to" className="text-xs text-muted-foreground">
-              Đến
-            </Label>
-            <Input
-              id="price_to"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={priceTo}
-              onChange={(e) => setPriceTo(e.currentTarget.value)}
-              onBlur={() => priceTo !== maxPrice && navigate({ maxPrice: priceTo })}
-              className="h-9"
-            />
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {formatMoney(priceRange[0])} - {formatMoney(priceRange[1])}
+          {priceRange[1] >= PRICE_MAX ? "+" : ""}
+        </p>
+        <Slider.Root
+          min={PRICE_MIN}
+          max={PRICE_MAX}
+          step={PRICE_STEP}
+          value={priceRange}
+          onValueChange={(value) => setPriceRange(value as number[])}
+          onValueCommitted={(value) => commitPrice(value as number[])}
+        >
+          <Slider.Control className="relative flex w-full touch-none items-center py-2 select-none">
+            <Slider.Track className="h-1.5 w-full rounded-full bg-muted">
+              <Slider.Indicator className="rounded-full bg-primary" />
+              <Slider.Thumb
+                index={0}
+                getAriaLabel={() => "Giá tối thiểu"}
+                className="size-4 rounded-full border-2 border-primary bg-background shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <Slider.Thumb
+                index={1}
+                getAriaLabel={() => "Giá tối đa"}
+                className="size-4 rounded-full border-2 border-primary bg-background shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Slider.Track>
+          </Slider.Control>
+        </Slider.Root>
       </div>
 
       {/* Hang sao */}
