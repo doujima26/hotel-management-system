@@ -27,18 +27,16 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <section className="px-3 pt-4 sm:px-6 sm:pt-6">
-        <div className="relative mx-auto h-[440px] max-w-6xl overflow-hidden rounded-[2rem] shadow-xl sm:h-[500px] md:h-[560px]">
-          <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/35 to-black/65" />
-          <div className="relative flex h-full flex-col items-center justify-center px-4 pb-24 text-center sm:pb-28">
-            <p className="text-xs font-semibold tracking-[0.3em] text-white/85 uppercase">Khám phá điểm đến</p>
-            <h1 className="mt-4 max-w-2xl text-3xl leading-tight font-extrabold text-balance text-white uppercase sm:text-4xl md:text-5xl">
-              Tìm khách sạn
-              <br />
-              <span className="text-primary">phù hợp với bạn</span>
-            </h1>
-          </div>
+      <section className="relative h-[440px] w-full overflow-hidden sm:h-[500px] md:h-[560px]">
+        <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/35 to-black/65" />
+        <div className="relative flex h-full flex-col items-center justify-center px-4 pb-24 text-center sm:pb-28">
+          <p className="text-xs font-semibold tracking-[0.3em] text-white/85 uppercase">Khám phá điểm đến</p>
+          <h1 className="mt-4 max-w-2xl text-3xl leading-tight font-extrabold text-balance text-white uppercase sm:text-4xl md:text-5xl">
+            Tìm khách sạn
+            <br />
+            <span className="text-primary">phù hợp với bạn</span>
+          </h1>
         </div>
       </section>
 
