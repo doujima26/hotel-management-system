@@ -24,6 +24,7 @@ from app.repositories.hotel_repository import (
     get_min_active_room_price_by_hotel_ids,
     get_primary_image_url_by_hotel_ids,
     get_promotion_by_id,
+    get_reference_room_type_by_hotel_ids,
     list_hotel_image_records,
     list_hotel_service_records,
     list_promotion_records,
@@ -36,6 +37,7 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
+from app.repositories.room_repository import list_room_type_amenity_records
 from app.repositories.staff_repository import get_staff_member_by_user_id
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -509,7 +511,61 @@ def search_hotels(
         page=page,
         page_size=page_size,
     )
-    items = [HotelSearchItemResponse.model_validate(hotel) for hotel in hotels]
+    hotel_ids = [hotel.id for hotel in hotels]
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+    reference_room_types = get_reference_room_type_by_hotel_ids(db, hotel_ids, num_guests)
+    num_nights = (check_out - check_in).days if check_in and check_out else None
+
+    items = []
+    for hotel in hotels:
+        room_type = reference_room_types.get(hotel.id)
+        price_per_night = float(room_type.base_price) if room_type else None
+        room_amenities: list[str] = []
+        if room_type is not None:
+            room_amenities = [a.name for a in list_room_type_amenity_records(db, room_type.id)[:3]]
+        service_names = [s.name for s in list_hotel_service_records(db, hotel.id) if s.is_active][:2]
+
+        total_price = None
+        discounted_total_price = None
+        discount_percent = None
+        promotion_name = None
+        if price_per_night is not None:
+            total_price = price_per_night * (num_nights or 1)
+            best: tuple[float, float, str] | None = None
+            for promotion in list_valid_promotion_records(db, hotel.id, date.today()):
+                result = _calc_effective_discount(promotion, total_price)
+                if result is None or result[1] <= 0:
+                    continue
+                if best is None or result[1] > best[1]:
+                    best = (result[0], result[1], promotion.name)
+            if best is not None:
+                discounted_total_price = total_price - best[0]
+                discount_percent = round(best[1], 1)
+                promotion_name = best[2]
+
+        items.append(
+            HotelSearchItemResponse(
+                id=hotel.id,
+                name=hotel.name,
+                city=hotel.city,
+                district=hotel.district,
+                address=hotel.address,
+                star_rating=hotel.star_rating,
+                avg_rating=float(hotel.avg_rating),
+                total_reviews=hotel.total_reviews,
+                primary_image_url=image_urls.get(hotel.id),
+                room_type_name=room_type.name if room_type else None,
+                bed_type=room_type.bed_type if room_type else None,
+                room_amenities=room_amenities,
+                hotel_service_names=service_names,
+                promotion_name=promotion_name,
+                price_per_night=price_per_night,
+                num_nights=num_nights,
+                total_price=total_price,
+                discounted_total_price=discounted_total_price,
+                discount_percent=discount_percent,
+            )
+        )
     total_pages = (total + page_size - 1) // page_size if total else 0
     return HotelSearchResponse(
         items=items,

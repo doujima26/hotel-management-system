@@ -248,6 +248,34 @@ def get_min_active_room_price_by_hotel_ids(db: Session, hotel_ids: list[int]) ->
     return {hotel_id: float(price) for hotel_id, price in rows}
 
 
+# Lay "phong tham khao" re nhat cua tung khach san trong danh sach id, uu tien
+# loai phong chua toi thieu so khach da tim (max_guests >= num_guests) - neu
+# khach san khong co loai phong nao du sao, roi lai ve loai phong re nhat noi
+# chung (van hien duoc gia, chi khong dung suc chua yeu cau). Dung cho ket qua
+# tim kiem cong khai o /hotels.
+def get_reference_room_type_by_hotel_ids(
+    db: Session, hotel_ids: list[int], num_guests: int | None
+) -> dict[int, RoomType]:
+    if not hotel_ids:
+        return {}
+
+    def cheapest_per_hotel(min_guests: int | None) -> dict[int, RoomType]:
+        query = db.query(RoomType).filter(RoomType.hotel_id.in_(hotel_ids), RoomType.is_active.is_(True))
+        if min_guests:
+            query = query.filter(RoomType.max_guests >= min_guests)
+        rows = query.order_by(RoomType.hotel_id.asc(), RoomType.base_price.asc()).all()
+        picked: dict[int, RoomType] = {}
+        for room_type in rows:
+            picked.setdefault(room_type.hotel_id, room_type)
+        return picked
+
+    result = cheapest_per_hotel(num_guests)
+    if num_guests:
+        for hotel_id, room_type in cheapest_per_hotel(None).items():
+            result.setdefault(hotel_id, room_type)
+    return result
+
+
 # Lay anh dai dien (hoac anh dau tien neu chua dat dai dien) cua tung khach san
 # trong danh sach id - dung cho cac khoi hien thi rut gon o trang chu.
 def get_primary_image_url_by_hotel_ids(db: Session, hotel_ids: list[int]) -> dict[int, str]:

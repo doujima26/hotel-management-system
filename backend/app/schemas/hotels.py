@@ -127,8 +127,6 @@ class PromotionResponse(BaseModel):
 
 # Schema mot khach san trong ket qua tim kiem cong khai.
 class HotelSearchItemResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     name: str
     city: str
@@ -137,6 +135,20 @@ class HotelSearchItemResponse(BaseModel):
     star_rating: int | None = None
     avg_rating: float
     total_reviews: int
+    primary_image_url: str | None = None
+    # "Phong tham khao": loai phong re nhat phu hop so khach da tim (hoac re
+    # nhat noi chung neu khong truyen so khach) - dung de hien gia/tien nghi.
+    room_type_name: str | None = None
+    bed_type: str | None = None
+    room_amenities: list[str] = []
+    hotel_service_names: list[str] = []
+    promotion_name: str | None = None
+    price_per_night: float | None = None
+    # Chi co gia tri khi tim kiem co truyen ca check_in va check_out.
+    num_nights: int | None = None
+    total_price: float | None = None
+    discounted_total_price: float | None = None
+    discount_percent: float | None = None
 
 
 # Schema danh sach khach san tim kiem cong khai kem phan trang.

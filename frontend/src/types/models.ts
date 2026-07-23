@@ -52,6 +52,17 @@ export interface HotelSearchItem {
   star_rating: number | null;
   avg_rating: number;
   total_reviews: number;
+  primary_image_url: string | null;
+  room_type_name: string | null;
+  bed_type: string | null;
+  room_amenities: string[];
+  hotel_service_names: string[];
+  promotion_name: string | null;
+  price_per_night: number | null;
+  num_nights: number | null;
+  total_price: number | null;
+  discounted_total_price: number | null;
+  discount_percent: number | null;
 }
 
 export interface HotelHighlight {
