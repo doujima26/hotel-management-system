@@ -80,6 +80,12 @@ CREATE TABLE hotels (
     rejection_reason  TEXT,
     avg_rating        DECIMAL(3, 2) NOT NULL DEFAULT 0,
     total_reviews     INTEGER NOT NULL DEFAULT 0,
+    check_in_time     TIME NOT NULL DEFAULT '14:00',
+    check_out_time    TIME NOT NULL DEFAULT '12:00',
+    cancellation_policy TEXT,
+    children_policy   TEXT,
+    pets_allowed      BOOLEAN NOT NULL DEFAULT FALSE,
+    payment_methods   JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

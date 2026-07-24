@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, time
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.core.enums import DiscountType, HotelStatus
+from app.core.enums import DiscountType, HotelStatus, PaymentMethod
 
 
 # Schema du lieu dau vao cho admin dang ky khach san.
@@ -71,6 +71,13 @@ class UpdateHotelRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
     email: EmailStr | None = None
     star_rating: int | None = Field(default=None, ge=1, le=5)
+    # Quy tac chung (house rules).
+    check_in_time: time | None = None
+    check_out_time: time | None = None
+    cancellation_policy: str | None = None
+    children_policy: str | None = None
+    pets_allowed: bool | None = None
+    payment_methods: list[PaymentMethod] | None = None
 
 
 # Schema du lieu tra ve thong tin khach san (phia admin quan ly).
@@ -91,6 +98,12 @@ class HotelResponse(BaseModel):
     total_reviews: int
     status: HotelStatus
     rejection_reason: str | None = None
+    check_in_time: time
+    check_out_time: time
+    cancellation_policy: str | None = None
+    children_policy: str | None = None
+    pets_allowed: bool
+    payment_methods: list[PaymentMethod] = []
 
 
 # Schema du lieu tra ve dich vu khach san.
@@ -217,6 +230,12 @@ class HotelHighlightResponse(BaseModel):
     discount_percent: float | None = None
 
 
+# Schema mot tien nghi khach san (kem nhom) cho trang chi tiet.
+class HotelAmenityItem(BaseModel):
+    name: str
+    category: str | None = None
+
+
 # Schema du lieu tra ve chi tiet khach san cong khai (cho khach hang).
 class HotelDetailResponse(BaseModel):
     id: int
@@ -230,4 +249,12 @@ class HotelDetailResponse(BaseModel):
     star_rating: int | None = None
     avg_rating: float
     total_reviews: int
+    check_in_time: time
+    check_out_time: time
+    cancellation_policy: str | None = None
+    children_policy: str | None = None
+    pets_allowed: bool
+    payment_methods: list[PaymentMethod] = []
+    amenities: list[HotelAmenityItem] = []
+    services: list[str] = []
     images: list[HotelImageResponse]

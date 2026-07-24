@@ -442,6 +442,8 @@ def get_room_availability(
             name=room_type.name,
             base_price=float(room_type.base_price),
             max_guests=room_type.max_guests,
+            bed_type=room_type.bed_type,
+            area_sqm=float(room_type.area_sqm) if room_type.area_sqm is not None else None,
             total_rooms=room_type.total_rooms,
             available_rooms=available_rooms,
         )

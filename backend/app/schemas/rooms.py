@@ -130,6 +130,8 @@ class RoomTypeAvailabilityResponse(BaseModel):
     name: str
     base_price: float
     max_guests: int
+    bed_type: str | None = None
+    area_sqm: float | None = None
     total_rooms: int
     available_rooms: int
 

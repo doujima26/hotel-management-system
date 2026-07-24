@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelSortOption, HotelStatus, UserRole
-from app.models.entities import Hotel, HotelImage, HotelService, Promotion, User
+from app.models.entities import Amenity, Hotel, HotelImage, HotelService, Promotion, User
 from app.repositories.booking_repository import count_bookings_by_promotion_id
 from app.repositories.hotel_repository import (
     count_booking_services_by_service,
@@ -38,7 +38,7 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
-from app.repositories.room_repository import list_room_type_amenity_records
+from app.repositories.room_repository import list_amenity_records, list_room_type_amenity_records
 from app.repositories.staff_repository import get_staff_member_by_user_id
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -51,6 +51,7 @@ from app.schemas.hotels import (
     HotelDetailResponse,
     HotelHighlightResponse,
     HotelImageResponse,
+    HotelAmenityItem,
     HotelResponse,
     HotelSearchFiltersResponse,
     HotelSearchItemResponse,
@@ -79,7 +80,12 @@ def serialize_hotel_image(image: HotelImage) -> dict:
 
 
 # Chuyen khach san va anh thanh du lieu chi tiet cong khai.
-def serialize_hotel_detail(hotel: Hotel, images: list[HotelImage]) -> dict:
+def serialize_hotel_detail(
+    hotel: Hotel,
+    images: list[HotelImage],
+    amenities: list[Amenity],
+    services: list[HotelService],
+) -> dict:
     return HotelDetailResponse(
         id=hotel.id,
         name=hotel.name,
@@ -92,6 +98,14 @@ def serialize_hotel_detail(hotel: Hotel, images: list[HotelImage]) -> dict:
         star_rating=hotel.star_rating,
         avg_rating=float(hotel.avg_rating),
         total_reviews=hotel.total_reviews,
+        check_in_time=hotel.check_in_time,
+        check_out_time=hotel.check_out_time,
+        cancellation_policy=hotel.cancellation_policy,
+        children_policy=hotel.children_policy,
+        pets_allowed=hotel.pets_allowed,
+        payment_methods=hotel.payment_methods,
+        amenities=[HotelAmenityItem(name=a.name, category=a.category) for a in amenities],
+        services=[s.name for s in services],
         images=[HotelImageResponse.model_validate(image) for image in images],
     ).model_dump(mode="json")
 
@@ -188,6 +202,9 @@ def update_hotel(db: Session, current_user: User, payload: UpdateHotelRequest) -
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        # payment_methods la list enum -> luu chuoi gia tri thuan vao JSONB.
+        if field == "payment_methods" and value is not None:
+            value = [item.value if hasattr(item, "value") else item for item in value]
         setattr(hotel, field, value)
 
     hotel = save_hotel(db, hotel)
@@ -204,7 +221,9 @@ def get_hotel_detail(db: Session, hotel_id: int) -> dict:
         )
 
     images = list_hotel_image_records(db, hotel.id)
-    return serialize_hotel_detail(hotel, images)
+    amenities = list_amenity_records(db, hotel.id)
+    services = [service for service in list_hotel_service_records(db, hotel.id) if service.is_active]
+    return serialize_hotel_detail(hotel, images, amenities, services)
 
 
 # Xu ly tao dich vu khach san.

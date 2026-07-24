@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -67,6 +67,14 @@ class Hotel(Base):
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     avg_rating: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=0)
     total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Quy tac chung (house rules): gio nhan/tra phong, chinh sach huy/tre em,
+    # thu cung, cac phuong thuc thanh toan chap nhan (mang gia tri PaymentMethod).
+    check_in_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'14:00'"))
+    check_out_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'12:00'"))
+    cancellation_policy: Mapped[str | None] = mapped_column(Text)
+    children_policy: Mapped[str | None] = mapped_column(Text)
+    pets_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    payment_methods: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
