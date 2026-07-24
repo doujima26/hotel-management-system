@@ -202,9 +202,10 @@ def update_hotel(db: Session, current_user: User, payload: UpdateHotelRequest) -
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        # payment_methods la list enum -> luu chuoi gia tri thuan vao JSONB.
-        if field == "payment_methods" and value is not None:
-            value = [item.value if hasattr(item, "value") else item for item in value]
+        # payment_methods gan qua association_proxy (thay the toan bo bang noi).
+        if field == "payment_methods":
+            hotel.payment_methods = list(value or [])
+            continue
         setattr(hotel, field, value)
 
     hotel = save_hotel(db, hotel)

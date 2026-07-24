@@ -1,6 +1,7 @@
 from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.enums import (
@@ -67,16 +68,37 @@ class Hotel(Base):
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     avg_rating: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=0)
     total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    # Quy tac chung (house rules): gio nhan/tra phong, chinh sach huy/tre em,
-    # thu cung, cac phuong thuc thanh toan chap nhan (mang gia tri PaymentMethod).
+    # Quy tac chung (house rules): gio nhan/tra phong, chinh sach huy/tre em, thu cung.
     check_in_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'14:00'"))
     check_out_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'12:00'"))
     cancellation_policy: Mapped[str | None] = mapped_column(Text)
     children_policy: Mapped[str | None] = mapped_column(Text)
     pets_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
-    payment_methods: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # Phuong thuc thanh toan chap nhan - thuoc tinh da tri nen tach sang bang noi
+    # hotel_payment_methods; truy cap qua association_proxy nen hotel.payment_methods
+    # van la list[PaymentMethod] (doc/ghi) nhu cu -> API va frontend khong doi.
+    payment_method_rows: Mapped[list["HotelPaymentMethod"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin"
+    )
+    payment_methods = association_proxy(
+        "payment_method_rows",
+        "method",
+        creator=lambda method: HotelPaymentMethod(method=PaymentMethod(method)),
+    )
+
+
+# Model bang hotel_payment_methods - moi phuong thuc thanh toan cua khach san 1 dong.
+class HotelPaymentMethod(Base):
+    __tablename__ = "hotel_payment_methods"
+
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
+    method: Mapped[PaymentMethod] = mapped_column(
+        Enum(PaymentMethod, name="payment_method", values_callable=enum_values),
+        primary_key=True,
+    )
 
 
 # Model bang hotel_images.

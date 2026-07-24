@@ -85,12 +85,18 @@ CREATE TABLE hotels (
     cancellation_policy TEXT,
     children_policy   TEXT,
     pets_allowed      BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_methods   JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE hotels IS '1 Admin = 1 Hotel (UNIQUE owner_id). Cần Super Admin duyệt.';
+
+-- Phuong thuc thanh toan chap nhan cua tung khach san (1-nhieu, thuoc tinh da tri).
+CREATE TABLE hotel_payment_methods (
+    hotel_id BIGINT NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+    method   payment_method NOT NULL,
+    PRIMARY KEY (hotel_id, method)
+);
 
 -- -------------------------------------------------------
 -- 3. hotel_images - Hình ảnh khách sạn
