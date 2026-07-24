@@ -85,7 +85,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-full border border-white/70 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/15"
+                  className={cn(buttonVariants({ size: "sm" }), "rounded-full bg-white text-primary hover:bg-white/90")}
                 >
                   Đăng nhập
                 </Link>
