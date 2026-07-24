@@ -143,6 +143,20 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
         defaultNumGuests={numGuests}
       />
 
+      <nav className="text-sm text-muted-foreground">
+        <Link href="/" className="hover:text-foreground">
+          Trang chủ
+        </Link>
+        {city && (
+          <>
+            {" › "}
+            <span>{city}</span>
+          </>
+        )}
+        {" › "}
+        <span className="text-foreground">Kết quả tìm kiếm</span>
+      </nav>
+
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       {result && (
