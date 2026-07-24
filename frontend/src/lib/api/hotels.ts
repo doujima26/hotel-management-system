@@ -13,7 +13,7 @@ import type {
   HotelServiceItem,
   Promotion,
 } from "@/types/models";
-import type { DiscountType } from "@/types/enums";
+import type { DiscountType, PaymentMethod } from "@/types/enums";
 
 export interface SearchHotelsParams {
   city?: string;
@@ -53,7 +53,14 @@ export interface CreateHotelPayload {
   star_rating?: number;
 }
 
-export type UpdateHotelPayload = Partial<CreateHotelPayload>;
+export interface UpdateHotelPayload extends Partial<CreateHotelPayload> {
+  check_in_time?: string;
+  check_out_time?: string;
+  cancellation_policy?: string;
+  children_policy?: string;
+  pets_allowed?: boolean;
+  payment_methods?: PaymentMethod[];
+}
 
 export interface CreateHotelServicePayload {
   name: string;

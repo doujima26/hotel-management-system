@@ -102,7 +102,12 @@ export interface HotelImage {
   sort_order: number;
 }
 
-export interface HotelDetail {
+export interface HotelAmenityItem {
+  name: string;
+  category: string | null;
+}
+
+export interface HotelDetail extends HotelPolicies {
   id: number;
   name: string;
   description: string | null;
@@ -114,6 +119,8 @@ export interface HotelDetail {
   star_rating: number | null;
   avg_rating: number;
   total_reviews: number;
+  amenities: HotelAmenityItem[];
+  services: string[];
   images: HotelImage[];
 }
 
@@ -122,6 +129,8 @@ export interface RoomTypeAvailability {
   name: string;
   base_price: number;
   max_guests: number;
+  bed_type: string | null;
+  area_sqm: number | null;
   total_rooms: number;
   available_rooms: number;
 }
@@ -188,7 +197,16 @@ export interface PayBookingResult {
   invoice: Invoice;
 }
 
-export interface AdminHotel {
+export interface HotelPolicies {
+  check_in_time: string;
+  check_out_time: string;
+  cancellation_policy: string | null;
+  children_policy: string | null;
+  pets_allowed: boolean;
+  payment_methods: PaymentMethod[];
+}
+
+export interface AdminHotel extends HotelPolicies {
   id: number;
   owner_id: number;
   name: string;

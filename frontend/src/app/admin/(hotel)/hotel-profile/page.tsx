@@ -13,7 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
+import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
 import { useAdminHotel } from "../layout";
+
+const PAYMENT_METHODS: PaymentMethod[] = ["momo", "zalopay", "credit_card", "bank_transfer"];
 
 const profileSchema = z.object({
   name: z.string().min(2, "Tên tối thiểu 2 ký tự").max(255),
@@ -145,8 +148,122 @@ export default function AdminHotelProfilePage() {
         </CardContent>
       </Card>
 
+      <HotelPolicySection />
+
       <HotelImagesSection approved={hotel.status === "approved"} />
     </div>
+  );
+}
+
+// Card "Quy tac chung" - gio nhan/tra, chinh sach huy/tre em, thu cung,
+// phuong thuc thanh toan. Luu qua cung endpoint PATCH /hotels.
+function HotelPolicySection() {
+  const hotel = useAdminHotel();
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [checkIn, setCheckIn] = useState(hotel.check_in_time.slice(0, 5));
+  const [checkOut, setCheckOut] = useState(hotel.check_out_time.slice(0, 5));
+  const [cancellation, setCancellation] = useState(hotel.cancellation_policy ?? "");
+  const [children, setChildren] = useState(hotel.children_policy ?? "");
+  const [petsAllowed, setPetsAllowed] = useState(hotel.pets_allowed);
+  const [methods, setMethods] = useState<PaymentMethod[]>(hotel.payment_methods);
+
+  function toggleMethod(method: PaymentMethod) {
+    setMethods((prev) => (prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]));
+  }
+
+  async function handleSave() {
+    setError(null);
+    setSaving(true);
+    try {
+      await hotelsApi.update({
+        check_in_time: checkIn,
+        check_out_time: checkOut,
+        cancellation_policy: cancellation || undefined,
+        children_policy: children || undefined,
+        pets_allowed: petsAllowed,
+        payment_methods: methods,
+      });
+      toast.success("Cập nhật quy tắc chung thành công");
+      await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quy tắc chung</CardTitle>
+        <CardDescription>Thông tin hiển thị cho khách ở trang chi tiết khách sạn.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="check_in_time">Giờ nhận phòng</Label>
+            <Input id="check_in_time" type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="check_out_time">Giờ trả phòng</Label>
+            <Input id="check_out_time" type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="cancellation_policy">Chính sách hủy phòng</Label>
+          <textarea
+            id="cancellation_policy"
+            value={cancellation}
+            onChange={(e) => setCancellation(e.target.value)}
+            rows={2}
+            placeholder="Ví dụ: Miễn phí hủy trước 3 ngày nhận phòng."
+            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="children_policy">Chính sách trẻ em</Label>
+          <textarea
+            id="children_policy"
+            value={children}
+            onChange={(e) => setChildren(e.target.value)}
+            rows={2}
+            placeholder="Ví dụ: Trẻ em mọi lứa tuổi được chào đón."
+            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={petsAllowed}
+            onChange={(e) => setPetsAllowed(e.target.checked)}
+          />
+          Cho phép mang theo thú cưng
+        </label>
+        <div className="flex flex-col gap-2">
+          <Label>Phương thức thanh toán chấp nhận</Label>
+          <div className="flex flex-wrap gap-3">
+            {PAYMENT_METHODS.map((method) => (
+              <label key={method} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={methods.includes(method)}
+                  onChange={() => toggleMethod(method)}
+                />
+                {PAYMENT_METHOD_LABELS[method]}
+              </label>
+            ))}
+          </div>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button onClick={handleSave} disabled={saving} className="self-start">
+          {saving ? "Đang lưu..." : "Lưu quy tắc"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
