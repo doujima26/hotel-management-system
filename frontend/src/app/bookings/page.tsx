@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/shared/RequireAuth";
+import { AccountShell } from "@/components/shared/AccountShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatMoney } from "@/lib/utils/format";
@@ -13,7 +14,9 @@ import { ApiError } from "@/types/api";
 export default function BookingsPage() {
   return (
     <RequireAuth allow={["user"]}>
-      <BookingsList />
+      <AccountShell>
+        <BookingsList />
+      </AccountShell>
     </RequireAuth>
   );
 }
@@ -25,8 +28,8 @@ function BookingsList() {
   });
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8">
-      <h1 className="text-2xl font-semibold">Booking của tôi</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold">Đơn đặt phòng</h1>
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">

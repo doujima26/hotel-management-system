@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BadgeCheck, CalendarCheck, Heart, ShieldCheck, User as UserIcon } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { RequireAuth } from "@/components/shared/RequireAuth";
+import { AccountShell } from "@/components/shared/AccountShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,61 +18,18 @@ import type { User } from "@/types/models";
 export default function AccountPage() {
   return (
     <RequireAuth allow={["user", "admin", "staff", "super_admin"]}>
-      <AccountContent />
+      <AccountShell>
+        <ProfileContent />
+      </AccountShell>
     </RequireAuth>
   );
 }
 
-function AccountContent() {
+function ProfileContent() {
   const { data: me, isLoading } = useQuery({ queryKey: ["me"], queryFn: () => authApi.me() });
-
-  return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <nav className="text-sm text-muted-foreground">
-        <span className="text-foreground">Tài khoản</span>
-        {" › "}
-        <span>Thông tin cá nhân</span>
-      </nav>
-
-      <div className="mt-6 flex flex-col gap-8 lg:flex-row lg:items-start">
-        <AccountSidebar />
-
-        <div className="flex flex-1 flex-col gap-8">
-          {isLoading && <p className="text-sm text-muted-foreground">Đang tải...</p>}
-          {me && <ProfileSection me={me} />}
-          <SecuritySection />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Menu trai cua khu vuc tai khoan.
-function AccountSidebar() {
-  const items = [
-    { label: "Thông tin cá nhân", icon: UserIcon, href: "#profile", active: true },
-    { label: "Cài đặt bảo mật", icon: ShieldCheck, href: "#security" },
-    { label: "Yêu thích", icon: Heart, href: "/account/wishlist" },
-    { label: "Đơn đặt phòng", icon: CalendarCheck, href: "/bookings" },
-  ];
-  return (
-    <aside className="lg:w-64 lg:shrink-0">
-      <nav className="flex flex-col gap-1 rounded-xl border p-2">
-        {items.map(({ label, icon: Icon, href, active }) => (
-          <Link
-            key={label}
-            href={href}
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${
-              active ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <Icon className="size-4 shrink-0" />
-            {label}
-          </Link>
-        ))}
-      </nav>
-    </aside>
-  );
+  if (isLoading) return <p className="text-sm text-muted-foreground">Đang tải...</p>;
+  if (!me) return null;
+  return <ProfileSection me={me} />;
 }
 
 // Khoi "Thong tin ca nhan" dang hang, sua tung dong.
@@ -87,7 +44,7 @@ function ProfileSection({ me }: { me: User }) {
   }
 
   return (
-    <section id="profile" className="scroll-mt-20">
+    <section>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Thông tin cá nhân</h1>
@@ -233,73 +190,5 @@ function EditableRow({
         </>
       )}
     </div>
-  );
-}
-
-// Khoi "Cai dat bao mat" - doi mat khau.
-function SecuritySection() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleChangePassword() {
-    setError(null);
-    if (newPassword !== confirmPassword) {
-      setError("Xác nhận mật khẩu mới không khớp");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
-      toast.success("Đổi mật khẩu thành công");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đổi mật khẩu thất bại");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <section id="security" className="scroll-mt-20">
-      <h2 className="text-xl font-bold">Cài đặt bảo mật</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Đổi mật khẩu đăng nhập của bạn.</p>
-      <div className="mt-4 flex max-w-md flex-col gap-4 rounded-xl border p-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="current_password">Mật khẩu hiện tại</Label>
-          <Input
-            id="current_password"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="new_password">Mật khẩu mới</Label>
-          <Input id="new_password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="confirm_password">Xác nhận mật khẩu mới</Label>
-          <Input
-            id="confirm_password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-        </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button
-          onClick={handleChangePassword}
-          disabled={submitting || !currentPassword || newPassword.length < 8}
-          className="self-start"
-        >
-          {submitting ? "Đang đổi..." : "Đổi mật khẩu"}
-        </Button>
-      </div>
-    </section>
   );
 }

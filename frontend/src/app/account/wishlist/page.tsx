@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { RequireAuth } from "@/components/shared/RequireAuth";
+import { AccountShell } from "@/components/shared/AccountShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { favoritesApi } from "@/lib/api/favorites";
@@ -12,7 +13,9 @@ import { ApiError } from "@/types/api";
 export default function WishlistPage() {
   return (
     <RequireAuth allow={["user"]}>
-      <WishlistContent />
+      <AccountShell>
+        <WishlistContent />
+      </AccountShell>
     </RequireAuth>
   );
 }
@@ -35,8 +38,8 @@ function WishlistContent() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-8">
-      <h1 className="text-2xl font-semibold">Khách sạn yêu thích</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold">Khách sạn yêu thích</h1>
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
