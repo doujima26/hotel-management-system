@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,24 +35,37 @@ export default function AdminHotelProfilePage() {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [starRating, setStarRating] = useState(hotel.star_rating ? String(hotel.star_rating) : "");
+  // Mac dinh chi xem; bam "Chinh sua" moi mo khoa cac o nhap.
+  const [editing, setEditing] = useState(false);
+
+  const defaultValues = {
+    name: hotel.name,
+    address: hotel.address,
+    city: hotel.city,
+    district: hotel.district ?? "",
+    phone: hotel.phone ?? "",
+    email: hotel.email ?? "",
+    description: hotel.description ?? "",
+  };
 
   const {
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: hotel.name,
-      address: hotel.address,
-      city: hotel.city,
-      district: hotel.district ?? "",
-      phone: hotel.phone ?? "",
-      email: hotel.email ?? "",
-      description: hotel.description ?? "",
-    },
+    defaultValues,
   });
+
+  // Huy chinh sua: tra moi o ve gia tri dang luu, khong gui gi len server.
+  function handleCancel() {
+    reset(defaultValues);
+    setStarRating(hotel.star_rating ? String(hotel.star_rating) : "");
+    setFormError(null);
+    setEditing(false);
+  }
 
   async function onSubmit(values: ProfileFormValues) {
     setFormError(null);
@@ -67,6 +81,7 @@ export default function AdminHotelProfilePage() {
         star_rating: starRating ? Number(starRating) : undefined,
       });
       toast.success("Cập nhật thông tin khách sạn thành công");
+      setEditing(false);
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
@@ -77,19 +92,28 @@ export default function AdminHotelProfilePage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Thông tin khách sạn</CardTitle>
-          <CardDescription>Có thể sửa ngay cả khi đang chờ duyệt.</CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle>Thông tin khách sạn</CardTitle>
+              <CardDescription>Có thể sửa ngay cả khi đang chờ duyệt.</CardDescription>
+            </div>
+            {!editing && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" /> Chỉnh sửa
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Tên khách sạn</Label>
-              <Input id="name" {...register("name")} />
+              <Input id="name" disabled={!editing} {...register("name")} />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="address">Địa chỉ</Label>
-              <Input id="address" {...register("address")} />
+              <Input id="address" disabled={!editing} {...register("address")} />
               {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -98,25 +122,29 @@ export default function AdminHotelProfilePage() {
                 <Controller
                   control={control}
                   name="city"
-                  render={({ field }) => (
-                    <CityAutocomplete id="city" value={field.value} onValueChange={field.onChange} />
-                  )}
+                  render={({ field }) =>
+                    editing ? (
+                      <CityAutocomplete id="city" value={field.value} onValueChange={field.onChange} />
+                    ) : (
+                      <Input id="city" value={field.value} disabled readOnly />
+                    )
+                  }
                 />
                 {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="district">Quận/Huyện</Label>
-                <Input id="district" {...register("district")} />
+                <Input id="district" disabled={!editing} {...register("district")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="phone">Số điện thoại</Label>
-                <Input id="phone" {...register("phone")} />
+                <Input id="phone" disabled={!editing} {...register("phone")} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">Email khách sạn</Label>
-                <Input id="email" type="email" {...register("email")} />
+                <Input id="email" type="email" disabled={!editing} {...register("email")} />
                 {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
               </div>
             </div>
@@ -127,6 +155,7 @@ export default function AdminHotelProfilePage() {
                 type="number"
                 min={1}
                 max={5}
+                disabled={!editing}
                 value={starRating}
                 onChange={(e) => setStarRating(e.target.value)}
               />
@@ -137,13 +166,21 @@ export default function AdminHotelProfilePage() {
                 id="description"
                 {...register("description")}
                 rows={3}
-                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                disabled={!editing}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
               />
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
-            <Button type="submit" disabled={isSubmitting} className="self-start">
-              {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-            </Button>
+            {editing && (
+              <div className="flex gap-2">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
+                  Hủy
+                </Button>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -168,9 +205,23 @@ function HotelPolicySection() {
   const [children, setChildren] = useState(hotel.children_policy ?? "");
   const [petsAllowed, setPetsAllowed] = useState(hotel.pets_allowed);
   const [methods, setMethods] = useState<PaymentMethod[]>(hotel.payment_methods);
+  // Mac dinh chi xem; bam "Chinh sua" moi mo khoa cac o nhap.
+  const [editing, setEditing] = useState(false);
 
   function toggleMethod(method: PaymentMethod) {
     setMethods((prev) => (prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]));
+  }
+
+  // Huy chinh sua: tra moi o ve gia tri dang luu.
+  function handleCancel() {
+    setCheckIn(hotel.check_in_time.slice(0, 5));
+    setCheckOut(hotel.check_out_time.slice(0, 5));
+    setCancellation(hotel.cancellation_policy ?? "");
+    setChildren(hotel.children_policy ?? "");
+    setPetsAllowed(hotel.pets_allowed);
+    setMethods(hotel.payment_methods);
+    setError(null);
+    setEditing(false);
   }
 
   async function handleSave() {
@@ -186,6 +237,7 @@ function HotelPolicySection() {
         payment_methods: methods,
       });
       toast.success("Cập nhật quy tắc chung thành công");
+      setEditing(false);
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
@@ -197,18 +249,27 @@ function HotelPolicySection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quy tắc chung</CardTitle>
-        <CardDescription>Thông tin hiển thị cho khách ở trang chi tiết khách sạn.</CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>Quy tắc chung</CardTitle>
+            <CardDescription>Thông tin hiển thị cho khách ở trang chi tiết khách sạn.</CardDescription>
+          </div>
+          {!editing && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <Pencil className="size-4" /> Chỉnh sửa
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="check_in_time">Giờ nhận phòng</Label>
-            <Input id="check_in_time" type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
+            <Input id="check_in_time" type="time" disabled={!editing} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="check_out_time">Giờ trả phòng</Label>
-            <Input id="check_out_time" type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+            <Input id="check_out_time" type="time" disabled={!editing} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -218,8 +279,9 @@ function HotelPolicySection() {
             value={cancellation}
             onChange={(e) => setCancellation(e.target.value)}
             rows={2}
+            disabled={!editing}
             placeholder="Ví dụ: Miễn phí hủy trước 3 ngày nhận phòng."
-            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -229,8 +291,9 @@ function HotelPolicySection() {
             value={children}
             onChange={(e) => setChildren(e.target.value)}
             rows={2}
+            disabled={!editing}
             placeholder="Ví dụ: Trẻ em mọi lứa tuổi được chào đón."
-            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
           />
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -238,6 +301,7 @@ function HotelPolicySection() {
             type="checkbox"
             className="size-4 accent-primary"
             checked={petsAllowed}
+            disabled={!editing}
             onChange={(e) => setPetsAllowed(e.target.checked)}
           />
           Cho phép mang theo thú cưng
@@ -251,6 +315,7 @@ function HotelPolicySection() {
                   type="checkbox"
                   className="size-4 accent-primary"
                   checked={methods.includes(method)}
+                  disabled={!editing}
                   onChange={() => toggleMethod(method)}
                 />
                 {PAYMENT_METHOD_LABELS[method]}
@@ -259,9 +324,16 @@ function HotelPolicySection() {
           </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button onClick={handleSave} disabled={saving} className="self-start">
-          {saving ? "Đang lưu..." : "Lưu quy tắc"}
-        </Button>
+        {editing && (
+          <div className="flex gap-2">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Đang lưu..." : "Lưu quy tắc"}
+            </Button>
+            <Button variant="ghost" onClick={handleCancel} disabled={saving}>
+              Hủy
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
