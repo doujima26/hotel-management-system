@@ -8,6 +8,7 @@ export interface CreateBookingPayload {
   check_out_date: string;
   num_guests: number;
   rooms: { room_type_id: number; quantity: number }[];
+  services?: { service_id: number; quantity: number }[];
   special_requests?: string;
   promotion_id?: number;
 }

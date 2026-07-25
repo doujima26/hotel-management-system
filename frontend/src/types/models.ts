@@ -151,6 +151,14 @@ export interface BookingRoomItem {
   subtotal: number;
 }
 
+export interface BookingServiceLine {
+  service_id: number;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
 export interface Booking {
   id: number;
   booking_code: string;
@@ -168,6 +176,7 @@ export interface Booking {
   cancellation_reason: string | null;
   cancelled_at: string | null;
   rooms: BookingRoomItem[];
+  services: BookingServiceLine[];
 }
 
 export interface Payment {
