@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { logout } from "@/lib/auth/session";
 import { RequireAuth } from "@/components/shared/RequireAuth";
 import { AccountShell } from "@/components/shared/AccountShell";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ export default function AccountSecurityPage() {
 
 // Khoi "Cai dat bao mat" - doi mat khau.
 function SecuritySection() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,10 +40,12 @@ function SecuritySection() {
     setSubmitting(true);
     try {
       await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
-      toast.success("Đổi mật khẩu thành công");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      // Doi mat khau thu hoi phien tren MOI thiet bi (backend tang token_version),
+      // ke ca thiet bi nay -> xoa phien cuc bo va bat dang nhap lai.
+      logout();
+      toast.success("Đổi mật khẩu thành công. Vui lòng đăng nhập lại trên tất cả thiết bị.");
+      router.replace("/login");
+      return;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Đổi mật khẩu thất bại");
     } finally {

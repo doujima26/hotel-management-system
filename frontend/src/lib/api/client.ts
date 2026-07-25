@@ -1,5 +1,5 @@
 import { ApiError, type ApiResponse } from "@/types/api";
-import { getAccessToken, refreshAccessToken } from "@/lib/auth/session";
+import { getAccessToken, logout, refreshAccessToken } from "@/lib/auth/session";
 
 // Tat ca request di qua "/api/v1" - Next.js rewrites proxy sang backend that (xem next.config.ts),
 // nen trinh duyet chi thay 1 origin duy nhat, khong dinh loi CORS.
@@ -52,6 +52,9 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     if (refreshed) {
       return apiFetch<T>(path, { ...options, _retried: true });
     }
+    // Refresh that bai (token het han hoac da bi thu hoi do doi mat khau tren
+    // thiet bi khac) -> xoa phien cuc bo de RequireAuth dua ve trang dang nhap.
+    logout();
   }
 
   const envelope: ApiResponse<T> = await res.json();
