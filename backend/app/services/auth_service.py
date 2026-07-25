@@ -76,11 +76,13 @@ def login_user(db: Session, payload: LoginRequest):
         str(user.id),
         token_type="access",
         expires_minutes=settings.access_token_expire_minutes,
+        token_version=user.token_version,
     )
     refresh_token = create_token(
         str(user.id),
         token_type="refresh",
         expires_minutes=settings.refresh_token_expire_minutes,
+        token_version=user.token_version,
     )
     return LoginResponse(
         access_token=access_token,
@@ -111,7 +113,10 @@ def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
             detail="Mat khau moi phai khac mat khau hien tai",
         )
 
+    # Tang token_version de thu hoi TOAN BO phien dang nhap (access + refresh)
+    # tren moi thiet bi, ke ca thiet bi vua doi mat khau - buoc dang nhap lai.
     user.password_hash = hash_password(payload.new_password)
+    user.token_version += 1
     db.add(user)
     db.commit()
 
@@ -150,7 +155,10 @@ def reset_password(db: Session, payload: ResetPasswordRequest):
             detail="Mat khau moi phai khac mat khau hien tai",
         )
 
+    # Dat lai mat khau qua OTP cung phai thu hoi moi phien cu (tranh ke chiem
+    # tai khoan van giu duoc phien sau khi chu tai khoan lay lai mat khau).
     user.password_hash = hash_password(payload.new_password)
+    user.token_version += 1
     db.add(user)
     db.commit()
     delete_otp(payload.email, purpose="reset")

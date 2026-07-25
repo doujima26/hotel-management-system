@@ -8,12 +8,15 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# Tao JWT token voi thong tin chu the va thoi han.
-def create_token(subject: str, token_type: str, expires_minutes: int) -> str:
+# Tao JWT token voi thong tin chu the, thoi han va phien ban token (claim "ver").
+# "ver" dung de thu hoi phien: khi doi mat khau, users.token_version tang len nen
+# moi token cu deu lech "ver" va bi tu choi.
+def create_token(subject: str, token_type: str, expires_minutes: int, token_version: int = 0) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         'sub': subject,
         'type': token_type,
+        'ver': token_version,
         'iat': int(now.timestamp()),
         'exp': int((now + timedelta(minutes=expires_minutes)).timestamp()),
     }

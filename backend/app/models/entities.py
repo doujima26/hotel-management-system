@@ -40,6 +40,10 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Phien ban token: JWT mang claim "ver" bang gia tri nay luc cap. Doi/dat lai
+    # mat khau se tang len 1 -> moi token cu (access + refresh, tren MOI thiet bi)
+    # deu lech "ver" nen bi tu choi ngay lap tuc.
+    token_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

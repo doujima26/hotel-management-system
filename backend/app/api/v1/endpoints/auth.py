@@ -7,6 +7,7 @@ from app.core.response import ok
 from app.core.security import create_token, decode_token
 from app.db.session import get_db
 from app.models.entities import User
+from app.repositories.user_repository import get_user_by_id
 from app.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -48,7 +49,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 # Tao access token moi tu refresh token.
 @router.post("/refresh")
-def refresh_token(payload: RefreshTokenRequest):
+def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     try:
         token_payload = decode_token(payload.refresh_token)
     except ValueError as exc:
@@ -62,11 +63,37 @@ def refresh_token(payload: RefreshTokenRequest):
             detail="Refresh token khong hop le",
         )
 
+    # Phai kiem tra lai nguoi dung trong DB: tai khoan bi khoa/xoa hoac da doi
+    # mat khau (lech "ver") thi khong duoc cap access token moi.
     subject = token_payload.get("sub")
+    if not subject or not str(subject).isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token khong hop le",
+        )
+
+    user = get_user_by_id(db, int(subject))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token khong hop le",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tai khoan da bi khoa",
+        )
+    if token_payload.get("ver") != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Phien dang nhap da het hieu luc, vui long dang nhap lai",
+        )
+
     access_token = create_token(
-        str(subject),
+        str(user.id),
         token_type="access",
         expires_minutes=settings.access_token_expire_minutes,
+        token_version=user.token_version,
     )
     data = RefreshTokenResponse(access_token=access_token, token_type="bearer").model_dump(mode="json")
     return ok(data, "Refresh token thanh cong")

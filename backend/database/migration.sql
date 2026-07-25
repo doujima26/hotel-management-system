@@ -54,6 +54,7 @@ CREATE TABLE users (
     role            user_role NOT NULL DEFAULT 'user',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     is_verified     BOOLEAN NOT NULL DEFAULT FALSE,
+    token_version   INTEGER NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

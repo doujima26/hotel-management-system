@@ -49,6 +49,13 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tai khoan da bi khoa",
         )
+    # Token cap truoc lan doi mat khau gan nhat (lech "ver") bi tu choi - dam bao
+    # doi mat khau thu hoi phien tren MOI thiet bi ngay lap tuc.
+    if payload.get("ver") != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Phien dang nhap da het hieu luc, vui long dang nhap lai",
+        )
     return user
 
 
