@@ -29,7 +29,9 @@ from app.repositories.room_repository import (
     get_room_type_by_id,
     get_room_type_by_id_for_update,
     get_room_type_image_by_id,
+    list_amenities_by_room_type_ids,
     list_amenity_records,
+    list_images_by_room_type_ids,
     list_room_records,
     list_room_type_amenity_records,
     list_room_type_availability,
@@ -53,6 +55,7 @@ from app.schemas.rooms import (
     RoomAvailabilityResponse,
     RoomListResponse,
     RoomResponse,
+    RoomTypeAmenityItem,
     RoomTypeAmenityLinkResponse,
     RoomTypeAvailabilityResponse,
     RoomTypeImageResponse,
@@ -436,16 +439,28 @@ def get_room_availability(
         )
 
     rows = list_room_type_availability(db, hotel_id, check_in, check_out, num_guests)
+    # Nap anh + tien nghi cua tat ca loai phong trong 1 luot (tranh N+1), dung cho
+    # bang chon phong va modal chi tiet loai phong o trang chi tiet khach san.
+    room_type_ids = [room_type.id for room_type, _booked, _available in rows]
+    images_by_room_type = list_images_by_room_type_ids(db, room_type_ids)
+    amenities_by_room_type = list_amenities_by_room_type_ids(db, room_type_ids)
+
     items = [
         RoomTypeAvailabilityResponse(
             room_type_id=room_type.id,
             name=room_type.name,
+            description=room_type.description,
             base_price=float(room_type.base_price),
             max_guests=room_type.max_guests,
             bed_type=room_type.bed_type,
             area_sqm=float(room_type.area_sqm) if room_type.area_sqm is not None else None,
             total_rooms=room_type.total_rooms,
             available_rooms=available_rooms,
+            images=[image.image_url for image in images_by_room_type.get(room_type.id, [])],
+            amenities=[
+                RoomTypeAmenityItem(name=amenity.name, category=amenity.category)
+                for amenity in amenities_by_room_type.get(room_type.id, [])
+            ],
         )
         for room_type, _booked_rooms, available_rooms in rows
     ]

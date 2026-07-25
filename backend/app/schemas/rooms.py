@@ -125,15 +125,24 @@ class DeleteAmenityResponse(BaseModel):
 
 
 # Schema tinh trang trong cua mot loai phong theo khoang ngay.
+# Schema 1 tien nghi cua loai phong (kem nhom de gom theo muc o modal chi tiet).
+class RoomTypeAmenityItem(BaseModel):
+    name: str
+    category: str | None = None
+
+
 class RoomTypeAvailabilityResponse(BaseModel):
     room_type_id: int
     name: str
+    description: str | None = None
     base_price: float
     max_guests: int
     bed_type: str | None = None
     area_sqm: float | None = None
     total_rooms: int
     available_rooms: int
+    images: list[str] = []
+    amenities: list[RoomTypeAmenityItem] = []
 
 
 # Schema ket qua tra cuu phong trong cua mot khach san theo khoang ngay.

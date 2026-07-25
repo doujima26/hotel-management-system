@@ -274,6 +274,39 @@ def list_room_type_amenity_records(db: Session, room_type_id: int) -> list[Ameni
     )
 
 
+# Lay tien nghi cua NHIEU loai phong trong 1 query (tranh N+1 khi liet ke phong trong).
+def list_amenities_by_room_type_ids(db: Session, room_type_ids: list[int]) -> dict[int, list[Amenity]]:
+    if not room_type_ids:
+        return {}
+    rows = (
+        db.query(RoomTypeAmenity.room_type_id, Amenity)
+        .join(Amenity, Amenity.id == RoomTypeAmenity.amenity_id)
+        .filter(RoomTypeAmenity.room_type_id.in_(room_type_ids))
+        .order_by(Amenity.name.asc())
+        .all()
+    )
+    grouped: dict[int, list[Amenity]] = {}
+    for room_type_id, amenity in rows:
+        grouped.setdefault(room_type_id, []).append(amenity)
+    return grouped
+
+
+# Lay anh cua NHIEU loai phong trong 1 query, anh dai dien xep truoc.
+def list_images_by_room_type_ids(db: Session, room_type_ids: list[int]) -> dict[int, list[RoomTypeImage]]:
+    if not room_type_ids:
+        return {}
+    rows = (
+        db.query(RoomTypeImage)
+        .filter(RoomTypeImage.room_type_id.in_(room_type_ids))
+        .order_by(RoomTypeImage.is_primary.desc(), RoomTypeImage.sort_order.asc(), RoomTypeImage.id.asc())
+        .all()
+    )
+    grouped: dict[int, list[RoomTypeImage]] = {}
+    for image in rows:
+        grouped.setdefault(image.room_type_id, []).append(image)
+    return grouped
+
+
 # Tao anh moi cho loai phong.
 def create_room_type_image_record(db: Session, room_type_id: int, payload: CreateRoomTypeImageRequest) -> RoomTypeImage:
     if payload.is_primary:
