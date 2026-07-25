@@ -124,15 +124,23 @@ export interface HotelDetail extends HotelPolicies {
   images: HotelImage[];
 }
 
+export interface RoomTypeAmenityItem {
+  name: string;
+  category: string | null;
+}
+
 export interface RoomTypeAvailability {
   room_type_id: number;
   name: string;
+  description: string | null;
   base_price: number;
   max_guests: number;
   bed_type: string | null;
   area_sqm: number | null;
   total_rooms: number;
   available_rooms: number;
+  images: string[];
+  amenities: RoomTypeAmenityItem[];
 }
 
 export interface RoomAvailability {

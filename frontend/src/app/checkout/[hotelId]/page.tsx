@@ -24,6 +24,7 @@ import type {
   PayBookingResult,
   Promotion,
   RoomAvailability,
+  RoomTypeAvailability,
 } from "@/types/models";
 
 const NO_PROMOTION_VALUE = "none";
@@ -44,7 +45,29 @@ function calcPromotionDiscount(promotion: Promotion, totalRoomPrice: number): nu
 
 interface CheckoutPageProps {
   params: Promise<{ hotelId: string }>;
-  searchParams: Promise<{ room_type_id?: string; check_in?: string; check_out?: string; num_guests?: string }>;
+  searchParams: Promise<{
+    rooms?: string;
+    room_type_id?: string;
+    check_in?: string;
+    check_out?: string;
+    num_guests?: string;
+  }>;
+}
+
+// Doc lua chon phong tu URL. Dang moi: "rooms=<id>:<qty>,<id>:<qty>" (chon nhieu
+// loai phong); van chap nhan dang cu "room_type_id=<id>" cho link cu.
+function parseRoomSelection(rooms: string | undefined, legacyRoomTypeId: string | undefined) {
+  if (rooms) {
+    return rooms
+      .split(",")
+      .map((part) => {
+        const [id, qty] = part.split(":");
+        return { room_type_id: Number(id), quantity: Number(qty) || 1 };
+      })
+      .filter((row) => Number.isFinite(row.room_type_id) && row.room_type_id > 0 && row.quantity > 0);
+  }
+  const legacyId = Number(legacyRoomTypeId ?? "0");
+  return legacyId > 0 ? [{ room_type_id: legacyId, quantity: 1 }] : [];
 }
 
 export default function CheckoutPage(props: CheckoutPageProps) {
@@ -59,14 +82,13 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const { hotelId } = use(params);
   const query = use(searchParams);
   const id = Number(hotelId);
-  const roomTypeId = Number(query.room_type_id ?? "0");
   const checkIn = query.check_in ?? "";
   const checkOut = query.check_out ?? "";
   const numGuests = query.num_guests ? Number(query.num_guests) : 1;
+  const roomSelection = parseRoomSelection(query.rooms, query.room_type_id);
 
   const { user } = useAuth();
 
-  const [quantity, setQuantity] = useState(1);
   const [serviceQty, setServiceQty] = useState<Record<number, number>>({});
   const [specialRequests, setSpecialRequests] = useState("");
   const [promotionId, setPromotionId] = useState(NO_PROMOTION_VALUE);
@@ -105,13 +127,23 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   });
 
   const hotel = hotelQuery.data;
-  const selectedRoom = availabilityQuery.data?.items.find((item) => item.room_type_id === roomTypeId);
+  // Ghep lua chon tu URL voi du lieu phong trong de lay ten/gia thuc te.
+  const selectedRooms = roomSelection
+    .map((row) => ({
+      room: availabilityQuery.data?.items.find((item) => item.room_type_id === row.room_type_id),
+      quantity: row.quantity,
+    }))
+    .filter((row): row is { room: RoomTypeAvailability; quantity: number } => Boolean(row.room));
+  const totalRoomCount = selectedRooms.reduce((sum, row) => sum + row.quantity, 0);
 
   const numNights =
     checkIn && checkOut
       ? Math.max(0, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000))
       : 0;
-  const totalRoomPrice = selectedRoom ? selectedRoom.base_price * quantity * numNights : 0;
+  const totalRoomPrice = selectedRooms.reduce(
+    (sum, row) => sum + row.room.base_price * row.quantity * numNights,
+    0,
+  );
 
   const selectedServices = (servicesQuery.data ?? [])
     .map((service) => ({ service, qty: serviceQty[service.id] ?? 0 }))
@@ -129,7 +161,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const primaryImage = hotel?.images.find((img) => img.is_primary) ?? hotel?.images[0];
   const score = hotel && hotel.total_reviews > 0 ? toTenPointScore(hotel.avg_rating) : null;
 
-  if (!roomTypeId || !checkIn || !checkOut) {
+  if (roomSelection.length === 0 || !checkIn || !checkOut) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-center text-muted-foreground">
         Thiếu thông tin đặt phòng. Vui lòng chọn phòng từ trang chi tiết khách sạn.
@@ -155,7 +187,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
         check_in_date: checkIn,
         check_out_date: checkOut,
         num_guests: numGuests,
-        rooms: [{ room_type_id: roomTypeId, quantity }],
+        rooms: selectedRooms.map((row) => ({ room_type_id: row.room.room_type_id, quantity: row.quantity })),
         services: selectedServices.map((row) => ({ service_id: row.service.id, quantity: row.qty })),
         special_requests: specialRequests || undefined,
         promotion_id: selectedPromotion?.id,
@@ -247,8 +279,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
               <span className="font-medium text-foreground">{formatDate(checkOut)}</span>
             </div>
             <div className="mt-1 text-muted-foreground">
-              {numNights} đêm · {quantity} phòng · {numGuests} khách
-              {selectedRoom ? ` · ${selectedRoom.name}` : ""}
+              {numNights} đêm · {totalRoomCount} phòng · {numGuests} khách
             </div>
           </div>
 
@@ -324,33 +355,40 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
               <section className="rounded-xl border p-4">
                 <h2 className="mb-3 text-lg font-semibold">Phòng đã chọn</h2>
                 {availabilityQuery.isLoading && <p className="text-sm text-muted-foreground">Đang tải thông tin phòng...</p>}
-                {!availabilityQuery.isLoading && !selectedRoom && (
-                  <p className="text-sm text-destructive">Không tìm thấy loại phòng này hoặc đã hết phòng trống.</p>
+                {!availabilityQuery.isLoading && selectedRooms.length === 0 && (
+                  <p className="text-sm text-destructive">Không tìm thấy loại phòng đã chọn hoặc đã hết phòng trống.</p>
                 )}
-                {selectedRoom && (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{selectedRoom.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatMoney(selectedRoom.base_price)}/đêm · còn {selectedRoom.available_rooms} phòng
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="quantity" className="text-xs">
-                        Số lượng phòng
-                      </Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min={1}
-                        max={selectedRoom.available_rooms}
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                        className="w-24"
-                      />
-                    </div>
+                {selectedRooms.length > 0 && (
+                  <div className="flex flex-col divide-y">
+                    {selectedRooms.map((row) => (
+                      <div
+                        key={row.room.room_type_id}
+                        className="flex flex-wrap items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {row.room.name} <span className="text-muted-foreground">× {row.quantity}</span>
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatMoney(row.room.base_price)}/đêm
+                            {row.quantity > row.room.available_rooms
+                              ? ` · chỉ còn ${row.room.available_rooms} phòng`
+                              : ""}
+                          </p>
+                        </div>
+                        <p className="font-semibold">
+                          {formatMoney(row.room.base_price * row.quantity * numNights)}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Muốn đổi phòng?{" "}
+                  <Link href={`/hotels/${id}`} className="text-primary hover:underline">
+                    Quay lại chọn phòng
+                  </Link>
+                </p>
               </section>
 
               {/* Them dich vu */}
@@ -440,7 +478,11 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
               </section>
 
               {formError && <p className="text-sm text-destructive">{formError}</p>}
-              <Button onClick={handleCreateBooking} disabled={submitting || !selectedRoom} className="self-end rounded-full">
+              <Button
+                onClick={handleCreateBooking}
+                disabled={submitting || selectedRooms.length === 0}
+                className="self-end rounded-full"
+              >
                 {submitting ? "Đang xử lý..." : "Tiếp tục: Thanh toán"}
               </Button>
             </>

@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { BedDouble, Check, Clock, CreditCard, Maximize2, PawPrint, Star, Users } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Check, Clock, CreditCard, PawPrint, Star } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
 import { HotelDetailSearchForm } from "@/components/shared/HotelDetailSearchForm";
 import { HotelGallery } from "@/components/shared/HotelGallery";
+import { RoomAvailabilityTable } from "@/components/shared/RoomAvailabilityTable";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney, getRatingLabel, toTenPointScore } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
@@ -62,6 +63,10 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
     reviews = [];
   }
 
+  const numNights =
+    checkIn && checkOut
+      ? Math.max(0, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000))
+      : 0;
   const score = hotel.total_reviews > 0 ? toTenPointScore(hotel.avg_rating) : null;
   const fromPrice =
     availability && availability.items.length > 0 ? Math.min(...availability.items.map((r) => r.base_price)) : null;
@@ -217,66 +222,14 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
           {availabilityError && <p className="text-sm text-destructive">{availabilityError}</p>}
 
           {availability && (
-            <div className="flex flex-col gap-3">
-              {availability.items.map((room) => {
-                const bookQs = new URLSearchParams({
-                  room_type_id: String(room.room_type_id),
-                  check_in: checkIn,
-                  check_out: checkOut,
-                });
-                if (numGuests) bookQs.set("num_guests", numGuests);
-                const canBook = room.available_rooms > 0;
-                return (
-                  <div
-                    key={room.room_type_id}
-                    className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="font-semibold">{room.name}</p>
-                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        {room.bed_type && (
-                          <span className="flex items-center gap-1.5">
-                            <BedDouble className="size-4" /> {room.bed_type}
-                          </span>
-                        )}
-                        {room.area_sqm && (
-                          <span className="flex items-center gap-1.5">
-                            <Maximize2 className="size-4" /> {room.area_sqm} m²
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1.5">
-                          <Users className="size-4" /> Tối đa {room.max_guests} khách
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-sm text-muted-foreground">
-                        {canBook ? `Còn trống ${room.available_rooms}/${room.total_rooms} phòng` : "Hết phòng trống"}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
-                      <div className="text-right">
-                        <p className="text-lg font-bold">{formatMoney(room.base_price)}</p>
-                        <p className="text-xs text-muted-foreground">mỗi đêm</p>
-                      </div>
-                      {canBook ? (
-                        <Link
-                          href={`/checkout/${id}?${bookQs.toString()}`}
-                          className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
-                        >
-                          Đặt phòng
-                        </Link>
-                      ) : (
-                        <Button size="sm" disabled className="rounded-full">
-                          Hết phòng
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {availability.items.length === 0 && (
-                <p className="text-center text-muted-foreground">Khách sạn chưa có loại phòng nào.</p>
-              )}
-            </div>
+            <RoomAvailabilityTable
+              hotelId={id}
+              items={availability.items}
+              numNights={numNights}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              numGuests={numGuests}
+            />
           )}
         </section>
 
