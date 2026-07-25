@@ -34,7 +34,12 @@ export default function RegisterPage() {
 
   async function onSubmit(values: RegisterFormValues) {
     try {
-      const result = await authApi.register({ ...values, phone: values.phone || undefined });
+      const result = await authApi.register({
+        full_name: values.full_name,
+        email: values.email,
+        password: values.password,
+        phone: values.phone || undefined,
+      });
       setEmail(values.email);
       setOtpMock(result.otp_mock);
       setOtp(result.otp_mock);
@@ -132,6 +137,13 @@ export default function RegisterPage() {
               <Label htmlFor="password">Mật khẩu</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirm_password">Xác nhận mật khẩu</Label>
+              <Input id="confirm_password" type="password" {...register("confirm_password")} />
+              {errors.confirm_password && (
+                <p className="text-sm text-destructive">{errors.confirm_password.message}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="phone">Số điện thoại (không bắt buộc)</Label>

@@ -20,6 +20,7 @@ export default function ForgotPasswordPage() {
   const [otp, setOtp] = useState("");
   const [otpMock, setOtpMock] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -43,6 +44,10 @@ export default function ForgotPasswordPage() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
+    if (newPassword !== confirmPassword) {
+      setFormError("Xác nhận mật khẩu mới không khớp");
+      return;
+    }
     setSubmitting(true);
     try {
       await authApi.resetPassword({ email, otp, new_password: newPassword });
@@ -82,8 +87,21 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="confirm_new_password">Xác nhận mật khẩu mới</Label>
+                <Input
+                  id="confirm_new_password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
               {formError && <p className="text-sm text-destructive">{formError}</p>}
-              <Button type="submit" disabled={submitting || !otp || newPassword.length < 8} className="rounded-full">
+              <Button
+                type="submit"
+                disabled={submitting || !otp || newPassword.length < 8 || !confirmPassword}
+                className="rounded-full"
+              >
                 {submitting ? "Đang xử lý..." : "Đặt lại mật khẩu"}
               </Button>
             </form>
