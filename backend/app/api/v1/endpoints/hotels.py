@@ -33,6 +33,7 @@ from app.services.hotel_service import (
     list_promotions as list_promotions_service_action,
     list_top_rated_hotels as list_top_rated_hotels_action,
     list_trending_deals as list_trending_deals_action,
+    list_public_hotel_services as list_public_hotel_services_action,
     list_valid_promotions_for_hotel as list_valid_promotions_for_hotel_action,
     search_hotels as search_hotels_action,
     set_primary_hotel_image as set_primary_hotel_image_action,
@@ -305,6 +306,17 @@ def list_valid_promotions_for_hotel(
 ):
     data = list_valid_promotions_for_hotel_action(db, hotel_id)
     return ok(data, "Danh sach khuyen mai dang hop le")
+
+
+# Khach xem danh sach dich vu dang bat cua 1 khach san (cong khai), dung o trang
+# checkout de chon dich vu them.
+@router.get("/{hotel_id}/services")
+def list_public_hotel_services(
+    hotel_id: int,
+    db: Session = Depends(get_db),
+):
+    data = list_public_hotel_services_action(db, hotel_id)
+    return ok(data, "Danh sach dich vu khach san")
 
 
 # Khach xem chi tiet 1 khach san cong khai. Dat cuoi file de khong nuot cac route co dinh o tren.

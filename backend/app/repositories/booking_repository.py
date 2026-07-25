@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus
-from app.models.entities import Booking, BookingRoom, BookingRoomUnit
+from app.models.entities import Booking, BookingRoom, BookingRoomUnit, BookingService, HotelService
 
 # Cac trang thai booking khong con chiem giu phong.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
@@ -55,6 +55,7 @@ def create_booking_record(
     total_room_price: float,
     total_amount: float,
     special_requests: str | None,
+    total_service_price: float = 0,
     discount_amount: float = 0,
     promotion_id: int | None = None,
 ) -> Booking:
@@ -66,7 +67,7 @@ def create_booking_record(
         check_out_date=check_out_date,
         num_guests=num_guests,
         total_room_price=total_room_price,
-        total_service_price=0,
+        total_service_price=total_service_price,
         discount_amount=discount_amount,
         promotion_id=promotion_id,
         total_amount=total_amount,
@@ -131,6 +132,38 @@ def get_booking_by_id_for_update(db: Session, booking_id: int) -> Booking | None
 # Lay danh sach dong phong theo booking.
 def list_booking_rooms(db: Session, booking_id: int) -> list[BookingRoom]:
     return db.query(BookingRoom).filter(BookingRoom.booking_id == booking_id).all()
+
+
+# Tao 1 dong dich vu them cho booking (chua commit, dung chung transaction tao booking).
+def create_booking_service_record(
+    db: Session,
+    *,
+    booking_id: int,
+    service_id: int,
+    quantity: int,
+    unit_price: float,
+    subtotal: float,
+) -> BookingService:
+    booking_service = BookingService(
+        booking_id=booking_id,
+        service_id=service_id,
+        quantity=quantity,
+        unit_price=unit_price,
+        subtotal=subtotal,
+    )
+    db.add(booking_service)
+    db.flush()
+    return booking_service
+
+
+# Lay danh sach dich vu them cua booking, kem ten dich vu (join hotel_services).
+def list_booking_services(db: Session, booking_id: int) -> list[tuple[BookingService, str]]:
+    return (
+        db.query(BookingService, HotelService.name)
+        .join(HotelService, HotelService.id == BookingService.service_id)
+        .filter(BookingService.booking_id == booking_id)
+        .all()
+    )
 
 
 # Lay danh sach booking cua nguoi dung, moi nhat truoc.

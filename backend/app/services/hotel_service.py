@@ -331,6 +331,19 @@ def list_valid_promotions_for_hotel(db: Session, hotel_id: int) -> list[dict]:
     return [serialize_promotion(item) for item in promotions]
 
 
+# Khach xem danh sach dich vu dang bat cua 1 khach san (cong khai) - dung o
+# trang checkout de chon dich vu them.
+def list_public_hotel_services(db: Session, hotel_id: int) -> list[dict]:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel or hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khach san khong ton tai hoac chua duoc duyet",
+        )
+    services = [service for service in list_hotel_service_records(db, hotel_id) if service.is_active]
+    return [serialize_hotel_service(service) for service in services]
+
+
 # Tinh so tien va % giam gia thuc te cua 1 khuyen mai tren 1 muc gia tham
 # chieu (gia phong re nhat con hoat dong cua khach san) - cung cong thuc voi
 # _apply_promotion o booking_service.py (percentage/fixed_amount, chan boi

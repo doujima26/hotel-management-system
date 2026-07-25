@@ -11,6 +11,12 @@ class BookingRoomItem(BaseModel):
     quantity: int = Field(gt=0)
 
 
+# Schema 1 dong dich vu them cua booking.
+class BookingServiceItem(BaseModel):
+    service_id: int = Field(gt=0)
+    quantity: int = Field(gt=0)
+
+
 # Schema du lieu dau vao cho tao booking.
 class CreateBookingRequest(BaseModel):
     hotel_id: int = Field(gt=0)
@@ -18,6 +24,7 @@ class CreateBookingRequest(BaseModel):
     check_out_date: date
     num_guests: int = Field(gt=0)
     rooms: list[BookingRoomItem] = Field(min_length=1)
+    services: list[BookingServiceItem] = []
     special_requests: str | None = None
     promotion_id: int | None = Field(default=None, gt=0)
 
@@ -39,6 +46,15 @@ class BookingRoomResponse(BaseModel):
     subtotal: float
 
 
+# Schema du lieu tra ve 1 dong dich vu them trong booking (kem ten dich vu).
+class BookingServiceResponse(BaseModel):
+    service_id: int
+    name: str
+    quantity: int
+    unit_price: float
+    subtotal: float
+
+
 # Schema du lieu tra ve chi tiet booking.
 class BookingResponse(BaseModel):
     id: int
@@ -57,3 +73,4 @@ class BookingResponse(BaseModel):
     cancellation_reason: str | None = None
     cancelled_at: datetime | None = None
     rooms: list[BookingRoomResponse]
+    services: list[BookingServiceResponse] = []

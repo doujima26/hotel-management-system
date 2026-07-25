@@ -6,21 +6,29 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus, UserRole
-from app.models.entities import Booking, BookingRoom, Promotion, User
+from app.models.entities import Booking, BookingRoom, BookingService, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
     create_booking_room_record,
+    create_booking_service_record,
     get_booked_quantity_for_room_type,
     get_booking_by_id,
     get_booking_by_id_for_update,
     list_booking_rooms,
+    list_booking_services,
     list_bookings_by_hotel,
     list_bookings_by_user,
 )
-from app.repositories.hotel_repository import get_hotel_by_id, get_promotion_by_id_for_update
+from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
 from app.repositories.room_repository import count_rooms_by_room_type, get_room_type_by_id_for_update
-from app.schemas.bookings import BookingResponse, BookingRoomResponse, CancelBookingRequest, CreateBookingRequest
+from app.schemas.bookings import (
+    BookingResponse,
+    BookingRoomResponse,
+    BookingServiceResponse,
+    CancelBookingRequest,
+    CreateBookingRequest,
+)
 from app.services.hotel_service import get_approved_admin_hotel, get_operational_hotel
 
 # So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
@@ -38,7 +46,11 @@ def _generate_booking_code() -> str:
 
 
 # Chuyen booking va cac dong phong thanh du lieu tra ve.
-def serialize_booking(booking: Booking, rooms: list[BookingRoom]) -> dict:
+def serialize_booking(
+    booking: Booking,
+    rooms: list[BookingRoom],
+    services: list[tuple[BookingService, str]] | None = None,
+) -> dict:
     return BookingResponse(
         id=booking.id,
         booking_code=booking.booking_code,
@@ -56,6 +68,16 @@ def serialize_booking(booking: Booking, rooms: list[BookingRoom]) -> dict:
         cancellation_reason=booking.cancellation_reason,
         cancelled_at=booking.cancelled_at,
         rooms=[BookingRoomResponse.model_validate(room) for room in rooms],
+        services=[
+            BookingServiceResponse(
+                service_id=service.service_id,
+                name=name,
+                quantity=service.quantity,
+                unit_price=float(service.unit_price),
+                subtotal=float(service.subtotal),
+            )
+            for service, name in (services or [])
+        ],
     ).model_dump(mode="json")
 
 
@@ -150,6 +172,29 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             }
         )
 
+    # Kiem tra va tinh tien cac dich vu them (neu co) - dich vu phai thuoc khach
+    # san nay va dang bat (is_active).
+    booking_service_plans = []
+    total_service_price = 0.0
+    for service_item in payload.services:
+        service = get_hotel_service_by_id(db, service_item.service_id)
+        if not service or service.hotel_id != hotel.id or not service.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Dich vu {service_item.service_id} khong thuoc khach san nay",
+            )
+        unit_price = float(service.price)
+        service_subtotal = unit_price * service_item.quantity
+        total_service_price += service_subtotal
+        booking_service_plans.append(
+            {
+                "service_id": service.id,
+                "quantity": service_item.quantity,
+                "unit_price": unit_price,
+                "subtotal": service_subtotal,
+            }
+        )
+
     promotion = None
     discount_amount = 0.0
     if payload.promotion_id is not None:
@@ -157,7 +202,8 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             db, hotel.id, payload.promotion_id, total_room_price, date.today()
         )
 
-    total_amount = total_room_price - discount_amount
+    # Khuyen mai chi ap len tien phong; dich vu cong them nguyen gia.
+    total_amount = total_room_price + total_service_price - discount_amount
 
     try:
         booking = create_booking_record(
@@ -169,6 +215,7 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
             check_out_date=payload.check_out_date,
             num_guests=payload.num_guests,
             total_room_price=total_room_price,
+            total_service_price=total_service_price,
             total_amount=total_amount,
             special_requests=payload.special_requests,
             discount_amount=discount_amount,
@@ -176,6 +223,8 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
         )
 
         rooms = [create_booking_room_record(db, booking_id=booking.id, **plan) for plan in booking_room_plans]
+        for plan in booking_service_plans:
+            create_booking_service_record(db, booking_id=booking.id, **plan)
 
         if promotion:
             promotion.used_count += 1
@@ -190,13 +239,16 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
         ) from exc
 
     db.refresh(booking)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(booking, rooms, list_booking_services(db, booking.id))
 
 
 # Xu ly lay danh sach booking cua nguoi dung hien tai.
 def list_my_bookings(db: Session, current_user: User) -> list[dict]:
     bookings = list_bookings_by_user(db, current_user.id)
-    return [serialize_booking(booking, list_booking_rooms(db, booking.id)) for booking in bookings]
+    return [
+        serialize_booking(booking, list_booking_rooms(db, booking.id), list_booking_services(db, booking.id))
+        for booking in bookings
+    ]
 
 
 # Xu ly lay chi tiet 1 booking - chinh chu (User) hoac Admin/Staff cua khach san
@@ -224,14 +276,17 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
             )
 
     rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(booking, rooms, list_booking_services(db, booking.id))
 
 
 # Xu ly Admin/Staff xem danh sach booking cua khach san minh, co the loc theo trang thai.
 def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingStatus | None) -> list[dict]:
     hotel = get_operational_hotel(db, current_user)
     bookings = list_bookings_by_hotel(db, hotel.id, status_filter)
-    return [serialize_booking(booking, list_booking_rooms(db, booking.id)) for booking in bookings]
+    return [
+        serialize_booking(booking, list_booking_rooms(db, booking.id), list_booking_services(db, booking.id))
+        for booking in bookings
+    ]
 
 
 # Xu ly Admin xac nhan hoa don: booking phai da thanh toan va dang cho xac nhan.
@@ -266,7 +321,7 @@ def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
     db.refresh(booking)
 
     rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(booking, rooms, list_booking_services(db, booking.id))
 
 
 # Chuyen booking sang cancelled va hoan tien (mock) neu da thanh toan. Dung chung
@@ -297,7 +352,7 @@ def _apply_cancellation(db: Session, booking: Booking, current_user: User, cance
     db.refresh(booking)
 
     rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(booking, rooms, list_booking_services(db, booking.id))
 
 
 # Xu ly khach tu huy booking cua minh (UC 4.8). Chi huy duoc khi con cach gio nhan
