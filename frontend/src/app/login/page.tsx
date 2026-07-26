@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
 import { applyLoginResult } from "@/lib/auth/session";
-import { getRoleHomePath } from "@/lib/auth/roleHome";
 import { ApiError } from "@/types/api";
 import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
 
@@ -37,10 +36,11 @@ function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     try {
-      const result = await authApi.login(values);
-      applyLoginResult(result);
+      applyLoginResult(await authApi.login(values));
       toast.success("Đăng nhập thành công");
-      router.push(next || getRoleHomePath(result.user.role));
+      // Moi vai tro deu ve trang chu sau khi dang nhap; neu bi day sang login tu
+      // 1 trang can quyen thi quay lai dung trang do (next).
+      router.push(next || "/");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Đăng nhập thất bại");
     }
