@@ -1,6 +1,26 @@
-import { AlertCircle, Ban, CheckCircle2, Clock, LogOut, Minus, XCircle, type LucideIcon } from "lucide-react";
+import {
+  AlertCircle,
+  Ban,
+  BedDouble,
+  CheckCircle2,
+  Clock,
+  DoorOpen,
+  LogOut,
+  Minus,
+  Sparkles,
+  Wrench,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BOOKING_STATUS_LABELS, HOTEL_STATUS_LABELS, type BookingStatus, type HotelStatus } from "@/types/enums";
+import {
+  BOOKING_STATUS_LABELS,
+  HOTEL_STATUS_LABELS,
+  ROOM_STATUS_LABELS,
+  type BookingStatus,
+  type HotelStatus,
+  type RoomStatus,
+} from "@/types/enums";
 
 // He mau trang thai dung chung toan he thong (xem tai-lieu-thiet-ke-extranet.md
 // muc 5): 1 mau = 1 y nghia, khong dung 1 mau cho 2 y nghia khac nhau. Luon kem
@@ -31,6 +51,13 @@ const HOTEL_TONES: Record<HotelStatus, { tone: Tone; icon: LucideIcon }> = {
   suspended: { tone: "danger", icon: AlertCircle },
 };
 
+const ROOM_TONES: Record<RoomStatus, { tone: Tone; icon: LucideIcon }> = {
+  available: { tone: "success", icon: DoorOpen },
+  occupied: { tone: "info", icon: BedDouble },
+  cleaning: { tone: "warning", icon: Sparkles },
+  maintenance: { tone: "danger", icon: Wrench },
+};
+
 function Pill({ tone, icon: Icon, label, className }: { tone: Tone; icon: LucideIcon; label: string; className?: string }) {
   return (
     <span
@@ -56,6 +83,12 @@ export function BookingStatusBadge({ status, className }: { status: BookingStatu
 export function HotelStatusBadge({ status, className }: { status: HotelStatus; className?: string }) {
   const { tone, icon } = HOTEL_TONES[status] ?? { tone: "neutral" as Tone, icon: Minus };
   return <Pill tone={tone} icon={icon} label={HOTEL_STATUS_LABELS[status] ?? status} className={className} />;
+}
+
+// Badge trang thai phong vat ly (so do phong).
+export function RoomStatusBadge({ status, className }: { status: RoomStatus; className?: string }) {
+  const { tone, icon } = ROOM_TONES[status] ?? { tone: "neutral" as Tone, icon: Minus };
+  return <Pill tone={tone} icon={icon} label={ROOM_STATUS_LABELS[status] ?? status} className={className} />;
 }
 
 // Badge bat/tat chung (tai khoan, dich vu, khuyen mai...).

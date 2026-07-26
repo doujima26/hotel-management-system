@@ -1,8 +1,15 @@
 "use client";
 
 import { RoomStatusBoard } from "@/components/shared/RoomStatusBoard";
+import { useAdminHotel } from "../layout";
 
-export default function StaffRoomsPage() {
+export default function AdminRoomsPage() {
+  const hotel = useAdminHotel();
+
+  if (hotel.status !== "approved") {
+    return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi xem sơ đồ phòng.</p>;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div>

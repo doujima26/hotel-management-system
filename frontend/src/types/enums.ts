@@ -40,6 +40,13 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   no_show: "Không đến",
 };
 
+export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
+  available: "Trống",
+  occupied: "Đang ở",
+  cleaning: "Đang dọn",
+  maintenance: "Bảo trì",
+};
+
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   zalopay: "ZaloPay",
   momo: "MoMo",

@@ -46,6 +46,7 @@ function buildNavGroups(pendingBookings: number): SidebarGroup[] {
       label: "Vận hành",
       items: [
         { href: "/admin/bookings", label: "Booking", badgeCount: pendingBookings },
+        { href: "/admin/rooms", label: "Sơ đồ phòng" },
         { href: "/admin/staff/schedule", label: "Lịch làm việc" },
         { href: "/admin/staff", label: "Nhân viên" },
       ],
