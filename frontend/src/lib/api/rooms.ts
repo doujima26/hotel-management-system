@@ -7,6 +7,7 @@ import type {
   DeleteRoomTypeImageResult,
   DeleteRoomTypeResult,
   RoomAvailability,
+  RoomCalendar,
   RoomItem,
   RoomListResult,
   RoomStatusItem,
@@ -132,4 +133,6 @@ export const roomsApi = {
     }),
 
   statusBoard: () => apiFetch<RoomStatusItem[]>("/rooms/status", { auth: true }),
+  calendar: (params: { from_date: string; to_date: string }) =>
+    apiFetch<RoomCalendar>("/rooms/calendar", { params, auth: true }),
 };

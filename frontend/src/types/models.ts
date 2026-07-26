@@ -143,6 +143,27 @@ export interface RoomTypeAvailability {
   amenities: RoomTypeAmenityItem[];
 }
 
+export interface RoomCalendarDay {
+  date: string;
+  booked_rooms: number;
+  available_rooms: number;
+}
+
+export interface RoomCalendarRow {
+  room_type_id: number;
+  name: string;
+  total_rooms: number;
+  days: RoomCalendarDay[];
+}
+
+export interface RoomCalendar {
+  hotel_id: number;
+  from_date: string;
+  to_date: string;
+  dates: string[];
+  items: RoomCalendarRow[];
+}
+
 export interface RoomAvailability {
   hotel_id: number;
   check_in: string;
@@ -408,6 +429,30 @@ export interface StaffMember {
 
 export interface CreateStaffResult extends StaffMember {
   temp_password_mock: string;
+}
+
+export interface StaffScheduleCalendarShift {
+  schedule_id: number;
+  shift_date: string;
+  shift_type: ShiftType;
+  start_time: string;
+  end_time: string;
+  notes: string | null;
+}
+
+export interface StaffScheduleCalendarRow {
+  staff_id: number;
+  full_name: string;
+  position: string;
+  is_active: boolean;
+  shifts: StaffScheduleCalendarShift[];
+}
+
+export interface StaffScheduleCalendar {
+  from_date: string;
+  to_date: string;
+  dates: string[];
+  items: StaffScheduleCalendarRow[];
 }
 
 export interface StaffSchedule {

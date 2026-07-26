@@ -1,5 +1,11 @@
 import { apiFetch } from "./client";
-import type { CreateStaffResult, DeleteScheduleResult, StaffMember, StaffSchedule } from "@/types/models";
+import type {
+  CreateStaffResult,
+  DeleteScheduleResult,
+  StaffMember,
+  StaffSchedule,
+  StaffScheduleCalendar,
+} from "@/types/models";
 import type { ShiftType } from "@/types/enums";
 
 export interface CreateStaffPayload {
@@ -43,6 +49,8 @@ export const staffApi = {
   listSchedulesForAdmin: (staffId: number) =>
     apiFetch<StaffSchedule[]>(`/staff/${staffId}/schedules`, { auth: true }),
   listMySchedules: () => apiFetch<StaffSchedule[]>("/staff/schedules/me", { auth: true }),
+  scheduleCalendar: (params: { from_date: string; to_date: string }) =>
+    apiFetch<StaffScheduleCalendar>("/staff/schedules/calendar", { params, auth: true }),
   updateSchedule: (scheduleId: number, payload: UpdateSchedulePayload) =>
     apiFetch<StaffSchedule>(`/staff/schedules/${scheduleId}`, { method: "PATCH", body: payload, auth: true }),
   deleteSchedule: (scheduleId: number) =>
