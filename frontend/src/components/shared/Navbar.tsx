@@ -26,7 +26,7 @@ const APP_SHELL_PREFIXES = ["/staff", "/super-admin"];
 // Link vao khu vuc quan ly rieng theo vai tro (khong ap dung cho khach thuong).
 const ROLE_LINKS: Record<string, { href: string; label: string }> = {
   super_admin: { href: "/super-admin/hotels", label: "Quản trị nền tảng" },
-  admin: { href: "/admin/hotel-profile", label: "Quản lý khách sạn" },
+  admin: { href: "/admin/dashboard", label: "Quản lý khách sạn" },
   staff: { href: "/staff/bookings", label: "Vận hành" },
 };
 

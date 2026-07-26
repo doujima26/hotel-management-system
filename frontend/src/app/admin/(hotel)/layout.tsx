@@ -4,11 +4,11 @@ import { createContext, useContext, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/shared/RequireAuth";
-import { AppSidebarShell } from "@/components/shared/AppSidebarShell";
-import { Badge } from "@/components/ui/badge";
+import { AppSidebarShell, type SidebarGroup } from "@/components/shared/AppSidebarShell";
+import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import { hotelsApi } from "@/lib/api/hotels";
+import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
-import { HOTEL_STATUS_LABELS } from "@/types/enums";
 import type { AdminHotel } from "@/types/models";
 
 const AdminHotelContext = createContext<AdminHotel | null>(null);
@@ -22,16 +22,37 @@ export function useAdminHotel(): AdminHotel {
   return hotel;
 }
 
-const TABS = [
-  { href: "/admin/hotel-profile", label: "Hồ sơ khách sạn" },
-  { href: "/admin/room-types", label: "Loại phòng" },
-  { href: "/admin/amenities", label: "Tiện nghi" },
-  { href: "/admin/services", label: "Dịch vụ" },
-  { href: "/admin/promotions", label: "Khuyến mãi" },
-  { href: "/admin/bookings", label: "Booking" },
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/staff", label: "Nhân viên" },
-];
+// Gom theo 4 nhom chuc nang (xem tai-lieu-thiet-ke-extranet.md muc 2) thay vi
+// 8 muc phang - de tim va phan biet nhom cong viec.
+function buildNavGroups(pendingBookings: number): SidebarGroup[] {
+  return [
+    {
+      label: "Cơ sở lưu trú",
+      items: [
+        { href: "/admin/hotel-profile", label: "Hồ sơ khách sạn" },
+        { href: "/admin/room-types", label: "Loại phòng" },
+        { href: "/admin/amenities", label: "Tiện nghi" },
+        { href: "/admin/services", label: "Dịch vụ" },
+      ],
+    },
+    {
+      label: "Kinh doanh",
+      items: [
+        { href: "/admin/calendar", label: "Lịch phòng" },
+        { href: "/admin/promotions", label: "Khuyến mãi" },
+      ],
+    },
+    {
+      label: "Vận hành",
+      items: [
+        { href: "/admin/bookings", label: "Booking", badgeCount: pendingBookings },
+        { href: "/admin/staff/schedule", label: "Lịch làm việc" },
+        { href: "/admin/staff", label: "Nhân viên" },
+      ],
+    },
+    { label: "Báo cáo", items: [{ href: "/admin/dashboard", label: "Dashboard" }] },
+  ];
+}
 
 export default function AdminHotelLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -53,13 +74,20 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
 
   const noHotelYet = error instanceof ApiError && error.status === 400;
 
+  // Dem booking dang cho xac nhan de hien badge canh muc "Booking" (muc 6.6).
+  const { data: pendingBookings } = useQuery({
+    queryKey: ["hotel-bookings", "pending"],
+    queryFn: () => bookingsApi.listForHotel("pending"),
+    enabled: hotel?.status === "approved",
+  });
+
   useEffect(() => {
     if (isLoading) return;
     if (noHotelYet && pathname !== "/admin/onboarding") {
       router.replace("/admin/onboarding");
     }
     if (hotel && pathname === "/admin/onboarding") {
-      router.replace("/admin/hotel-profile");
+      router.replace("/admin/dashboard");
     }
   }, [isLoading, noHotelYet, hotel, pathname, router]);
 
@@ -93,9 +121,7 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{hotel.name}</h1>
-        <Badge variant={hotel.status === "rejected" || hotel.status === "suspended" ? "destructive" : "secondary"}>
-          {HOTEL_STATUS_LABELS[hotel.status]}
-        </Badge>
+        <HotelStatusBadge status={hotel.status} />
       </div>
       {hotel.status === "pending" && (
         <p className="mt-1 text-sm text-muted-foreground">
@@ -117,7 +143,11 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
 
   return (
     <AdminHotelContext.Provider value={hotel}>
-      <AppSidebarShell title="Quản lý khách sạn" items={TABS} header={statusBanner}>
+      <AppSidebarShell
+        title="Quản lý khách sạn"
+        items={buildNavGroups(pendingBookings?.length ?? 0)}
+        header={statusBanner}
+      >
         {children}
       </AppSidebarShell>
     </AdminHotelContext.Provider>

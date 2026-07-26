@@ -52,7 +52,7 @@ export default function AdminOnboardingPage() {
       });
       toast.success("Đăng ký khách sạn thành công, đang chờ duyệt");
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
-      router.push("/admin/hotel-profile");
+      router.push("/admin/dashboard");
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Đăng ký khách sạn thất bại");
     }
