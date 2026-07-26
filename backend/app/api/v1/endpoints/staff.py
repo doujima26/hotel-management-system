@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -16,6 +18,7 @@ from app.services.staff_service import (
     create_staff as create_staff_action,
     create_staff_schedule as create_staff_schedule_action,
     delete_staff_schedule as delete_staff_schedule_action,
+    get_staff_schedule_calendar as get_staff_schedule_calendar_action,
     list_my_schedules as list_my_schedules_action,
     list_staff as list_staff_action,
     list_staff_schedules_for_admin as list_staff_schedules_for_admin_action,
@@ -90,6 +93,19 @@ def list_my_schedules(
 ):
     data = list_my_schedules_action(db, current_user)
     return ok(data, "Lich lam viec cua toi")
+
+
+# Admin xem khung lich ca lam viec cua ca khach san theo khoang ngay.
+# Dat truoc route "/schedules/{schedule_id}" de khong bi nuot duong dan.
+@router.get("/schedules/calendar")
+def staff_schedule_calendar(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = get_staff_schedule_calendar_action(db, current_user, from_date, to_date)
+    return ok(data, "Khung lich ca lam viec")
 
 
 # Admin cap nhat 1 ca lam viec.

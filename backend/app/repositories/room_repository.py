@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.enums import RoomStatus
-from app.models.entities import Amenity, BookingRoom, BookingRoomUnit, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
+from app.core.enums import BookingStatus, RoomStatus
+from app.models.entities import Amenity, Booking, BookingRoom, BookingRoomUnit, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.rooms import (
     CreateAmenityRequest,
@@ -360,3 +360,40 @@ def set_room_type_image_primary(db: Session, room_type_id: int, image: RoomTypeI
     db.commit()
     db.refresh(image)
     return image
+
+
+# Cac trang thai booking khong con chiem giu phong (dung chung cach tinh voi
+# booking_repository de lich phong khop voi ket qua tim phong trong).
+_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
+
+
+# Dem so phong vat ly dang hoat dong theo tung loai phong cua 1 khach san.
+def count_active_rooms_by_room_type(db: Session, hotel_id: int) -> dict[int, int]:
+    rows = (
+        db.query(Room.room_type_id, func.count(Room.id))
+        .join(RoomType, RoomType.id == Room.room_type_id)
+        .filter(RoomType.hotel_id == hotel_id, Room.is_active.is_(True))
+        .group_by(Room.room_type_id)
+        .all()
+    )
+    return {room_type_id: int(count) for room_type_id, count in rows}
+
+
+# Lay cac dong dat phong con hieu luc giao voi khoang ngay, kem loai phong va so
+# luong - dung de dung lich ton phong theo tung ngay.
+def list_booked_rooms_in_range(
+    db: Session, hotel_id: int, from_date: date, to_date: date
+) -> list[tuple[int, date, date, int]]:
+    return (
+        db.query(BookingRoom.room_type_id, Booking.check_in_date, Booking.check_out_date, BookingRoom.quantity)
+        .join(Booking, Booking.id == BookingRoom.booking_id)
+        .filter(
+            Booking.hotel_id == hotel_id,
+            Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
+            # Giao nhau voi khoang ngay: booking chiem phong tu check_in den
+            # truoc check_out (ngay tra phong khong tinh la dem chiem giu).
+            Booking.check_in_date <= to_date,
+            Booking.check_out_date > from_date,
+        )
+        .all()
+    )

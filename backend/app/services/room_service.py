@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -29,8 +29,10 @@ from app.repositories.room_repository import (
     get_room_type_by_id,
     get_room_type_by_id_for_update,
     get_room_type_image_by_id,
+    count_active_rooms_by_room_type,
     list_amenities_by_room_type_ids,
     list_amenity_records,
+    list_booked_rooms_in_range,
     list_images_by_room_type_ids,
     list_room_records,
     list_room_type_amenity_records,
@@ -53,6 +55,9 @@ from app.schemas.rooms import (
     DeleteRoomTypeImageResponse,
     DeleteRoomTypeResponse,
     RoomAvailabilityResponse,
+    RoomCalendarDayItem,
+    RoomCalendarResponse,
+    RoomCalendarRowItem,
     RoomListResponse,
     RoomResponse,
     RoomTypeAmenityItem,
@@ -64,6 +69,7 @@ from app.schemas.rooms import (
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
+from app.services.hotel_service import get_operational_hotel
 
 
 # Chuyen loai phong thanh du lieu tra ve.
@@ -523,3 +529,68 @@ def set_primary_room_type_image(db: Session, current_user: User, room_type_id: i
     image = _get_owned_room_type_image(db, current_user, room_type_id, image_id)
     image = set_room_type_image_primary(db, room_type_id, image)
     return serialize_room_type_image(image)
+
+
+# So ngay toi da cho 1 lan xem lich ton phong (tranh tra ve qua nhieu du lieu).
+_MAX_CALENDAR_DAYS = 62
+
+
+# Xu ly dung lich ton phong cua khach san: truc ngay x loai phong, moi o cho
+# biet da dat bao nhieu / con trong bao nhieu phong trong ngay do.
+def get_room_calendar(db: Session, current_user: User, from_date: date, to_date: date) -> dict:
+    if to_date < from_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau",
+        )
+    num_days = (to_date - from_date).days + 1
+    if num_days > _MAX_CALENDAR_DAYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chi xem toi da {_MAX_CALENDAR_DAYS} ngay moi lan",
+        )
+
+    hotel = get_operational_hotel(db, current_user)
+    room_types = [rt for rt in list_room_type_records(db, hotel.id) if rt.is_active]
+    room_counts = count_active_rooms_by_room_type(db, hotel.id)
+    dates = [from_date + timedelta(days=offset) for offset in range(num_days)]
+
+    # Trai so phong da dat cua tung booking ra tung ngay trong khoang. Ngay tra
+    # phong khong tinh (khach da di), giong cach kiem tra phong trong khi dat.
+    booked_by_day: dict[tuple[int, date], int] = {}
+    for room_type_id, check_in, check_out, quantity in list_booked_rooms_in_range(db, hotel.id, from_date, to_date):
+        day = max(check_in, from_date)
+        last_day = min(check_out - timedelta(days=1), to_date)
+        while day <= last_day:
+            booked_by_day[(room_type_id, day)] = booked_by_day.get((room_type_id, day), 0) + quantity
+            day += timedelta(days=1)
+
+    items = []
+    for room_type in room_types:
+        total_rooms = room_counts.get(room_type.id, 0)
+        days = []
+        for day in dates:
+            booked = booked_by_day.get((room_type.id, day), 0)
+            days.append(
+                RoomCalendarDayItem(
+                    date=day,
+                    booked_rooms=booked,
+                    available_rooms=max(total_rooms - booked, 0),
+                )
+            )
+        items.append(
+            RoomCalendarRowItem(
+                room_type_id=room_type.id,
+                name=room_type.name,
+                total_rooms=total_rooms,
+                days=days,
+            )
+        )
+
+    return RoomCalendarResponse(
+        hotel_id=hotel.id,
+        from_date=from_date,
+        to_date=to_date,
+        dates=dates,
+        items=items,
+    ).model_dump(mode="json")

@@ -173,3 +173,27 @@ class RoomTypeImageResponse(BaseModel):
 # Schema du lieu tra ve sau khi xoa anh loai phong.
 class DeleteRoomTypeImageResponse(BaseModel):
     id: int
+
+
+# Schema 1 o trong lich ton phong (1 ngay cua 1 loai phong).
+class RoomCalendarDayItem(BaseModel):
+    date: date
+    booked_rooms: int
+    available_rooms: int
+
+
+# Schema 1 hang trong lich ton phong (1 loai phong, trai theo cac ngay).
+class RoomCalendarRowItem(BaseModel):
+    room_type_id: int
+    name: str
+    total_rooms: int
+    days: list[RoomCalendarDayItem]
+
+
+# Schema lich ton phong: truc ngay (cot) x loai phong (hang).
+class RoomCalendarResponse(BaseModel):
+    hotel_id: int
+    from_date: date
+    to_date: date
+    dates: list[date]
+    items: list[RoomCalendarRowItem]

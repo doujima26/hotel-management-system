@@ -1,4 +1,5 @@
 import secrets
+from datetime import date, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from app.repositories.staff_repository import (
     get_staff_member_by_id,
     get_staff_member_by_user_id,
     get_staff_schedule_by_id,
+    list_schedules_with_staff_by_hotel,
     list_staff_schedules,
     list_staff_with_user_by_hotel,
     save_staff_member,
@@ -27,6 +29,9 @@ from app.schemas.staff import (
     StaffScheduleResponse,
     UpdateStaffRequest,
     UpdateStaffScheduleRequest,
+    StaffScheduleCalendarResponse,
+    StaffScheduleCalendarRow,
+    StaffScheduleCalendarShift,
 )
 from app.services.hotel_service import get_approved_admin_hotel
 
@@ -222,3 +227,59 @@ def delete_staff_schedule(db: Session, current_user: User, schedule_id: int) -> 
     schedule = _get_owned_schedule(db, current_user, schedule_id)
     delete_staff_schedule_record(db, schedule)
     return {"id": schedule_id}
+
+
+# So ngay toi da cho 1 lan xem khung lich ca (tranh tra ve qua nhieu du lieu).
+_MAX_SCHEDULE_CALENDAR_DAYS = 31
+
+
+# Xu ly dung khung lich ca lam viec cua ca khach san: truc ngay x nhan vien.
+# Nhan vien chua co ca nao trong khoang van hien (hang rong) de Admin thay ai
+# dang chua duoc xep lich.
+def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date, to_date: date) -> dict:
+    if to_date < from_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau",
+        )
+    num_days = (to_date - from_date).days + 1
+    if num_days > _MAX_SCHEDULE_CALENDAR_DAYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chi xem toi da {_MAX_SCHEDULE_CALENDAR_DAYS} ngay moi lan",
+        )
+
+    hotel = get_approved_admin_hotel(db, current_user)
+    staff_rows = list_staff_with_user_by_hotel(db, hotel.id)
+    schedules = list_schedules_with_staff_by_hotel(db, hotel.id, from_date, to_date)
+
+    shifts_by_staff: dict[int, list[StaffScheduleCalendarShift]] = {}
+    for schedule, staff, _user in schedules:
+        shifts_by_staff.setdefault(staff.id, []).append(
+            StaffScheduleCalendarShift(
+                schedule_id=schedule.id,
+                shift_date=schedule.shift_date,
+                shift_type=schedule.shift_type,
+                start_time=schedule.start_time,
+                end_time=schedule.end_time,
+                notes=schedule.notes,
+            )
+        )
+
+    items = [
+        StaffScheduleCalendarRow(
+            staff_id=staff.id,
+            full_name=user.full_name,
+            position=staff.position,
+            is_active=staff.is_active,
+            shifts=shifts_by_staff.get(staff.id, []),
+        )
+        for staff, user in staff_rows
+    ]
+
+    return StaffScheduleCalendarResponse(
+        from_date=from_date,
+        to_date=to_date,
+        dates=[from_date + timedelta(days=offset) for offset in range(num_days)],
+        items=items,
+    ).model_dump(mode="json")

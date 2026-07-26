@@ -68,3 +68,30 @@ class StaffScheduleResponse(BaseModel):
     start_time: time
     end_time: time
     notes: str | None = None
+
+
+# Schema 1 ca lam viec trong khung lich (gan voi 1 nhan vien, 1 ngay).
+class StaffScheduleCalendarShift(BaseModel):
+    schedule_id: int
+    shift_date: date
+    shift_type: ShiftType
+    start_time: time
+    end_time: time
+    notes: str | None = None
+
+
+# Schema 1 hang trong khung lich: 1 nhan vien kem cac ca trong khoang ngay.
+class StaffScheduleCalendarRow(BaseModel):
+    staff_id: int
+    full_name: str
+    position: str
+    is_active: bool
+    shifts: list[StaffScheduleCalendarShift]
+
+
+# Schema khung lich ca lam viec: truc ngay (cot) x nhan vien (hang).
+class StaffScheduleCalendarResponse(BaseModel):
+    from_date: date
+    to_date: date
+    dates: list[date]
+    items: list[StaffScheduleCalendarRow]

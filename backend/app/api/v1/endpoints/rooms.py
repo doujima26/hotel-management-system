@@ -29,6 +29,7 @@ from app.services.room_service import (
     delete_room_type as delete_room_type_action,
     delete_room_type_image as delete_room_type_image_action,
     get_room_availability as get_room_availability_action,
+    get_room_calendar as get_room_calendar_action,
     list_amenities as list_amenities_action,
     list_room_type_amenities as list_room_type_amenities_action,
     list_room_type_images as list_room_type_images_action,
@@ -61,6 +62,18 @@ def room_availability_endpoint(
 ):
     data = get_room_availability_action(db, hotel_id, check_in, check_out, num_guests)
     return ok(data, "Danh sach phong trong")
+
+
+# Admin/Staff xem lich ton phong theo ngay x loai phong cua khach san minh.
+@router.get("/calendar")
+def room_calendar_endpoint(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
+):
+    data = get_room_calendar_action(db, current_user, from_date, to_date)
+    return ok(data, "Lich ton phong")
 
 
 # Admin/Staff xem so do phong (trang thai tat ca phong vat ly cua khach san minh).

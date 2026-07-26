@@ -97,3 +97,22 @@ def save_staff_schedule(db: Session, schedule: StaffSchedule) -> StaffSchedule:
 def delete_staff_schedule_record(db: Session, schedule: StaffSchedule) -> None:
     db.delete(schedule)
     db.commit()
+
+
+# Lay toan bo ca lam viec cua CAC nhan vien trong khach san giao voi khoang ngay,
+# kem thong tin nhan vien - dung de dung khung lich ca lam viec.
+def list_schedules_with_staff_by_hotel(
+    db: Session, hotel_id: int, from_date: date, to_date: date
+) -> list[tuple[StaffSchedule, StaffMember, User]]:
+    return (
+        db.query(StaffSchedule, StaffMember, User)
+        .join(StaffMember, StaffMember.id == StaffSchedule.staff_id)
+        .join(User, User.id == StaffMember.user_id)
+        .filter(
+            StaffMember.hotel_id == hotel_id,
+            StaffSchedule.shift_date >= from_date,
+            StaffSchedule.shift_date <= to_date,
+        )
+        .order_by(StaffSchedule.shift_date.asc(), StaffSchedule.start_time.asc())
+        .all()
+    )
