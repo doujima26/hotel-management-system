@@ -23,6 +23,7 @@ import { ApiError } from "@/types/api";
 import type { DiscountType } from "@/types/enums";
 import type { Promotion } from "@/types/models";
 import { useAdminHotel } from "../layout";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   percentage: "Phần trăm",
@@ -241,7 +242,10 @@ export default function AdminPromotionsPage() {
             </Card>
           ))}
           {promotions && promotions.length === 0 && (
-            <p className="text-center text-muted-foreground">Chưa có khuyến mãi nào.</p>
+            <EmptyState
+              title="Chưa có khuyến mãi nào"
+              hint="Tạo khuyến mãi để khách thấy giá giảm ngay ở trang tìm kiếm và trang chủ."
+            />
           )}
         </div>
       )}

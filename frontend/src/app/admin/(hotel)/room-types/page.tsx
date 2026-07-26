@@ -22,6 +22,7 @@ import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomType } from "@/types/models";
 import { useAdminHotel } from "../layout";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export default function AdminRoomTypesPage() {
   const hotel = useAdminHotel();
@@ -231,7 +232,10 @@ export default function AdminRoomTypesPage() {
           </Card>
         ))}
         {roomTypes && roomTypes.length === 0 && (
-          <p className="text-center text-muted-foreground">Chưa có loại phòng nào.</p>
+          <EmptyState
+            title="Chưa có loại phòng nào"
+            hint="Dùng biểu mẫu phía trên để tạo loại phòng đầu tiên, sau đó thêm phòng vật lý để bắt đầu bán."
+          />
         )}
       </div>
 

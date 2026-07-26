@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -19,7 +18,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/types/api";
-import { HOTEL_STATUS_LABELS, type HotelStatus } from "@/types/enums";
+import { type HotelStatus } from "@/types/enums";
+import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 
 const FILTER_OPTIONS: { value: HotelStatus | "all"; label: string }[] = [
   { value: "pending", label: "Chờ duyệt" },
@@ -114,7 +114,7 @@ export default function SuperAdminHotelsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{hotel.name}</CardTitle>
-                <Badge variant="secondary">{HOTEL_STATUS_LABELS[hotel.status]}</Badge>
+                <HotelStatusBadge status={hotel.status} />
               </div>
               <CardDescription>
                 {hotel.address}, {hotel.district ? `${hotel.district}, ` : ""}

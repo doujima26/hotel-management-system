@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { RequireAuth } from "@/components/shared/RequireAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -15,8 +14,9 @@ import { formatDate, formatMoney } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
-import { BOOKING_STATUS_LABELS } from "@/types/enums";
+
 import type { Review } from "@/types/models";
+import { BookingStatusBadge } from "@/components/shared/StatusBadge";
 
 interface BookingDetailPageProps {
   params: Promise<{ bookingId: string }>;
@@ -156,7 +156,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Booking {booking.booking_code}</CardTitle>
-            <Badge variant="secondary">{BOOKING_STATUS_LABELS[booking.status]}</Badge>
+            <BookingStatusBadge status={booking.status} />
           </div>
           <CardDescription>
             {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)} - {booking.num_guests} khách

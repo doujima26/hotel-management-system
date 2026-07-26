@@ -21,6 +21,7 @@ import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomItem } from "@/types/models";
 import { useAdminHotel } from "../../../layout";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 interface RoomsPageProps {
   params: Promise<{ roomTypeId: string }>;
@@ -202,7 +203,10 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
           ))}
         </div>
         {roomList && roomList.items.length === 0 && (
-          <p className="text-center text-muted-foreground">Chưa có phòng vật lý nào.</p>
+          <EmptyState
+            title="Chưa có phòng vật lý nào"
+            hint="Loại phòng chỉ bán được khi đã tạo phòng vật lý (số phòng cụ thể) tương ứng."
+          />
         )}
       </div>
 

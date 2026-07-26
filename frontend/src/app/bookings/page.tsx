@@ -5,11 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/shared/RequireAuth";
 import { AccountShell } from "@/components/shared/AccountShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
-import { BOOKING_STATUS_LABELS } from "@/types/enums";
+
 import { ApiError } from "@/types/api";
+import { BookingStatusBadge } from "@/components/shared/StatusBadge";
 
 export default function BookingsPage() {
   return (
@@ -43,7 +43,7 @@ function BookingsList() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{booking.booking_code}</CardTitle>
-                  <Badge variant="secondary">{BOOKING_STATUS_LABELS[booking.status]}</Badge>
+                  <BookingStatusBadge status={booking.status} />
                 </div>
                 <CardDescription>
                   {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)}

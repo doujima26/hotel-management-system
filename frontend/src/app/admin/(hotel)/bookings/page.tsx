@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
-import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/types/enums";
+import { type BookingStatus } from "@/types/enums";
+import { BookingStatusBadge } from "@/components/shared/StatusBadge";
 
 const FILTER_OPTIONS: { value: BookingStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
@@ -114,7 +114,7 @@ export default function AdminBookingsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{booking.booking_code}</CardTitle>
-                <Badge variant="secondary">{BOOKING_STATUS_LABELS[booking.status]}</Badge>
+                <BookingStatusBadge status={booking.status} />
               </div>
               <CardDescription>
                 {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)} - {booking.num_guests} khách -{" "}

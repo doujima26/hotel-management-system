@@ -21,6 +21,7 @@ import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import type { HotelServiceItem } from "@/types/models";
 import { useAdminHotel } from "../layout";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export default function AdminServicesPage() {
   const hotel = useAdminHotel();
@@ -197,7 +198,10 @@ export default function AdminServicesPage() {
               </CardContent>
             </Card>
           ))}
-          {services && services.length === 0 && <p className="text-center text-muted-foreground">Chưa có dịch vụ nào.</p>}
+          {services && services.length === 0 && <EmptyState
+              title="Chưa có dịch vụ nào"
+              hint="Thêm dịch vụ (đưa đón sân bay, giặt là, spa...) để khách chọn kèm khi đặt phòng."
+            />}
         </div>
       )}
 
