@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.timeutils import business_today
 from app.models.entities import User
 from app.repositories.dashboard_repository import (
     count_bookings_created,
@@ -21,7 +22,8 @@ from app.services.hotel_service import get_approved_admin_hotel
 def _default_date_range(from_date: date | None, to_date: date | None) -> tuple[date, date]:
     if from_date and to_date:
         return from_date, to_date
-    today = date.today()
+    # Lay "hom nay" theo mui gio nghiep vu, khong theo mui gio may chu.
+    today = business_today()
     return today.replace(day=1), today
 
 

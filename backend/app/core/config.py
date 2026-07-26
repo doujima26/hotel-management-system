@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_minutes: int = 10080
 
+    # Mui gio nghiep vu, tinh theo so gio lech so voi UTC (mac dinh +7 = gio Viet
+    # Nam). Dung de xac dinh "1 ngay" khi thong ke doanh thu - khong phu thuoc
+    # mui gio cua may chu. Dung offset co dinh vi Viet Nam khong co gio mua he.
+    business_timezone_offset_hours: int = 7
+
 
 # Khoi tao doi tuong settings dung chung toan he thong.
 settings = Settings()

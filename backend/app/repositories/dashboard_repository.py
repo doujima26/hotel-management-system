@@ -1,29 +1,23 @@
-from datetime import date, datetime, time, timezone
+from datetime import date
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, PaymentStatus
+from app.core.timeutils import day_range_to_instants
 from app.models.entities import Booking, BookingRoom, BookingService, HotelService, Payment, RoomType, User
 
 # Cac trang thai booking khong tinh vao doanh thu/ty le lap day.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
 
 
-# Chuyen 1 khoang ngay thanh khoang datetime co timezone de loc theo cot TIMESTAMPTZ.
-def _to_datetime_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(from_date, time.min, tzinfo=timezone.utc)
-    end = datetime.combine(to_date, time.max, tzinfo=timezone.utc)
-    return start, end
-
-
 # Tong tien da thu (payment completed) trong khoang ngay, loc theo khach san neu co.
 def get_revenue(db: Session, from_date: date, to_date: date, hotel_id: int | None = None) -> float:
-    start, end = _to_datetime_range(from_date, to_date)
+    start, end = day_range_to_instants(from_date, to_date)
     query = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
         Payment.payment_status == PaymentStatus.COMPLETED,
         Payment.paid_at >= start,
-        Payment.paid_at <= end,
+        Payment.paid_at < end,
     )
     if hotel_id is not None:
         query = query.join(Booking, Booking.id == Payment.booking_id).filter(Booking.hotel_id == hotel_id)
@@ -53,8 +47,8 @@ def list_active_booking_rooms_in_range(db: Session, hotel_id: int, from_date: da
 
 # Dem so booking duoc tao trong khoang ngay, loc theo khach san neu co.
 def count_bookings_created(db: Session, from_date: date, to_date: date, hotel_id: int | None = None) -> int:
-    start, end = _to_datetime_range(from_date, to_date)
-    query = db.query(func.count(Booking.id)).filter(Booking.created_at >= start, Booking.created_at <= end)
+    start, end = day_range_to_instants(from_date, to_date)
+    query = db.query(func.count(Booking.id)).filter(Booking.created_at >= start, Booking.created_at < end)
     if hotel_id is not None:
         query = query.filter(Booking.hotel_id == hotel_id)
     return int(query.scalar() or 0)
@@ -62,13 +56,13 @@ def count_bookings_created(db: Session, from_date: date, to_date: date, hotel_id
 
 # Dem so tai khoan moi dang ky trong khoang ngay.
 def count_new_users(db: Session, from_date: date, to_date: date) -> int:
-    start, end = _to_datetime_range(from_date, to_date)
-    return int(db.query(func.count(User.id)).filter(User.created_at >= start, User.created_at <= end).scalar() or 0)
+    start, end = day_range_to_instants(from_date, to_date)
+    return int(db.query(func.count(User.id)).filter(User.created_at >= start, User.created_at < end).scalar() or 0)
 
 
 # Xep hang dich vu duoc su dung nhieu nhat cua 1 khach san trong khoang ngay.
 def get_top_services(db: Session, hotel_id: int, from_date: date, to_date: date, limit: int = 5) -> list[tuple[int, str, int, float]]:
-    start, end = _to_datetime_range(from_date, to_date)
+    start, end = day_range_to_instants(from_date, to_date)
     return (
         db.query(
             HotelService.id,
@@ -80,7 +74,7 @@ def get_top_services(db: Session, hotel_id: int, from_date: date, to_date: date,
         .filter(
             HotelService.hotel_id == hotel_id,
             BookingService.used_at >= start,
-            BookingService.used_at <= end,
+            BookingService.used_at < end,
         )
         .group_by(HotelService.id, HotelService.name)
         .order_by(func.sum(BookingService.quantity).desc())
