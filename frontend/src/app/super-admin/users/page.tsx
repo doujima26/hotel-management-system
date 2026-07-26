@@ -79,7 +79,10 @@ export default function SuperAdminUsersPage() {
             }}
           >
             <SelectTrigger className="w-40">
-              <SelectValue />
+              {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
+              <SelectValue>
+                {(current) => ROLE_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ROLE_OPTIONS.map((opt) => (
@@ -97,7 +100,10 @@ export default function SuperAdminUsersPage() {
             }}
           >
             <SelectTrigger className="w-44">
-              <SelectValue />
+              {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
+              <SelectValue>
+                {(current) => ACTIVE_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ACTIVE_OPTIONS.map((opt) => (

@@ -125,7 +125,8 @@ export default function AdminStaffSchedulesPage({ params }: SchedulesPageProps) 
               <Label htmlFor="shift_type">Ca</Label>
               <Select value={shiftType} onValueChange={(v) => setShiftType(v as ShiftType)}>
                 <SelectTrigger id="shift_type" className="w-full">
-                  <SelectValue />
+                  {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma enum). */}
+                  <SelectValue>{(current) => SHIFT_TYPE_LABELS[current as ShiftType] ?? ""}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="morning">Sáng</SelectItem>
@@ -231,7 +232,8 @@ function EditScheduleDialog({
             <Label htmlFor="edit_shift_type">Ca</Label>
             <Select value={shiftType} onValueChange={(v) => setShiftType(v as ShiftType)}>
               <SelectTrigger id="edit_shift_type" className="w-full">
-                <SelectValue />
+                {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma enum). */}
+                <SelectValue>{(current) => SHIFT_TYPE_LABELS[current as ShiftType] ?? ""}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="morning">Sáng</SelectItem>

@@ -232,7 +232,8 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
               <Label htmlFor="rating">Số sao</Label>
               <Select value={rating} onValueChange={(v) => v && setRating(v)}>
                 <SelectTrigger id="rating" className="w-32">
-                  <SelectValue />
+                  {/* Phai tu format: mac dinh SelectValue hien gia tri tho (so, thieu chu "sao"). */}
+                  <SelectValue>{(current) => (current ? `${current} sao` : "")}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {[5, 4, 3, 2, 1].map((value) => (

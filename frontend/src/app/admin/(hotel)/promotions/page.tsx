@@ -147,7 +147,10 @@ export default function AdminPromotionsPage() {
                 <Label htmlFor="promo_type">Loại giảm giá</Label>
                 <Select value={discountType} onValueChange={(v) => setDiscountType(v as DiscountType)}>
                   <SelectTrigger id="promo_type" className="w-full">
-                    <SelectValue />
+                    {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma enum). */}
+                    <SelectValue>
+                      {(current) => DISCOUNT_TYPE_LABELS[current as DiscountType] ?? ""}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percentage">Phần trăm (%)</SelectItem>

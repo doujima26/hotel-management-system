@@ -85,7 +85,10 @@ export default function AdminBookingsPage() {
         <h2 className="text-lg font-semibold">Booking của khách sạn</h2>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BookingStatus | "all")}>
           <SelectTrigger className="w-44">
-            <SelectValue />
+            {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma trang thai). */}
+            <SelectValue>
+              {(current) => FILTER_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {FILTER_OPTIONS.map((opt) => (

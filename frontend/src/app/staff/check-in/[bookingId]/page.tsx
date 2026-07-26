@@ -144,7 +144,14 @@ export default function StaffCheckInPage({ params }: CheckInPageProps) {
                         onValueChange={(v) => setSlot(room.id, room.quantity, index, v === "none" ? null : Number(v))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn phòng" />
+                          {/* Phai tu format: mac dinh SelectValue hien gia tri tho (room_id). */}
+                          <SelectValue>
+                            {(current) => {
+                              const picked = rooms?.find((r) => String(r.room_id) === current);
+                              if (!picked) return "Chọn phòng";
+                              return `${picked.room_number}${picked.floor ? ` (tầng ${picked.floor})` : ""}`;
+                            }}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Chọn phòng</SelectItem>

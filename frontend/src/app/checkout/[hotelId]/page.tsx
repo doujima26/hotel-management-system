@@ -450,7 +450,13 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
                     <Label htmlFor="promotion">Khuyến mãi (không bắt buộc)</Label>
                     <Select value={promotionId} onValueChange={(v) => setPromotionId(v ?? NO_PROMOTION_VALUE)}>
                       <SelectTrigger id="promotion" className="w-full">
-                        <SelectValue placeholder="Chọn khuyến mãi" />
+                        {/* Phai tu format: mac dinh SelectValue hien gia tri tho (id khuyen mai). */}
+                        <SelectValue>
+                          {(current) =>
+                            promotionsQuery.data?.find((promo) => String(promo.id) === current)?.name ??
+                            "Không áp dụng"
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={NO_PROMOTION_VALUE}>Không áp dụng</SelectItem>
@@ -519,7 +525,10 @@ function PaymentPanel({
         <Label htmlFor="payment_method">Phương thức thanh toán</Label>
         <Select value={paymentMethod} onValueChange={(v) => onChangeMethod(v as PaymentMethod)}>
           <SelectTrigger id="payment_method" className="w-full">
-            <SelectValue placeholder="Chọn phương thức" />
+            {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma phuong thuc). */}
+            <SelectValue>
+              {(current) => PAYMENT_METHOD_LABELS[current as PaymentMethod] ?? "Chọn phương thức"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((method) => (

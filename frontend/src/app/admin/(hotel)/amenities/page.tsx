@@ -224,7 +224,10 @@ export default function AdminAmenitiesPage() {
                   onValueChange={(v) => setSelectedRoomTypeId(!v || v === "none" ? "" : v)}
                 >
                   <SelectTrigger id="room_type_select" className="w-full sm:w-64">
-                    <SelectValue placeholder="Chọn loại phòng" />
+                    {/* Phai tu format: mac dinh SelectValue hien gia tri tho (id loai phong). */}
+                    <SelectValue>
+                      {(current) => roomTypes?.find((rt) => String(rt.id) === current)?.name ?? "Chọn loại phòng"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Chọn loại phòng</SelectItem>

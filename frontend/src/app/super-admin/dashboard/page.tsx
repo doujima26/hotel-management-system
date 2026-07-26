@@ -51,7 +51,12 @@ export default function SuperAdminDashboardPage() {
             onValueChange={(v) => setHotelId(!v || v === "none" ? "" : v)}
           >
             <SelectTrigger id="hotel_id" className="w-full">
-              <SelectValue placeholder="Toàn nền tảng" />
+              {/* Phai tu format: mac dinh SelectValue hien gia tri tho (id khach san). */}
+              <SelectValue>
+                {(current) =>
+                  hotelsQuery.data?.items.find((hotel) => String(hotel.id) === current)?.name ?? "Toàn nền tảng"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Toàn nền tảng</SelectItem>

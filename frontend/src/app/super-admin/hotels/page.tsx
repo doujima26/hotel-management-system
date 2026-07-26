@@ -85,7 +85,10 @@ export default function SuperAdminHotelsPage() {
           }}
         >
           <SelectTrigger className="w-40">
-            <SelectValue />
+            {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
+            <SelectValue>
+              {(current) => FILTER_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {FILTER_OPTIONS.map((opt) => (
