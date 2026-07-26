@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
@@ -42,6 +43,8 @@ export default function AdminCalendarPage() {
             Số phòng còn trống theo từng ngày. Ô đỏ là đã kín phòng.
           </p>
         </div>
+        {/* Chon ngay bat dau xem: mui ten lui/toi 1 ky, o chon ngay de nhay
+            thang toi ngay bat ky, nut "Hom nay" de quay lai nhanh. */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -51,9 +54,15 @@ export default function AdminCalendarPage() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setStartDate(todayDateString())}>
-            Hôm nay
-          </Button>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(event) => {
+              if (event.target.value) setStartDate(event.target.value);
+            }}
+            aria-label="Ngày bắt đầu xem lịch"
+            className="w-40"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -61,6 +70,14 @@ export default function AdminCalendarPage() {
             aria-label="Kỳ sau"
           >
             <ChevronRight className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStartDate(todayDateString())}
+            disabled={startDate === todayDateString()}
+          >
+            Hôm nay
           </Button>
         </div>
       </div>

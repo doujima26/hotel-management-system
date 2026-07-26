@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { staffApi } from "@/lib/api/staff";
@@ -53,6 +54,8 @@ export default function AdminStaffSchedulePage() {
           <h2 className="text-lg font-semibold">Lịch làm việc</h2>
           <p className="text-sm text-muted-foreground">Ca làm việc của toàn bộ nhân viên theo tuần.</p>
         </div>
+        {/* Chon ngay bat dau tuan: mui ten lui/toi 1 tuan, o chon ngay de nhay
+            thang toi ngay bat ky, nut "Tuan nay" de quay lai nhanh. */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -62,9 +65,15 @@ export default function AdminStaffSchedulePage() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setStartDate(todayDateString())}>
-            Tuần này
-          </Button>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(event) => {
+              if (event.target.value) setStartDate(event.target.value);
+            }}
+            aria-label="Ngày bắt đầu xem lịch làm việc"
+            className="w-40"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -72,6 +81,14 @@ export default function AdminStaffSchedulePage() {
             aria-label="Tuần sau"
           >
             <ChevronRight className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStartDate(todayDateString())}
+            disabled={startDate === todayDateString()}
+          >
+            Tuần này
           </Button>
         </div>
       </div>
