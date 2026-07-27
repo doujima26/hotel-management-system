@@ -223,12 +223,12 @@ def create_room(db: Session, current_user: User, payload: CreateRoomRequest) -> 
         )
 
     try:
-        room = create_room_record(db, payload)
+        room = create_room_record(db, payload, room_type.hotel_id)
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="So phong da ton tai trong loai phong nay",
+            detail="So phong nay da ton tai trong khach san",
         ) from exc
 
     return serialize_room(room)

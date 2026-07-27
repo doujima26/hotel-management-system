@@ -150,9 +150,10 @@ class RoomTypeImage(Base):
 # Model bang rooms.
 class Room(Base):
     __tablename__ = "rooms"
-    __table_args__ = (UniqueConstraint("room_type_id", "room_number", name="uq_room_type_room_number"),)
+    __table_args__ = (UniqueConstraint("hotel_id", "room_number", name="uq_room_hotel_number"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="RESTRICT"), nullable=False)
     room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="RESTRICT"), nullable=False)
     room_number: Mapped[str] = mapped_column(String(20), nullable=False)
     floor: Mapped[int | None] = mapped_column(Integer)

@@ -107,7 +107,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       await roomsApi.createRoom({
         room_type_id: id,
         room_number: roomNumber.trim(),
-        floor: floor ? Number(floor) : undefined,
+        floor: Number(floor),
       });
       toast.success("Tạo phòng thành công");
       setRoomNumber("");
@@ -145,12 +145,16 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
                 <Input id="room_number" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} placeholder="Ví dụ: 101" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="floor">Tầng (không bắt buộc)</Label>
-                <Input id="floor" type="number" value={floor} onChange={(e) => setFloor(e.target.value)} />
+                <Label htmlFor="floor">Tầng</Label>
+                <Input id="floor" type="number" value={floor} onChange={(e) => setFloor(e.target.value)} placeholder="Ví dụ: 2" />
               </div>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
-            <Button onClick={handleAddRoom} disabled={submitting || !roomNumber.trim()} className="self-start">
+            <Button
+              onClick={handleAddRoom}
+              disabled={submitting || !roomNumber.trim() || !floor.trim()}
+              className="self-start"
+            >
               {submitting ? "Đang thêm..." : "Thêm phòng"}
             </Button>
           </CardContent>

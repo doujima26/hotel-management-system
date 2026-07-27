@@ -29,11 +29,13 @@ class UpdateRoomTypeRequest(BaseModel):
     is_active: bool | None = None
 
 
-# Schema du lieu dau vao cho tao phong vat ly.
+# Schema du lieu dau vao cho tao phong vat ly. Bat buoc nhap tang - moi phong
+# vat ly thuc te luon co 1 tang xac dinh, de trong se lam so do phong mat tac
+# dung dinh vi (nhom "Chua gan tang").
 class CreateRoomRequest(BaseModel):
     room_type_id: int = Field(gt=0)
     room_number: str = Field(min_length=1, max_length=20)
-    floor: int | None = None
+    floor: int
 
 
 # Schema du lieu dau vao cho sua phong vat ly (tat ca field tuy chon).

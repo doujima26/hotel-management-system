@@ -77,13 +77,13 @@ hotel1_room_type_images AS (
         ((SELECT id FROM hotel1_deluxe), 'https://picsum.photos/1200/700?hotel1-deluxe=1', true, 1)
 ),
 hotel1_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM hotel1_standard), '201', 2, 'available', true),
-        ((SELECT id FROM hotel1_standard), '202', 2, 'available', true),
-        ((SELECT id FROM hotel1_standard), '203', 2, 'available', true),
-        ((SELECT id FROM hotel1_deluxe), '301', 3, 'available', true),
-        ((SELECT id FROM hotel1_deluxe), '302', 3, 'available', true)
+        ((SELECT id FROM hotel1), (SELECT id FROM hotel1_standard), '201', 2, 'available', true),
+        ((SELECT id FROM hotel1), (SELECT id FROM hotel1_standard), '202', 2, 'available', true),
+        ((SELECT id FROM hotel1), (SELECT id FROM hotel1_standard), '203', 2, 'available', true),
+        ((SELECT id FROM hotel1), (SELECT id FROM hotel1_deluxe), '301', 3, 'available', true),
+        ((SELECT id FROM hotel1), (SELECT id FROM hotel1_deluxe), '302', 3, 'available', true)
 ),
 hotel1_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -185,13 +185,13 @@ hotel2_room_type_images AS (
         ((SELECT id FROM hotel2_suite), 'https://picsum.photos/1200/700?hotel2-suite=1', true, 1)
 ),
 hotel2_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM hotel2_standard), '101', 1, 'available', true),
-        ((SELECT id FROM hotel2_standard), '102', 1, 'available', true),
-        ((SELECT id FROM hotel2_standard), '103', 1, 'available', true),
-        ((SELECT id FROM hotel2_suite), '501', 5, 'available', true),
-        ((SELECT id FROM hotel2_suite), '502', 5, 'available', true)
+        ((SELECT id FROM hotel2), (SELECT id FROM hotel2_standard), '101', 1, 'available', true),
+        ((SELECT id FROM hotel2), (SELECT id FROM hotel2_standard), '102', 1, 'available', true),
+        ((SELECT id FROM hotel2), (SELECT id FROM hotel2_standard), '103', 1, 'available', true),
+        ((SELECT id FROM hotel2), (SELECT id FROM hotel2_suite), '501', 5, 'available', true),
+        ((SELECT id FROM hotel2), (SELECT id FROM hotel2_suite), '502', 5, 'available', true)
 ),
 hotel2_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -326,11 +326,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h3-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '601', 6, 'available', true),
-        ((SELECT id FROM new_room_type), '602', 6, 'available', true),
-        ((SELECT id FROM new_room_type), '603', 6, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '601', 6, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '602', 6, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '603', 6, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -342,7 +342,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -424,11 +424,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h4-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '101', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '102', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '103', 1, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '101', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '102', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '103', 1, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -439,7 +439,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -521,11 +521,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h5-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '201', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '202', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '203', 2, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '201', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '202', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '203', 2, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -536,7 +536,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -618,11 +618,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h6-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '301', 3, 'available', true),
-        ((SELECT id FROM new_room_type), '302', 3, 'available', true),
-        ((SELECT id FROM new_room_type), '303', 3, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '301', 3, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '302', 3, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '303', 3, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -634,7 +634,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -716,11 +716,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h7-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '401', 4, 'available', true),
-        ((SELECT id FROM new_room_type), '402', 4, 'available', true),
-        ((SELECT id FROM new_room_type), '403', 4, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '401', 4, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '402', 4, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '403', 4, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -732,7 +732,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -814,11 +814,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h8-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '2001', 20, 'available', true),
-        ((SELECT id FROM new_room_type), '2002', 20, 'available', true),
-        ((SELECT id FROM new_room_type), '2003', 20, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '2001', 20, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '2002', 20, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '2003', 20, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -830,7 +830,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -912,11 +912,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h9-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '11', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '12', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '13', 1, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '11', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '12', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '13', 1, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -926,7 +926,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -986,11 +986,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h10-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '101', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '102', 1, 'available', true),
-        ((SELECT id FROM new_room_type), '103', 1, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '101', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '102', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '103', 1, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1002,7 +1002,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1084,11 +1084,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h11-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '201', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '202', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '203', 2, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '201', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '202', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '203', 2, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1099,7 +1099,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1159,10 +1159,10 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h12-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), 'B1', 1, 'available', true),
-        ((SELECT id FROM new_room_type), 'B2', 1, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), 'B1', 1, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), 'B2', 1, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1173,7 +1173,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1255,11 +1255,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h13-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '1501', 15, 'available', true),
-        ((SELECT id FROM new_room_type), '1502', 15, 'available', true),
-        ((SELECT id FROM new_room_type), '1503', 15, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '1501', 15, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '1502', 15, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '1503', 15, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1271,7 +1271,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1353,11 +1353,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h14-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '801', 8, 'available', true),
-        ((SELECT id FROM new_room_type), '802', 8, 'available', true),
-        ((SELECT id FROM new_room_type), '803', 8, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '801', 8, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '802', 8, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '803', 8, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1369,7 +1369,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1429,11 +1429,11 @@ new_room_type_image AS (
     VALUES ((SELECT id FROM new_room_type), 'https://picsum.photos/1200/700?h15-room=1', true, 1)
 ),
 new_rooms AS (
-    INSERT INTO rooms (room_type_id, room_number, floor, status, is_active)
+    INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status, is_active)
     VALUES
-        ((SELECT id FROM new_room_type), '21', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '22', 2, 'available', true),
-        ((SELECT id FROM new_room_type), '23', 2, 'available', true)
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '21', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '22', 2, 'available', true),
+        ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '23', 2, 'available', true)
 ),
 new_amenities AS (
     INSERT INTO amenities (hotel_id, name, icon, category)
@@ -1443,7 +1443,7 @@ new_amenities AS (
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)

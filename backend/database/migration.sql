@@ -146,6 +146,7 @@ CREATE TABLE room_type_images (
 -- -------------------------------------------------------
 CREATE TABLE rooms (
     id            BIGSERIAL PRIMARY KEY,
+    hotel_id      BIGINT NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
     room_type_id  BIGINT NOT NULL REFERENCES room_types(id) ON DELETE RESTRICT,
     room_number   VARCHAR(20) NOT NULL,
     floor         INTEGER,
@@ -153,7 +154,7 @@ CREATE TABLE rooms (
     is_active     BOOLEAN NOT NULL DEFAULT TRUE,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(room_type_id, room_number)
+    UNIQUE(hotel_id, room_number)
 );
 
 COMMENT ON TABLE rooms IS 'Phòng vật lý - tách khỏi room_types để theo dõi trạng thái';

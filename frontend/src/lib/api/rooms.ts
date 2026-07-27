@@ -49,7 +49,7 @@ export interface UpdateRoomTypePayload {
 export interface CreateRoomPayload {
   room_type_id: number;
   room_number: string;
-  floor?: number;
+  floor: number;
 }
 
 export interface UpdateRoomPayload {

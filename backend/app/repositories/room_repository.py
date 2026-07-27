@@ -135,9 +135,12 @@ def list_rooms_with_type_by_hotel(db: Session, hotel_id: int) -> list[tuple[Room
     )
 
 
-# Tao phong vat ly moi.
-def create_room_record(db: Session, payload: CreateRoomRequest) -> Room:
+# Tao phong vat ly moi. hotel_id lay tu room_type lien ket (server tu suy ra,
+# khong nhan tu client) de dam bao dung khach san va khop rang buoc duy nhat
+# (hotel_id, room_number).
+def create_room_record(db: Session, payload: CreateRoomRequest, hotel_id: int) -> Room:
     room = Room(
+        hotel_id=hotel_id,
         room_type_id=payload.room_type_id,
         room_number=payload.room_number,
         floor=payload.floor,
