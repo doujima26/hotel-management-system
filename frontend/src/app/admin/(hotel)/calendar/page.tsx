@@ -103,8 +103,10 @@ export default function AdminCalendarPage() {
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-muted/60">
-                <th className="sticky left-0 z-10 min-w-40 bg-muted/60 px-3 py-2 text-left font-semibold">
+              {/* Hang tieu de nen cam dac (dung mau accent chinh cua web),
+                  chu doi sang primary-foreground de du tuong phan. */}
+              <tr className="bg-primary">
+                <th className="sticky left-0 z-10 min-w-40 bg-primary px-3 py-2 text-left font-semibold text-primary-foreground">
                   Loại phòng
                 </th>
                 {data.dates.map((day) => {
@@ -114,11 +116,11 @@ export default function AdminCalendarPage() {
                     <th
                       key={day}
                       className={cn(
-                        "min-w-14 px-1 py-2 text-center font-medium",
-                        isWeekend && "text-primary",
+                        "min-w-14 px-1 py-2 text-center font-medium text-primary-foreground",
+                        isWeekend && "font-bold",
                       )}
                     >
-                      <span className="block text-[11px] text-muted-foreground">{WEEKDAYS[d.getDay()]}</span>
+                      <span className="block text-[11px] text-primary-foreground/70">{WEEKDAYS[d.getDay()]}</span>
                       {d.getDate()}/{d.getMonth() + 1}
                     </th>
                   );
