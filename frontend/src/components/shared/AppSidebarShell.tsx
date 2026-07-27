@@ -45,9 +45,9 @@ function findActiveHref(items: SidebarItem[] | SidebarGroup[], pathname: string)
     .reduce<string | null>((longest, item) => (!longest || item.href.length > longest.length ? item.href : longest), null);
 }
 
-// Khung side-rail dung chung cho khu vuc Admin/Staff/Super Admin (N3 Side-rail
-// theo DESIGN.md) - thay the Navbar chung o cac trang nay. Tren mobile rut gon
-// thanh thanh ngang cuon duoc, giu nut dang xuat luon hien de khong bi ket.
+// Khung side-rail dung chung cho khu vuc Admin/Staff/Super Admin - thay the
+// Navbar chung o cac trang nay. Tren mobile rut gon thanh thanh ngang cuon
+// duoc, giu nut dang xuat luon hien de khong bi ket.
 export function AppSidebarShell({ title, items, header, children }: AppSidebarShellProps) {
   const pathname = usePathname();
   const router = useRouter();

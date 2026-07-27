@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,24 @@ import { staffApi } from "@/lib/api/staff";
 import { ApiError } from "@/types/api";
 import type { CreateStaffResult, StaffMember } from "@/types/models";
 
+type SortKey = "full_name" | "position" | "email" | "phone" | "is_active";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "full_name", label: "Họ tên" },
+  { key: "position", label: "Chức vụ" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Số điện thoại" },
+  { key: "is_active", label: "Trạng thái" },
+];
+
+// Gia tri dung de so sanh khi sap xep - is_active so theo 0/1, con lai so chuoi
+// khong phan biet hoa/thuong (theo bang chu cai tieng Viet).
+function sortValue(staff: StaffMember, key: SortKey): string {
+  if (key === "is_active") return staff.is_active ? "1" : "0";
+  return (staff[key] ?? "").toLowerCase();
+}
+
 export default function AdminStaffPage() {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
@@ -34,6 +52,21 @@ export default function AdminStaffPage() {
   const [editPosition, setEditPosition] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Tim kiem + sap xep bang - mac dinh sap theo Chuc vu de gom nhom vi tri lam
+  // viec giong nhau lai voi nhau.
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("position");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   const { data: staffList, isLoading, error } = useQuery({
     queryKey: ["staff-list"],
@@ -94,6 +127,24 @@ export default function AdminStaffPage() {
       setEditSubmitting(false);
     }
   }
+
+  // Loc theo tu khoa (khong phan biet hoa/thuong) tren ca 4 truong hien thi,
+  // sau do sap xep theo cot dang chon - ca 2 buoc deu chay o client vi danh
+  // sach nhan vien 1 khach san thuong khong lon, khong can goi API rieng.
+  const query = search.trim().toLowerCase();
+  const filteredStaff = (staffList ?? []).filter((staff) => {
+    if (!query) return true;
+    return (
+      staff.full_name.toLowerCase().includes(query) ||
+      staff.position.toLowerCase().includes(query) ||
+      staff.email.toLowerCase().includes(query) ||
+      (staff.phone ?? "").toLowerCase().includes(query)
+    );
+  });
+  const sortedStaff = [...filteredStaff].sort((a, b) => {
+    const cmp = sortValue(a, sortKey).localeCompare(sortValue(b, sortKey), "vi");
+    return sortDir === "asc" ? cmp : -cmp;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -157,46 +208,92 @@ export default function AdminStaffPage() {
       </Card>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Danh sách nhân viên</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Danh sách nhân viên</h2>
+          <div className="relative w-full max-w-64">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm theo tên, chức vụ, email, SĐT..."
+              className="pl-8"
+            />
+          </div>
+        </div>
+
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
             {error instanceof ApiError ? error.message : "Không thể tải danh sách nhân viên"}
           </p>
         )}
-        {staffList?.map((staff) => (
-          <Card key={staff.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{staff.full_name}</CardTitle>
-                <Badge variant={staff.is_active ? "secondary" : "destructive"}>
-                  {staff.is_active ? "Đang làm việc" : "Đã nghỉ"}
-                </Badge>
-              </div>
-              <CardDescription>
-                {staff.position} - {staff.email}
-                {staff.phone ? ` - ${staff.phone}` : ""}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => openEdit(staff)}>
-                Sửa chức vụ
-              </Button>
-              <Button
-                size="sm"
-                variant={staff.is_active ? "destructive" : "default"}
-                onClick={() => handleToggleActive(staff)}
-              >
-                {staff.is_active ? "Cho nghỉ việc" : "Nhận lại làm việc"}
-              </Button>
-              <Link href={`/admin/staff/${staff.id}/schedules`} className="text-sm text-primary hover:underline self-center">
-                Xếp ca làm việc &rarr;
-              </Link>
-            </CardContent>
-          </Card>
-        ))}
+
+        {staffList && staffList.length > 0 && (
+          <div className="overflow-x-auto rounded-xl border">
+            <table className="w-full min-w-max border-collapse text-sm">
+              <thead>
+                <tr className="border-b bg-muted/60">
+                  {SORT_COLUMNS.map((col) => (
+                    <th key={col.key} className="px-3 py-2 text-left font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key)}
+                        className="flex cursor-pointer items-center gap-1 hover:text-foreground"
+                      >
+                        {col.label}
+                        {sortKey === col.key ? (
+                          sortDir === "asc" ? (
+                            <ChevronUp className="size-3.5" />
+                          ) : (
+                            <ChevronDown className="size-3.5" />
+                          )
+                        ) : (
+                          <ChevronsUpDown className="size-3.5 opacity-40" />
+                        )}
+                      </button>
+                    </th>
+                  ))}
+                  <th className="px-3 py-2 text-left font-semibold">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedStaff.map((staff) => (
+                  <tr key={staff.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="px-3 py-2 font-medium">{staff.full_name}</td>
+                    <td className="px-3 py-2">{staff.position}</td>
+                    <td className="px-3 py-2">{staff.email}</td>
+                    <td className="px-3 py-2 tabular-nums">{staff.phone ?? "—"}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={staff.is_active ? "secondary" : "destructive"}>
+                        {staff.is_active ? "Đang làm việc" : "Đã nghỉ"}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(staff)}>
+                          Sửa chức vụ
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={staff.is_active ? "destructive" : "default"}
+                          onClick={() => handleToggleActive(staff)}
+                        >
+                          {staff.is_active ? "Cho nghỉ việc" : "Nhận lại làm việc"}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {staffList && staffList.length === 0 && (
           <p className="text-center text-muted-foreground">Chưa có nhân viên nào.</p>
+        )}
+        {staffList && staffList.length > 0 && sortedStaff.length === 0 && (
+          <p className="text-center text-muted-foreground">Không tìm thấy nhân viên phù hợp.</p>
         )}
       </div>
 

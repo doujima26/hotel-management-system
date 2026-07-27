@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-// Footer chi hien o khu vuc marketing/cong khai (theo DESIGN.md) - khu vuc app
+// Footer chi hien o khu vuc marketing/cong khai - khu vuc app
 // (checkout/bookings/account/admin/staff/super-admin) khong co footer, giong
 // dashboard SaaS that.
 const NO_FOOTER_PREFIXES = ["/staff", "/super-admin", "/checkout", "/bookings", "/account"];
