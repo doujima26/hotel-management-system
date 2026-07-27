@@ -7,40 +7,33 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { staffApi } from "@/lib/api/staff";
 import { ApiError } from "@/types/api";
 import type { CreateStaffResult, StaffMember } from "@/types/models";
 
-type SortKey = "full_name" | "position" | "email" | "phone" | "is_active";
+// Bam vao 1 dong trong bang de nap thong tin len form ben tren sua - chi con 2
+// cot cho sap xep (Ho ten, Chuc vu), cac cot con lai chi de xem.
+type SortKey = "full_name" | "position";
 type SortDir = "asc" | "desc";
 
-const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "full_name", label: "Họ tên" },
   { key: "position", label: "Chức vụ" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "Số điện thoại" },
-  { key: "is_active", label: "Trạng thái" },
 ];
 
-// Gia tri dung de so sanh khi sap xep - is_active so theo 0/1, con lai so chuoi
-// khong phan biet hoa/thuong (theo bang chu cai tieng Viet).
 function sortValue(staff: StaffMember, key: SortKey): string {
-  if (key === "is_active") return staff.is_active ? "1" : "0";
-  return (staff[key] ?? "").toLowerCase();
+  return staff[key].toLowerCase();
 }
 
 export default function AdminStaffPage() {
   const queryClient = useQueryClient();
+
+  // Form dung chung cho ca tao moi va sua: selectedStaff = null la dang tao
+  // moi, khac null la dang sua nhan vien do (bam tu dong trong bang).
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [position, setPosition] = useState("");
@@ -48,10 +41,6 @@ export default function AdminStaffPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [justCreated, setJustCreated] = useState<CreateStaffResult | null>(null);
-  const [editing, setEditing] = useState<StaffMember | null>(null);
-  const [editPosition, setEditPosition] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
-  const [editSubmitting, setEditSubmitting] = useState(false);
 
   // Tim kiem + sap xep bang - mac dinh sap theo Chuc vu de gom nhom vi tri lam
   // viec giong nhau lai voi nhau.
@@ -73,6 +62,27 @@ export default function AdminStaffPage() {
     queryFn: () => staffApi.list(),
   });
 
+  // "Lam moi": xoa trang form, quay ve che do tao moi.
+  function resetForm() {
+    setSelectedStaff(null);
+    setEmail("");
+    setFullName("");
+    setPosition("");
+    setPhone("");
+    setFormError(null);
+  }
+
+  // Bam 1 dong trong bang: nap du lieu len form de xem/sua. Ho ten, Email, SDT
+  // chi hien de xem (backend hien chi cho sua Chuc vu cua nhan vien da tao).
+  function selectStaff(staff: StaffMember) {
+    setSelectedStaff(staff);
+    setEmail(staff.email);
+    setFullName(staff.full_name);
+    setPosition(staff.position);
+    setPhone(staff.phone ?? "");
+    setFormError(null);
+  }
+
   async function handleCreate() {
     setFormError(null);
     setSubmitting(true);
@@ -85,10 +95,7 @@ export default function AdminStaffPage() {
       });
       setJustCreated(result);
       toast.success("Tạo nhân viên thành công");
-      setEmail("");
-      setFullName("");
-      setPosition("");
-      setPhone("");
+      resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Tạo nhân viên thất bại");
@@ -97,34 +104,36 @@ export default function AdminStaffPage() {
     }
   }
 
-  async function handleToggleActive(staff: StaffMember) {
+  async function handleUpdate() {
+    if (!selectedStaff) return;
+    setFormError(null);
+    setSubmitting(true);
     try {
-      await staffApi.update(staff.id, { is_active: !staff.is_active });
+      await staffApi.update(selectedStaff.id, { position: position.trim() });
+      toast.success("Cập nhật nhân viên thành công");
+      resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  function openEdit(staff: StaffMember) {
-    setEditing(staff);
-    setEditPosition(staff.position);
-    setEditError(null);
-  }
-
-  async function saveEdit() {
-    if (!editing) return;
-    setEditError(null);
-    setEditSubmitting(true);
+  // Khong co API xoa han nhan vien - nut "Xoa" thuc chat la cho nghi viec
+  // (is_active=false); neu nhan vien dang nghi thi doi thanh "Khoi phuc".
+  async function handleToggleActive() {
+    if (!selectedStaff) return;
+    setSubmitting(true);
     try {
-      await staffApi.update(editing.id, { position: editPosition.trim() });
-      toast.success("Cập nhật nhân viên thành công");
+      await staffApi.update(selectedStaff.id, { is_active: !selectedStaff.is_active });
+      toast.success(selectedStaff.is_active ? "Đã cho nhân viên nghỉ việc" : "Đã nhận lại nhân viên làm việc");
+      resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
-      setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
     } finally {
-      setEditSubmitting(false);
+      setSubmitting(false);
     }
   }
 
@@ -145,6 +154,8 @@ export default function AdminStaffPage() {
     const cmp = sortValue(a, sortKey).localeCompare(sortValue(b, sortKey), "vi");
     return sortDir === "asc" ? cmp : -cmp;
   });
+
+  const isEditing = selectedStaff !== null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -174,36 +185,79 @@ export default function AdminStaffPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tạo nhân viên mới</CardTitle>
-          <CardDescription>Tài khoản đăng nhập được tạo ngay, chưa gửi email thật nên cần copy mật khẩu tạm.</CardDescription>
+          <CardTitle>{isEditing ? `Sửa nhân viên: ${selectedStaff.full_name}` : "Tạo nhân viên mới"}</CardTitle>
+          <CardDescription>
+            {isEditing
+              ? "Chỉ Chức vụ sửa được. Họ tên, Email, Số điện thoại của tài khoản đã tạo không đổi được ở đây."
+              : "Tài khoản đăng nhập được tạo ngay, chưa gửi email thật nên cần copy mật khẩu tạm."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff_email">Email</Label>
-              <Input id="staff_email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                id="staff_email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isEditing}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff_name">Họ tên</Label>
-              <Input id="staff_name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <Input
+                id="staff_name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={isEditing}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff_position">Chức vụ</Label>
-              <Input id="staff_position" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Ví dụ: Lễ tân" />
+              <Input
+                id="staff_position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="Ví dụ: Lễ tân"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff_phone">Số điện thoại (không bắt buộc)</Label>
-              <Input id="staff_phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Input
+                id="staff_phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={isEditing}
+              />
             </div>
           </div>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <Button
-            onClick={handleCreate}
-            disabled={submitting || !email.trim() || !fullName.trim() || !position.trim()}
-            className="self-start"
-          >
-            {submitting ? "Đang tạo..." : "Tạo nhân viên"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={handleCreate}
+              disabled={submitting || isEditing || !email.trim() || !fullName.trim() || !position.trim()}
+            >
+              {submitting && !isEditing ? "Đang tạo..." : "Thêm mới"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleUpdate}
+              disabled={submitting || !isEditing || !position.trim()}
+            >
+              Cập nhật
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleToggleActive}
+              disabled={submitting || !isEditing}
+            >
+              {selectedStaff?.is_active === false ? "Khôi phục" : "Xóa"}
+            </Button>
+            <Button variant="ghost" onClick={resetForm} disabled={submitting}>
+              Làm mới
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -220,6 +274,7 @@ export default function AdminStaffPage() {
             />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">Bấm vào một dòng để xem và sửa thông tin ở form phía trên.</p>
 
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
@@ -232,13 +287,15 @@ export default function AdminStaffPage() {
           <div className="overflow-x-auto rounded-xl border">
             <table className="w-full min-w-max border-collapse text-sm">
               <thead>
-                <tr className="border-b bg-muted/60">
-                  {SORT_COLUMNS.map((col) => (
-                    <th key={col.key} className="px-3 py-2 text-left font-semibold">
+                {/* Hang tieu de nen cam dac (dung mau accent chinh cua web),
+                    chu doi sang primary-foreground de du tuong phan. */}
+                <tr className="border-b bg-primary">
+                  {SORTABLE_COLUMNS.map((col) => (
+                    <th key={col.key} className="px-3 py-2 text-left font-semibold text-primary-foreground">
                       <button
                         type="button"
                         onClick={() => toggleSort(col.key)}
-                        className="flex cursor-pointer items-center gap-1 hover:text-foreground"
+                        className="flex cursor-pointer items-center gap-1 hover:opacity-80"
                       >
                         {col.label}
                         {sortKey === col.key ? (
@@ -248,17 +305,26 @@ export default function AdminStaffPage() {
                             <ChevronDown className="size-3.5" />
                           )
                         ) : (
-                          <ChevronsUpDown className="size-3.5 opacity-40" />
+                          <ChevronsUpDown className="size-3.5 opacity-60" />
                         )}
                       </button>
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-left font-semibold">Hành động</th>
+                  <th className="px-3 py-2 text-left font-semibold text-primary-foreground">Email</th>
+                  <th className="px-3 py-2 text-left font-semibold text-primary-foreground">Số điện thoại</th>
+                  <th className="px-3 py-2 text-left font-semibold text-primary-foreground">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedStaff.map((staff) => (
-                  <tr key={staff.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <tr
+                    key={staff.id}
+                    onClick={() => selectStaff(staff)}
+                    className={cn(
+                      "cursor-pointer border-b last:border-0 hover:bg-muted/30",
+                      selectedStaff?.id === staff.id && "bg-accent hover:bg-accent",
+                    )}
+                  >
                     <td className="px-3 py-2 font-medium">{staff.full_name}</td>
                     <td className="px-3 py-2">{staff.position}</td>
                     <td className="px-3 py-2">{staff.email}</td>
@@ -267,20 +333,6 @@ export default function AdminStaffPage() {
                       <Badge variant={staff.is_active ? "secondary" : "destructive"}>
                         {staff.is_active ? "Đang làm việc" : "Đã nghỉ"}
                       </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(staff)}>
-                          Sửa chức vụ
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={staff.is_active ? "destructive" : "default"}
-                          onClick={() => handleToggleActive(staff)}
-                        >
-                          {staff.is_active ? "Cho nghỉ việc" : "Nhận lại làm việc"}
-                        </Button>
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -296,28 +348,6 @@ export default function AdminStaffPage() {
           <p className="text-center text-muted-foreground">Không tìm thấy nhân viên phù hợp.</p>
         )}
       </div>
-
-      <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sửa chức vụ</DialogTitle>
-            <DialogDescription>Cập nhật chức vụ của nhân viên.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_position">Chức vụ</Label>
-            <Input id="edit_position" value={editPosition} onChange={(e) => setEditPosition(e.target.value)} />
-            {editError && <p className="text-sm text-destructive">{editError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>
-              Hủy
-            </Button>
-            <Button onClick={saveEdit} disabled={editSubmitting}>
-              Lưu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
