@@ -84,11 +84,31 @@ def get_room_type_by_id_for_update(db: Session, room_type_id: int) -> RoomType |
     return db.query(RoomType).filter(RoomType.id == room_type_id).with_for_update().first()
 
 
-# Dem so phong vat ly (con hoat dong) cua loai phong.
+# Dem so phong vat ly (con hoat dong) cua loai phong - dung de kiem tra suc
+# chua vat ly khi tao phong moi / doi total_rooms (khong loai phong dang bao
+# tri, vi phong do van la 1 phong vat ly co that, chi tam thoi khong ban duoc).
 def count_rooms_by_room_type(db: Session, room_type_id: int) -> int:
     return (
         db.query(func.count(Room.id))
         .filter(Room.room_type_id == room_type_id, Room.is_active.is_(True))
+        .scalar()
+        or 0
+    )
+
+
+# Dem so phong vat ly CO THE BAN DUOC cua loai phong - loai ca phong dang bao
+# tri (MAINTENANCE) khoi tong, vi phong nay khong san sang phuc vu khach du
+# van "is_active". Dung rieng cho tinh tong phong khi kiem tra dat phong -
+# neu dung chung count_rooms_by_room_type (dem suc chua vat ly) thi khach
+# van dat duoc phong dang sua chua, chi lo ra luc check-in.
+def count_sellable_rooms_by_room_type(db: Session, room_type_id: int) -> int:
+    return (
+        db.query(func.count(Room.id))
+        .filter(
+            Room.room_type_id == room_type_id,
+            Room.is_active.is_(True),
+            Room.status != RoomStatus.MAINTENANCE,
+        )
         .scalar()
         or 0
     )

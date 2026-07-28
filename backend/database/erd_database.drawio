@@ -1497,7 +1497,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="318" parent="1" style="shape=table;startSize=28;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;fontSize=12;fillColor=#b85450;fontColor=#ffffff;strokeColor=#b85450;" value="booking_rooms" vertex="1">
-          <mxGeometry height="192" width="220" x="-2120" y="1062" as="geometry" />
+          <mxGeometry height="172" width="220" x="-2120" y="1062" as="geometry" />
         </mxCell>
         <mxCell id="319" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
           <mxGeometry height="20" width="220" y="28" as="geometry" />
@@ -1538,21 +1538,8 @@
             <mxRectangle height="20" width="70" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="328" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="20" width="220" y="88" as="geometry" />
-        </mxCell>
-        <mxCell id="329" parent="328" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;fontStyle=0;overflow=hidden;fontSize=10;fontFamily=Courier New;fontColor=#000000;strokeColor=#b85450;" value="room_id" vertex="1">
-          <mxGeometry height="20" width="150" as="geometry">
-            <mxRectangle height="20" width="150" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="330" parent="328" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;overflow=hidden;fontSize=9;fontFamily=Courier New;fontColor=#666666;strokeColor=#b85450;" value="FK" vertex="1">
-          <mxGeometry height="20" width="70" x="150" as="geometry">
-            <mxRectangle height="20" width="70" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="331" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="20" width="220" y="108" as="geometry" />
+          <mxGeometry height="20" width="220" y="88" as="geometry" />
         </mxCell>
         <mxCell id="332" parent="331" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;fontStyle=0;overflow=hidden;fontSize=10;fontFamily=Courier New;fontColor=#000000;strokeColor=#b85450;" value="quantity" vertex="1">
           <mxGeometry height="20" width="150" as="geometry">
@@ -1565,7 +1552,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="334" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="20" width="220" y="128" as="geometry" />
+          <mxGeometry height="20" width="220" y="108" as="geometry" />
         </mxCell>
         <mxCell id="335" parent="334" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;fontStyle=0;overflow=hidden;fontSize=10;fontFamily=Courier New;fontColor=#000000;strokeColor=#b85450;" value="price_per_night" vertex="1">
           <mxGeometry height="20" width="150" as="geometry">
@@ -1578,7 +1565,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="337" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="20" width="220" y="148" as="geometry" />
+          <mxGeometry height="20" width="220" y="128" as="geometry" />
         </mxCell>
         <mxCell id="338" parent="337" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;fontStyle=0;overflow=hidden;fontSize=10;fontFamily=Courier New;fontColor=#000000;strokeColor=#b85450;" value="num_nights" vertex="1">
           <mxGeometry height="20" width="150" as="geometry">
@@ -1591,7 +1578,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="340" parent="318" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=#f8cecc;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="20" width="220" y="168" as="geometry" />
+          <mxGeometry height="20" width="220" y="148" as="geometry" />
         </mxCell>
         <mxCell id="341" parent="340" style="shape=partialRectangle;connectable=0;fillColor=#f8cecc;top=0;left=0;bottom=0;right=0;fontStyle=0;overflow=hidden;fontSize=10;fontFamily=Courier New;fontColor=#000000;strokeColor=#b85450;" value="subtotal" vertex="1">
           <mxGeometry height="20" width="150" as="geometry">

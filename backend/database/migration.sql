@@ -236,12 +236,14 @@ CREATE TABLE booking_rooms (
     id               BIGSERIAL PRIMARY KEY,
     booking_id       BIGINT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
     room_type_id     BIGINT NOT NULL REFERENCES room_types(id) ON DELETE RESTRICT,
-    room_id          BIGINT REFERENCES rooms(id),  -- Gán phòng cụ thể khi check-in
     quantity         INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
     price_per_night  DECIMAL(12, 2) NOT NULL,    -- Snapshot giá tại thời điểm đặt
     num_nights       INTEGER NOT NULL CHECK (num_nights > 0),
     subtotal         DECIMAL(12, 2) NOT NULL
 );
+-- Gan phong vat ly cu the khi check-in nam o booking_room_units.room_id (ho tro
+-- nhieu phong rieng biet khi quantity > 1) - da bo cot room_id o day vi trung
+-- lap/mau thuan, chi gan duoc 1 phong/dong nen khong du dung.
 
 -- -------------------------------------------------------
 -- 12. payments - Thanh toán online
@@ -337,7 +339,10 @@ CREATE TABLE staff_schedules (
     end_time    TIME NOT NULL,
     notes       TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Chan 1 nhan vien bi xep trung dung 1 ca/1 ngay - khong chan nhieu nhan
+    -- vien khac nhau cung lam chung 1 ca (van la nghiep vu binh thuong).
+    CONSTRAINT uq_staff_shift UNIQUE (staff_id, shift_date, shift_type)
 );
 
 -- -------------------------------------------------------
@@ -433,6 +438,11 @@ CREATE INDEX idx_room_types_hotel_price ON room_types(hotel_id, base_price);
 -- Đánh giá & yêu thích
 CREATE INDEX idx_reviews_hotel ON reviews(hotel_id);
 CREATE INDEX idx_favorites_user ON favorites(user_id);
+
+-- Anh dai dien: dam bao chi 1 anh is_primary=true moi hotel/room_type (luoi
+-- an toan cap DB, ung dung da tu unset anh khac nhung khong khoa row).
+CREATE UNIQUE INDEX uq_hotel_primary_img ON hotel_images (hotel_id) WHERE is_primary;
+CREATE UNIQUE INDEX uq_rt_primary_img ON room_type_images (room_type_id) WHERE is_primary;
 
 -- Nhân sự & ca làm
 CREATE INDEX idx_staff_schedules_date ON staff_schedules(staff_id, shift_date);

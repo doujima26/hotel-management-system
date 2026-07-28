@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -108,6 +108,11 @@ class HotelPaymentMethod(Base):
 # Model bang hotel_images.
 class HotelImage(Base):
     __tablename__ = "hotel_images"
+    # Dam bao chi 1 anh dai dien moi hotel (luoi an toan cap DB, tang ung dung
+    # da tu unset anh khac truoc khi set anh moi nhung khong khoa row).
+    __table_args__ = (
+        Index("uq_hotel_primary_img", "hotel_id", unique=True, postgresql_where=text("is_primary")),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
@@ -138,6 +143,10 @@ class RoomType(Base):
 # Model bang room_type_images.
 class RoomTypeImage(Base):
     __tablename__ = "room_type_images"
+    # Dam bao chi 1 anh dai dien moi loai phong (luoi an toan cap DB, tuong tu HotelImage).
+    __table_args__ = (
+        Index("uq_rt_primary_img", "room_type_id", unique=True, postgresql_where=text("is_primary")),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="CASCADE"), nullable=False)
@@ -250,7 +259,6 @@ class BookingRoom(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     booking_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False)
     room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="RESTRICT"), nullable=False)
-    room_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("rooms.id"))
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     price_per_night: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     num_nights: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -357,6 +365,10 @@ class StaffMember(Base):
 # Model bang staff_schedules.
 class StaffSchedule(Base):
     __tablename__ = "staff_schedules"
+    # Khoa theo TUNG NHAN VIEN - khong chan nhieu nhan vien khac nhau cung lam
+    # chung 1 ca (binh thuong), chi chan 1 nhan vien bi xep trung dung 1 ca,
+    # dung 1 ngay (loi nhap lieu).
+    __table_args__ = (UniqueConstraint("staff_id", "shift_date", "shift_type", name="uq_staff_shift"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     staff_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("staff_members.id", ondelete="CASCADE"), nullable=False)
