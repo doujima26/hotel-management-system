@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate, formatMoney } from "@/lib/utils/format";
+import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
 import { type BookingStatus } from "@/types/enums";
@@ -79,6 +80,23 @@ export default function AdminBookingsPage() {
     }
   }
 
+  // Chi cho danh dau khong den voi booking da xac nhan va da qua ngay nhan
+  // phong (so sanh chuoi ISO YYYY-MM-DD hop le vi cung do dai). Backend van
+  // tu kiem tra lai, day chi la dieu kien de hien nut cho dung.
+  async function handleMarkNoShow(id: number) {
+    setActionError(null);
+    setBusyId(id);
+    try {
+      await bookingsApi.markNoShow(id);
+      toast.success("Đã đánh dấu booking không đến");
+      await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -138,14 +156,26 @@ export default function AdminBookingsPage() {
                 </>
               )}
               {booking.status === "confirmed" && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => openCancelDialog(booking.id)}
-                  disabled={busyId === booking.id}
-                >
-                  Hủy hộ khách
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => openCancelDialog(booking.id)}
+                    disabled={busyId === booking.id}
+                  >
+                    Hủy hộ khách
+                  </Button>
+                  {booking.check_in_date < todayDateString() && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMarkNoShow(booking.id)}
+                      disabled={busyId === booking.id}
+                    >
+                      Đánh dấu không đến
+                    </Button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -159,7 +189,7 @@ export default function AdminBookingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hủy booking thay khách</DialogTitle>
-            <DialogDescription>Không áp dụng chính sách 24h. Dùng cho no-show, overbooking...</DialogDescription>
+            <DialogDescription>Không áp dụng chính sách 24h. Dùng cho overbooking hoặc theo yêu cầu của khách.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="cancel_reason">Lý do (không bắt buộc)</Label>

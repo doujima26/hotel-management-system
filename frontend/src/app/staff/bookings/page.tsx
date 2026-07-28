@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
+import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
 import { type BookingStatus } from "@/types/enums";
@@ -44,6 +45,22 @@ export default function StaffBookingsPage() {
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Check-out thất bại");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // Chi hien voi booking da xac nhan nhung da qua ngay nhan phong ma khach
+  // chua check-in - backend van tu kiem tra lai dieu kien nay.
+  async function handleMarkNoShow(id: number) {
+    setActionError(null);
+    setBusyId(id);
+    try {
+      await bookingsApi.markNoShow(id);
+      toast.success("Đã đánh dấu booking không đến");
+      await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
     } finally {
       setBusyId(null);
     }
@@ -93,9 +110,21 @@ export default function StaffBookingsPage() {
             </CardHeader>
             <CardContent className="flex gap-2">
               {booking.status === "confirmed" && (
-                <Link href={`/staff/check-in/${booking.id}`} className={cn(buttonVariants({ size: "sm" }))}>
-                  Check-in
-                </Link>
+                <>
+                  <Link href={`/staff/check-in/${booking.id}`} className={cn(buttonVariants({ size: "sm" }))}>
+                    Check-in
+                  </Link>
+                  {booking.check_in_date < todayDateString() && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMarkNoShow(booking.id)}
+                      disabled={busyId === booking.id}
+                    >
+                      Đánh dấu không đến
+                    </Button>
+                  )}
+                </>
               )}
               {booking.status === "checked_in" && (
                 <Button size="sm" onClick={() => handleCheckOut(booking.id)} disabled={busyId === booking.id}>

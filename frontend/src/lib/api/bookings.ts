@@ -46,6 +46,7 @@ export const bookingsApi = {
   confirm: (id: number) => apiFetch<Booking>(`/bookings/${id}/confirm`, { method: "PATCH", auth: true }),
   adminCancel: (id: number, payload: CancelBookingPayload) =>
     apiFetch<Booking>(`/bookings/${id}/admin-cancel`, { method: "PATCH", body: payload, auth: true }),
+  markNoShow: (id: number) => apiFetch<Booking>(`/bookings/${id}/no-show`, { method: "PATCH", auth: true }),
   checkIn: (id: number, payload: CheckInPayload) =>
     apiFetch<Booking>(`/bookings/${id}/check-in`, { method: "PATCH", body: payload, auth: true }),
   checkOut: (id: number, payload: CheckOutPayload) =>

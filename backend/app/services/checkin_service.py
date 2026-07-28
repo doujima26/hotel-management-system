@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, CheckType, RoomStatus
+from app.core.timeutils import business_today
 from app.models.entities import User
 from app.repositories.booking_repository import (
     get_booking_by_id_for_update,
@@ -73,6 +74,14 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc check-in booking cua khach san minh")
     if booking.status != BookingStatus.CONFIRMED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking phai o trang thai da xac nhan moi duoc check-in")
+    # Chan check-in som ngay: gan phong vat ly ngay tu luc nay se khoa phong do
+    # (occupied) den tan luc check-out, chiem oan cho cac booking den truoc do
+    # cua cung loai phong. Check-in tre (qua ngay) van duoc phep binh thuong.
+    if business_today() < booking.check_in_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chua den ngay nhan phong, khong the check-in truoc han",
+        )
 
     booking_rooms = {br.id: br for br in list_booking_rooms(db, booking.id)}
     units_by_booking_room: dict[int, list] = {}

@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus, UserRole
+from app.core.timeutils import business_today
 from app.models.entities import Booking, BookingRoom, BookingService, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
@@ -387,8 +388,9 @@ def cancel_booking(db: Session, current_user: User, booking_id: int, payload: Ca
 
 
 # Xu ly Admin huy booking thay khach (UC 6.2 - "xu ly huy phong tu phia khach
-# san"), vd no-show hoac overbooking. Khong ap chinh sach 24h nhu khach tu huy,
-# ap dung cho ca booking dang cho xac nhan lan da xac nhan.
+# san"), vd overbooking. Khong ap chinh sach 24h nhu khach tu huy, ap dung cho
+# ca booking dang cho xac nhan lan da xac nhan. Rieng truong hop khach khong
+# den (no-show) dung mark_booking_no_show ben duoi, khong dung ham nay.
 def admin_cancel_booking(db: Session, current_user: User, booking_id: int, payload: CancelBookingRequest) -> dict:
     hotel = get_approved_admin_hotel(db, current_user)
     booking = get_booking_by_id_for_update(db, booking_id)
@@ -409,3 +411,48 @@ def admin_cancel_booking(db: Session, current_user: User, booking_id: int, paylo
         )
 
     return _apply_cancellation(db, booking, current_user, payload.cancellation_reason)
+
+
+# Xu ly Admin/Staff danh dau booking la khach khong den (no-show): booking phai
+# dang confirmed va da qua ngay nhan phong ma chua check-in. Khac voi huy -
+# KHONG hoan tien du payment da completed (loi cua khach khong den, khach san
+# giu tien theo chinh sach no-show pho bien), nhung van tra lai luot dung
+# khuyen mai vi phong chua thuc su duoc su dung.
+def mark_booking_no_show(db: Session, current_user: User, booking_id: int) -> dict:
+    hotel = get_operational_hotel(db, current_user)
+    booking = get_booking_by_id_for_update(db, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking khong ton tai",
+        )
+    if booking.hotel_id != hotel.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc thao tac booking cua khach san minh",
+        )
+    if booking.status != BookingStatus.CONFIRMED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chi danh dau khong den cho booking da xac nhan",
+        )
+    if business_today() <= booking.check_in_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chua qua ngay nhan phong, chua the danh dau khong den",
+        )
+
+    booking.status = BookingStatus.NO_SHOW
+    db.add(booking)
+
+    if booking.promotion_id is not None:
+        promotion = get_promotion_by_id_for_update(db, booking.promotion_id)
+        if promotion and promotion.used_count > 0:
+            promotion.used_count -= 1
+            db.add(promotion)
+
+    db.commit()
+    db.refresh(booking)
+
+    rooms = list_booking_rooms(db, booking.id)
+    return serialize_booking(booking, rooms, list_booking_services(db, booking.id))

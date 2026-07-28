@@ -16,6 +16,7 @@ from app.services.booking_service import (
     get_booking_detail as get_booking_detail_action,
     list_hotel_bookings as list_hotel_bookings_action,
     list_my_bookings as list_my_bookings_action,
+    mark_booking_no_show as mark_booking_no_show_action,
 )
 from app.services.checkin_service import (
     check_in_booking as check_in_booking_action,
@@ -70,7 +71,7 @@ def confirm_booking(
     return ok(data, "Xac nhan don dat phong thanh cong, da gui email thong bao toi khach")
 
 
-# Admin huy booking thay khach (vd no-show, overbooking), khong ap chinh sach 24h.
+# Admin huy booking thay khach (vd overbooking), khong ap chinh sach 24h.
 @router.patch("/{booking_id}/admin-cancel")
 def admin_cancel_booking(
     booking_id: int,
@@ -80,6 +81,18 @@ def admin_cancel_booking(
 ):
     data = admin_cancel_booking_action(db, current_user, booking_id, payload)
     return ok(data, "Huy booking thanh cong")
+
+
+# Admin/Staff danh dau booking la khach khong den (no-show) - booking phai
+# confirmed va da qua ngay nhan phong ma chua check-in.
+@router.patch("/{booking_id}/no-show")
+def mark_booking_no_show(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
+):
+    data = mark_booking_no_show_action(db, current_user, booking_id)
+    return ok(data, "Da danh dau booking khong den")
 
 
 # Khach xem chi tiet booking cua minh, hoac Admin/Staff xem booking cua khach san minh
