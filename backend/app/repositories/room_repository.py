@@ -635,16 +635,21 @@ def set_room_type_image_primary(db: Session, room_type_id: int, image: RoomTypeI
 
 
 # Cac trang thai booking khong con chiem giu phong (dung chung cach tinh voi
-# booking_repository de lich phong khop voi ket qua tim phong trong).
-_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
+# booking_repository de lich phong khop voi ket qua tim phong trong). Checked_out
+# cung khong con chiem giu du check_out_date goc chua toi - xem giai thich o
+# booking_repository._INACTIVE_BOOKING_STATUSES.
+_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW, BookingStatus.CHECKED_OUT)
 
 
-# Dem so phong vat ly dang hoat dong theo tung loai phong cua 1 khach san.
-def count_active_rooms_by_room_type(db: Session, hotel_id: int) -> dict[int, int]:
+# Dem so phong vat ly BAN DUOC (active, khong dang bao tri) theo tung loai
+# phong cua 1 khach san - dung lam tong mau so cho lich ton phong, khop voi
+# cach tinh cua count_sellable_rooms_by_room_type (dung khi tao booking that)
+# thay vi chi dem phong active nhu truoc (se tinh du ca phong dang bao tri).
+def count_sellable_rooms_by_room_type_map(db: Session, hotel_id: int) -> dict[int, int]:
     rows = (
         db.query(Room.room_type_id, func.count(Room.id))
         .join(RoomType, RoomType.id == Room.room_type_id)
-        .filter(RoomType.hotel_id == hotel_id, Room.is_active.is_(True))
+        .filter(RoomType.hotel_id == hotel_id, Room.is_active.is_(True), Room.status != RoomStatus.MAINTENANCE)
         .group_by(Room.room_type_id)
         .all()
     )
@@ -666,6 +671,24 @@ def list_booked_rooms_in_range(
             # truoc check_out (ngay tra phong khong tinh la dem chiem giu).
             Booking.check_in_date <= to_date,
             Booking.check_out_date > from_date,
+        )
+        .all()
+    )
+
+
+# Lay cac dong khoa lich phong giao voi khoang ngay, kem loai phong - dung de
+# dung lich ton phong theo tung ngay (giong list_booked_rooms_in_range nhung
+# cho room_blocks; khoang ngay cua block dong ca 2 dau, khac booking nua-mo).
+def list_room_blocks_in_range_by_room_type(
+    db: Session, hotel_id: int, from_date: date, to_date: date
+) -> list[tuple[int, date, date]]:
+    return (
+        db.query(Room.room_type_id, RoomBlock.start_date, RoomBlock.end_date)
+        .join(Room, Room.id == RoomBlock.room_id)
+        .filter(
+            Room.hotel_id == hotel_id,
+            RoomBlock.start_date <= to_date,
+            RoomBlock.end_date >= from_date,
         )
         .all()
     )

@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from app.core.enums import BookingStatus
 from app.models.entities import Booking, BookingRoom, BookingRoomUnit, BookingService, HotelService
 
-# Cac trang thai booking khong con chiem giu phong.
-_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
+# Cac trang thai booking khong con chiem giu phong. Checked_out cung tinh la
+# khong con chiem giu du check_out_date goc chua toi - khach da check-out (ke
+# ca check-out som) nghia la phong da duoc tra that, khong con ly do giu cho.
+_INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW, BookingStatus.CHECKED_OUT)
 
 
 # Subquery tong so phong da dat theo loai phong trong khoang ngay, loai tru booking da huy/no-show.

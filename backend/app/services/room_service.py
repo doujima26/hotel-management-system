@@ -35,12 +35,13 @@ from app.repositories.room_repository import (
     get_room_type_by_id,
     get_room_type_by_id_for_update,
     get_room_type_image_by_id,
-    count_active_rooms_by_room_type,
+    count_sellable_rooms_by_room_type_map,
     list_amenities_by_room_type_ids,
     list_amenity_records_by_scope,
     list_booked_rooms_in_range,
     list_images_by_room_type_ids,
     list_room_blocks_for_hotel,
+    list_room_blocks_in_range_by_room_type,
     list_room_records,
     list_room_type_amenity_records,
     list_room_type_availability,
@@ -557,7 +558,10 @@ def get_room_calendar(db: Session, current_user: User, from_date: date, to_date:
 
     hotel = get_operational_hotel(db, current_user)
     room_types = [rt for rt in list_room_type_records(db, hotel.id) if rt.is_active]
-    room_counts = count_active_rooms_by_room_type(db, hotel.id)
+    # Tong mau so la so phong BAN DUOC (active, khong dang bao tri) - khop voi
+    # dieu kien kiem tra ton kho that luc tao booking, thay vi dem moi phong
+    # active bat ke trang thai.
+    room_counts = count_sellable_rooms_by_room_type_map(db, hotel.id)
     dates = [from_date + timedelta(days=offset) for offset in range(num_days)]
 
     # Trai so phong da dat cua tung booking ra tung ngay trong khoang. Ngay tra
@@ -570,17 +574,29 @@ def get_room_calendar(db: Session, current_user: User, from_date: date, to_date:
             booked_by_day[(room_type_id, day)] = booked_by_day.get((room_type_id, day), 0) + quantity
             day += timedelta(days=1)
 
+    # Trai cac dot khoa lich phong (room_blocks) ra tung ngay - khac booking,
+    # khoang ngay cua block dong ca 2 dau nen ngay cuoi VAN tinh la bi khoa.
+    blocked_by_day: dict[tuple[int, date], int] = {}
+    for room_type_id, block_start, block_end in list_room_blocks_in_range_by_room_type(db, hotel.id, from_date, to_date):
+        day = max(block_start, from_date)
+        last_day = min(block_end, to_date)
+        while day <= last_day:
+            blocked_by_day[(room_type_id, day)] = blocked_by_day.get((room_type_id, day), 0) + 1
+            day += timedelta(days=1)
+
     items = []
     for room_type in room_types:
         total_rooms = room_counts.get(room_type.id, 0)
         days = []
         for day in dates:
             booked = booked_by_day.get((room_type.id, day), 0)
+            blocked = blocked_by_day.get((room_type.id, day), 0)
             days.append(
                 RoomCalendarDayItem(
                     date=day,
                     booked_rooms=booked,
-                    available_rooms=max(total_rooms - booked, 0),
+                    blocked_rooms=blocked,
+                    available_rooms=max(total_rooms - booked - blocked, 0),
                 )
             )
         items.append(

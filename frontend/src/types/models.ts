@@ -153,6 +153,7 @@ export interface RoomTypeAvailability {
 export interface RoomCalendarDay {
   date: string;
   booked_rooms: number;
+  blocked_rooms: number;
   available_rooms: number;
 }
 

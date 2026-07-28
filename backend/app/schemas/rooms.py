@@ -188,6 +188,7 @@ class DeleteRoomTypeImageResponse(BaseModel):
 class RoomCalendarDayItem(BaseModel):
     date: date
     booked_rooms: int
+    blocked_rooms: int = 0
     available_rooms: int
 
 

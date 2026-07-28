@@ -137,10 +137,17 @@ export default function AdminCalendarPage() {
                   {row.days.map((day) => {
                     const soldOut = day.available_rooms === 0;
                     const almostFull = !soldOut && row.total_rooms > 0 && day.available_rooms <= row.total_rooms * 0.3;
+                    const title = [
+                      `Còn ${day.available_rooms}/${row.total_rooms}`,
+                      `đã đặt ${day.booked_rooms}`,
+                      day.blocked_rooms > 0 ? `khóa lịch ${day.blocked_rooms}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
                       <td key={day.date} className="px-1 py-1 text-center">
                         <span
-                          title={`Còn ${day.available_rooms}/${row.total_rooms} · đã đặt ${day.booked_rooms}`}
+                          title={title}
                           className={cn(
                             "flex h-9 items-center justify-center rounded-md text-sm font-semibold",
                             soldOut
