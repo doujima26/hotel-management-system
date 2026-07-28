@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.enums import (
+    AmenityScope,
     BookingStatus,
     CheckType,
     DiscountType,
@@ -179,17 +180,31 @@ class Room(Base):
 # Model bang amenities.
 class Amenity(Base):
     __tablename__ = "amenities"
-    __table_args__ = (UniqueConstraint("hotel_id", "name", name="uq_amenities_hotel_name"),)
+    __table_args__ = (UniqueConstraint("name", "scope", name="uq_amenities_name_scope"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Pham vi: HOTEL la tien nghi chung khach san (gan qua hotel_amenities), ROOM
+    # la tien nghi rieng loai phong (gan qua room_type_amenities) - 2 danh muc tach
+    # biet, khong dung chung 1 dong cho ca 2 muc dich.
+    scope: Mapped[AmenityScope] = mapped_column(
+        Enum(AmenityScope, name="amenity_scope", values_callable=enum_values),
+        nullable=False,
+    )
     icon: Mapped[str | None] = mapped_column(String(100))
     category: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
-# Model bang room_type_amenities.
+# Model bang hotel_amenities - lien ket tien nghi chung (scope=hotel) voi khach san.
+class HotelAmenity(Base):
+    __tablename__ = "hotel_amenities"
+
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
+    amenity_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("amenities.id", ondelete="CASCADE"), primary_key=True)
+
+
+# Model bang room_type_amenities - lien ket tien nghi phong (scope=room) voi loai phong.
 class RoomTypeAmenity(Base):
     __tablename__ = "room_type_amenities"
 
@@ -310,6 +325,16 @@ class Invoice(Base):
     payment_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("payments.id", ondelete="RESTRICT"), nullable=False)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="RESTRICT"), nullable=False)
+    # Chup lai thong tin nguoi mua/khach san tai thoi diem xuat hoa don - khong
+    # doc lai tu users/hotels luc hien thi, tranh hoa don cu bi doi noi dung neu
+    # sau nay user/khach san doi ten, dia chi...
+    buyer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    buyer_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    buyer_phone: Mapped[str | None] = mapped_column(String(20))
+    seller_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    seller_address: Mapped[str] = mapped_column(Text, nullable=False)
+    seller_phone: Mapped[str | None] = mapped_column(String(20))
+    seller_email: Mapped[str | None] = mapped_column(String(255))
     total_room_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     total_service_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     discount_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)

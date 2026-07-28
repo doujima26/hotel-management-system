@@ -37,8 +37,11 @@ CREATE TYPE shift_type AS ENUM ('morning', 'afternoon', 'night');
 -- Loại check-in/check-out
 CREATE TYPE check_type AS ENUM ('check_in', 'check_out');
 
+-- Pham vi tien nghi: chung khach san hay rieng loai phong
+CREATE TYPE amenity_scope AS ENUM ('hotel', 'room');
+
 -- ============================================================
--- PHẦN 2: BẢNG DỮ LIỆU (21 bảng)
+-- PHẦN 2: BẢNG DỮ LIỆU (22 bảng)
 -- ============================================================
 
 -- -------------------------------------------------------
@@ -160,20 +163,31 @@ CREATE TABLE rooms (
 COMMENT ON TABLE rooms IS 'Phòng vật lý - tách khỏi room_types để theo dõi trạng thái';
 
 -- -------------------------------------------------------
--- 7. amenities - Danh mục tiện nghi theo khách sạn
+-- 7. amenities - Danh muc tien nghi CHUNG toan he thong, do Super Admin
+-- quan ly. scope=hotel la tien nghi chung khach san (gan qua hotel_amenities),
+-- scope=room la tien nghi rieng loai phong (gan qua room_type_amenities).
 -- -------------------------------------------------------
 CREATE TABLE amenities (
     id          BIGSERIAL PRIMARY KEY,
-    hotel_id    BIGINT NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
     name        VARCHAR(100) NOT NULL,
+    scope       amenity_scope NOT NULL,
     icon        VARCHAR(100),
     category    VARCHAR(50),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(hotel_id, name)
+    UNIQUE(name, scope)
 );
 
 -- -------------------------------------------------------
--- 8. room_type_amenities - Liên kết N:N loại phòng ↔ tiện nghi
+-- 7b. hotel_amenities - Lien ket N:N khach san <-> tien nghi chung (scope=hotel)
+-- -------------------------------------------------------
+CREATE TABLE hotel_amenities (
+    hotel_id    BIGINT NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+    amenity_id  BIGINT NOT NULL REFERENCES amenities(id) ON DELETE CASCADE,
+    PRIMARY KEY (hotel_id, amenity_id)
+);
+
+-- -------------------------------------------------------
+-- 8. room_type_amenities - Lien ket N:N loai phong <-> tien nghi phong (scope=room)
 -- -------------------------------------------------------
 CREATE TABLE room_type_amenities (
     room_type_id  BIGINT NOT NULL REFERENCES room_types(id) ON DELETE CASCADE,
@@ -271,6 +285,15 @@ CREATE TABLE invoices (
     payment_id           BIGINT NOT NULL REFERENCES payments(id) ON DELETE RESTRICT,
     user_id              BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     hotel_id             BIGINT NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
+    -- Chup lai thong tin nguoi mua/khach san tai thoi diem xuat hoa don, khong
+    -- doc lai tu users/hotels luc hien thi.
+    buyer_name           VARCHAR(255) NOT NULL,
+    buyer_email          VARCHAR(255) NOT NULL,
+    buyer_phone          VARCHAR(20),
+    seller_name          VARCHAR(255) NOT NULL,
+    seller_address       TEXT NOT NULL,
+    seller_phone         VARCHAR(20),
+    seller_email         VARCHAR(255),
     total_room_price     DECIMAL(12, 2) NOT NULL,
     total_service_price  DECIMAL(12, 2) NOT NULL DEFAULT 0,
     discount_amount      DECIMAL(12, 2) NOT NULL DEFAULT 0,

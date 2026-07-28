@@ -4,7 +4,17 @@ from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelSortOption, HotelStatus
-from app.models.entities import Amenity, BookingService, Hotel, HotelImage, HotelService, Promotion, RoomType
+from app.models.entities import (
+    Amenity,
+    BookingService,
+    Hotel,
+    HotelAmenity,
+    HotelImage,
+    HotelService,
+    Promotion,
+    RoomType,
+    RoomTypeAmenity,
+)
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -162,6 +172,7 @@ def _apply_advanced_filters(
     min_rating: float | None,
     districts: list[str] | None,
     amenities: list[str] | None,
+    room_amenities: list[str] | None,
     services: list[str] | None,
     has_promotion: bool,
 ):
@@ -185,16 +196,38 @@ def _apply_advanced_filters(
     if districts:
         query = query.filter(Hotel.district.in_(districts))
 
-    # Tien nghi: AND (khach san phai co tat ca tien nghi da chon).
+    # Tien nghi: AND (khach san phai co tat ca tien nghi chung da chon).
     if amenities:
         wanted = set(amenities)
-        amenity_ids = (
-            db.query(Amenity.hotel_id)
+        hotel_ids = (
+            db.query(HotelAmenity.hotel_id)
+            .join(Amenity, Amenity.id == HotelAmenity.amenity_id)
             .filter(Amenity.name.in_(wanted))
-            .group_by(Amenity.hotel_id)
+            .group_by(HotelAmenity.hotel_id)
             .having(func.count(func.distinct(Amenity.name)) == len(wanted))
         )
-        query = query.filter(Hotel.id.in_(amenity_ids.scalar_subquery()))
+        query = query.filter(Hotel.id.in_(hotel_ids.scalar_subquery()))
+
+    # Tien nghi phong: AND trong CUNG 1 loai phong (khach san phai co it nhat 1
+    # loai phong dang hoat dong hoi du tat ca tien nghi phong da chon).
+    if room_amenities:
+        wanted_room = set(room_amenities)
+        matching_room_type_ids = (
+            db.query(RoomTypeAmenity.room_type_id)
+            .join(Amenity, Amenity.id == RoomTypeAmenity.amenity_id)
+            .filter(Amenity.name.in_(wanted_room))
+            .group_by(RoomTypeAmenity.room_type_id)
+            .having(func.count(func.distinct(Amenity.name)) == len(wanted_room))
+        )
+        hotel_ids_with_room_amenities = (
+            db.query(RoomType.hotel_id)
+            .filter(
+                RoomType.id.in_(matching_room_type_ids.scalar_subquery()),
+                RoomType.is_active.is_(True),
+            )
+            .distinct()
+        )
+        query = query.filter(Hotel.id.in_(hotel_ids_with_room_amenities.scalar_subquery()))
 
     # Dich vu: AND (chi tinh dich vu dang bat).
     if services:
@@ -238,6 +271,7 @@ def search_hotel_records(
     min_rating: float | None = None,
     districts: list[str] | None = None,
     amenities: list[str] | None = None,
+    room_amenities: list[str] | None = None,
     services: list[str] | None = None,
     has_promotion: bool = False,
     page: int,
@@ -261,6 +295,7 @@ def search_hotel_records(
         min_rating=min_rating,
         districts=districts,
         amenities=amenities,
+        room_amenities=room_amenities,
         services=services,
         has_promotion=has_promotion,
     )
@@ -303,10 +338,21 @@ def get_search_facets(
         .all()
     ]
     amenities = [
-        a
-        for (a,) in db.query(Amenity.name)
-        .filter(Amenity.hotel_id.in_(base_ids))
-        .distinct()
+        {"name": name, "count": count}
+        for name, count in db.query(Amenity.name, func.count(func.distinct(HotelAmenity.hotel_id)))
+        .join(HotelAmenity, HotelAmenity.amenity_id == Amenity.id)
+        .filter(HotelAmenity.hotel_id.in_(base_ids))
+        .group_by(Amenity.name)
+        .order_by(Amenity.name.asc())
+        .all()
+    ]
+    room_amenities = [
+        {"name": name, "count": count}
+        for name, count in db.query(Amenity.name, func.count(func.distinct(RoomType.hotel_id)))
+        .join(RoomTypeAmenity, RoomTypeAmenity.amenity_id == Amenity.id)
+        .join(RoomType, RoomType.id == RoomTypeAmenity.room_type_id)
+        .filter(RoomType.hotel_id.in_(base_ids), RoomType.is_active.is_(True))
+        .group_by(Amenity.name)
         .order_by(Amenity.name.asc())
         .all()
     ]
@@ -329,6 +375,7 @@ def get_search_facets(
         "price_max": float(price_max) if price_max is not None else None,
         "districts": districts,
         "amenities": amenities,
+        "room_amenities": room_amenities,
         "services": services,
     }
 

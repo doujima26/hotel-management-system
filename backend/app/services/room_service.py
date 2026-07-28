@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus, RoomStatus
+from app.core.enums import AmenityScope, HotelStatus, RoomStatus
 from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeImage, User
 from app.repositories.room_repository import (
     count_rooms_by_room_type,
@@ -23,7 +23,6 @@ from app.repositories.room_repository import (
     delete_room_type_record,
     get_amenity_by_id,
     get_hotel_by_id,
-    get_hotel_by_owner,
     get_room_by_id_for_update,
     get_room_type_amenity_link,
     get_room_type_by_id,
@@ -31,7 +30,7 @@ from app.repositories.room_repository import (
     get_room_type_image_by_id,
     count_active_rooms_by_room_type,
     list_amenities_by_room_type_ids,
-    list_amenity_records,
+    list_amenity_records_by_scope,
     list_booked_rooms_in_range,
     list_images_by_room_type_ids,
     list_room_records,
@@ -105,22 +104,6 @@ def validate_admin_hotel(hotel: Hotel | None, current_user: User, require_approv
             detail="Ban chi duoc quan ly khach san cua minh",
         )
     if require_approved and hotel.status != HotelStatus.APPROVED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san chua duoc duyet de van hanh",
-        )
-    return hotel
-
-
-# Lay khach san da duoc duyet cua admin hien tai.
-def get_approved_hotel_by_admin(db: Session, current_user: User) -> Hotel:
-    hotel = get_hotel_by_owner(db, current_user.id)
-    if not hotel:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin chua dang ky khach san",
-        )
-    if hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Khach san chua duoc duyet de van hanh",
@@ -302,12 +285,10 @@ def delete_room(db: Session, current_user: User, room_id: int) -> dict:
     return DeleteRoomResponse(id=room_id).model_dump(mode="json")
 
 
-# Xu ly tao tien nghi cho khach san.
-def create_amenity(db: Session, current_user: User, payload: CreateAmenityRequest) -> dict:
-    hotel = get_approved_hotel_by_admin(db, current_user)
-
+# Xu ly tao tien nghi moi trong danh muc chung (chi Super Admin).
+def create_amenity(db: Session, payload: CreateAmenityRequest) -> dict:
     try:
-        amenity = create_amenity_record(db, hotel.id, payload)
+        amenity = create_amenity_record(db, payload)
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
@@ -318,30 +299,17 @@ def create_amenity(db: Session, current_user: User, payload: CreateAmenityReques
     return serialize_amenity(amenity)
 
 
-# Xu ly lay danh sach tien nghi.
-def list_amenities(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_hotel_by_admin(db, current_user)
-    amenities = list_amenity_records(db, hotel.id)
+# Xu ly lay danh sach tien nghi trong danh muc chung theo pham vi (hotel/room).
+def list_amenities(db: Session, scope: AmenityScope) -> list[dict]:
+    amenities = list_amenity_records_by_scope(db, scope)
     return [serialize_amenity(item) for item in amenities]
 
 
-# Kiem tra tien nghi thuoc khach san cua admin hien tai.
-def _get_owned_amenity(db: Session, current_user: User, amenity_id: int) -> Amenity:
-    hotel = get_approved_hotel_by_admin(db, current_user)
+# Xu ly sua tien nghi trong danh muc chung (chi Super Admin).
+def update_amenity(db: Session, amenity_id: int, payload: UpdateAmenityRequest) -> dict:
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
-    if amenity.hotel_id != hotel.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly tien nghi cua khach san minh",
-        )
-    return amenity
-
-
-# Xu ly sua tien nghi.
-def update_amenity(db: Session, current_user: User, amenity_id: int, payload: UpdateAmenityRequest) -> dict:
-    amenity = _get_owned_amenity(db, current_user, amenity_id)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -359,9 +327,12 @@ def update_amenity(db: Session, current_user: User, amenity_id: int, payload: Up
     return serialize_amenity(amenity)
 
 
-# Xu ly xoa tien nghi (xoa het, DB tu go cac lien ket voi loai phong).
-def delete_amenity(db: Session, current_user: User, amenity_id: int) -> dict:
-    amenity = _get_owned_amenity(db, current_user, amenity_id)
+# Xu ly xoa tien nghi trong danh muc chung (chi Super Admin, DB tu go cac lien
+# ket voi khach san/loai phong nho ON DELETE CASCADE).
+def delete_amenity(db: Session, amenity_id: int) -> dict:
+    amenity = get_amenity_by_id(db, amenity_id)
+    if not amenity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
     delete_amenity_record(db, amenity)
     return DeleteAmenityResponse(id=amenity_id).model_dump(mode="json")
 
@@ -369,7 +340,7 @@ def delete_amenity(db: Session, current_user: User, amenity_id: int) -> dict:
 # Xu ly gan tien nghi vao loai phong.
 def assign_amenity_to_room_type(db: Session, current_user: User, room_type_id: int, amenity_id: int) -> dict:
     room_type = get_room_type_by_id(db, room_type_id)
-    hotel = validate_room_type_owner(db, room_type, current_user, require_approved=True)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
 
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
@@ -377,10 +348,10 @@ def assign_amenity_to_room_type(db: Session, current_user: User, room_type_id: i
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tien nghi khong ton tai",
         )
-    if amenity.hotel_id != hotel.id:
+    if amenity.scope != AmenityScope.ROOM:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tien nghi khong thuoc khach san cua ban",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chi duoc gan tien nghi thuoc danh muc 'Tien nghi phong' vao loai phong",
         )
 
     existing_link = get_room_type_amenity_link(db, room_type_id, amenity_id)

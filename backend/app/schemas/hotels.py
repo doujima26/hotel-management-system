@@ -173,13 +173,20 @@ class HotelSearchResponse(BaseModel):
     total_pages: int
 
 
+# Schema 1 tuy chon tien nghi trong sidebar loc, kem so luong khach san khop.
+class AmenityFacetItem(BaseModel):
+    name: str
+    count: int
+
+
 # Schema danh sach option cho sidebar loc (theo thanh pho dang xem) - dung
 # render checkbox quan/tien nghi/dich vu va khoang gia cho thanh ngan sach.
 class HotelSearchFiltersResponse(BaseModel):
     price_min: float | None = None
     price_max: float | None = None
     districts: list[str] = []
-    amenities: list[str] = []
+    amenities: list[AmenityFacetItem] = []
+    room_amenities: list[AmenityFacetItem] = []
     services: list[str] = []
 
 

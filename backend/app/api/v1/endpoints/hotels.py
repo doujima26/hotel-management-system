@@ -18,6 +18,7 @@ from app.schemas.hotels import (
     UpdatePromotionRequest,
 )
 from app.services.hotel_service import (
+    assign_hotel_amenity as assign_hotel_amenity_action,
     create_hotel as create_hotel_action,
     create_hotel_image as create_hotel_image_action,
     create_hotel_service as create_hotel_service_action,
@@ -28,6 +29,7 @@ from app.services.hotel_service import (
     get_hotel_detail as get_hotel_detail_action,
     get_my_hotel as get_my_hotel_action,
     get_search_filters as get_search_filters_action,
+    list_hotel_amenities as list_hotel_amenities_action,
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
@@ -37,6 +39,7 @@ from app.services.hotel_service import (
     list_valid_promotions_for_hotel as list_valid_promotions_for_hotel_action,
     search_hotels as search_hotels_action,
     set_primary_hotel_image as set_primary_hotel_image_action,
+    unassign_hotel_amenity as unassign_hotel_amenity_action,
     update_hotel as update_hotel_action,
     update_hotel_service as update_hotel_service_action,
     update_promotion as update_promotion_service_action,
@@ -65,6 +68,7 @@ def search_hotels_endpoint(
     min_rating: float | None = Query(default=None, ge=0, le=5),
     districts: list[str] | None = Query(default=None),
     amenities: list[str] | None = Query(default=None),
+    room_amenities: list[str] | None = Query(default=None),
     services: list[str] | None = Query(default=None),
     has_promotion: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
@@ -84,6 +88,7 @@ def search_hotels_endpoint(
         min_rating=min_rating,
         districts=districts,
         amenities=amenities,
+        room_amenities=room_amenities,
         services=services,
         has_promotion=has_promotion,
         page=page,
@@ -208,6 +213,38 @@ def delete_hotel_service(
 ):
     data = delete_hotel_service_action(db, current_user, service_id)
     return ok(data, "Xoa dich vu khach san thanh cong")
+
+
+# Admin gan tien nghi chung (tu danh muc Super Admin quan ly) vao khach san minh.
+@router.post("/amenities/{amenity_id}")
+def assign_hotel_amenity(
+    amenity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = assign_hotel_amenity_action(db, current_user, amenity_id)
+    return ok(data, "Gan tien nghi vao khach san thanh cong")
+
+
+# Admin go tien nghi chung khoi khach san minh (khong xoa khoi danh muc).
+@router.delete("/amenities/{amenity_id}")
+def unassign_hotel_amenity(
+    amenity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = unassign_hotel_amenity_action(db, current_user, amenity_id)
+    return ok(data, "Go tien nghi khoi khach san thanh cong")
+
+
+# Admin xem danh sach tien nghi chung da gan cho khach san minh.
+@router.get("/amenities")
+def list_hotel_amenities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = list_hotel_amenities_action(db, current_user)
+    return ok(data, "Danh sach tien nghi khach san")
 
 
 # Admin tao khuyen mai cho khach san cua minh.

@@ -25,6 +25,7 @@ interface HotelsPageProps {
     stars?: string | string[];
     districts?: string | string[];
     amenities?: string | string[];
+    room_amenities?: string | string[];
     services?: string | string[];
     page?: string;
   }>;
@@ -41,6 +42,7 @@ const EMPTY_FACETS: HotelSearchFilters = {
   price_max: null,
   districts: [],
   amenities: [],
+  room_amenities: [],
   services: [],
 };
 
@@ -58,6 +60,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   const stars = toArray(params.stars);
   const districts = toArray(params.districts);
   const amenities = toArray(params.amenities);
+  const roomAmenities = toArray(params.room_amenities);
   const services = toArray(params.services);
   const page = Number(params.page ?? "1") || 1;
 
@@ -77,6 +80,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       stars: stars.length ? stars.map(Number) : undefined,
       districts: districts.length ? districts : undefined,
       amenities: amenities.length ? amenities : undefined,
+      room_amenities: roomAmenities.length ? roomAmenities : undefined,
       services: services.length ? services : undefined,
       has_promotion: hasPromotion || undefined,
       page,
@@ -114,6 +118,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
     stars.forEach((s) => entries.push(["stars", s]));
     districts.forEach((d) => entries.push(["districts", d]));
     amenities.forEach((a) => entries.push(["amenities", a]));
+    roomAmenities.forEach((a) => entries.push(["room_amenities", a]));
     services.forEach((s) => entries.push(["services", s]));
     return entries;
   }
@@ -168,6 +173,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
               selectedStars={stars.map(Number)}
               selectedDistricts={districts}
               selectedAmenities={amenities}
+              selectedRoomAmenities={roomAmenities}
               selectedServices={services}
               minRating={minRating}
               minPrice={minPrice}

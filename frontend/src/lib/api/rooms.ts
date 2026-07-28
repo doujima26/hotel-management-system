@@ -15,6 +15,7 @@ import type {
   RoomTypeAmenityLinkResult,
   RoomTypeImage,
 } from "@/types/models";
+import type { AmenityScope } from "@/types/enums";
 
 export interface RoomAvailabilityParams {
   hotel_id: number;
@@ -60,6 +61,7 @@ export interface UpdateRoomPayload {
 
 export interface CreateAmenityPayload {
   name: string;
+  scope: AmenityScope;
   icon?: string;
   category?: string;
 }
@@ -99,7 +101,8 @@ export const roomsApi = {
 
   createAmenity: (payload: CreateAmenityPayload) =>
     apiFetch<Amenity>("/rooms/amenities", { method: "POST", body: payload, auth: true }),
-  listAmenities: () => apiFetch<Amenity[]>("/rooms/amenities", { auth: true }),
+  listAmenities: (scope: AmenityScope) =>
+    apiFetch<Amenity[]>("/rooms/amenities", { params: { scope }, auth: true }),
   updateAmenity: (amenityId: number, payload: UpdateAmenityPayload) =>
     apiFetch<Amenity>(`/rooms/amenities/${amenityId}`, { method: "PATCH", body: payload, auth: true }),
   deleteAmenity: (amenityId: number) =>

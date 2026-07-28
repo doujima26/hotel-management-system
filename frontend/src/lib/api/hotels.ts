@@ -2,9 +2,11 @@ import { serverFetch } from "./server";
 import { apiFetch } from "./client";
 import type {
   AdminHotel,
+  Amenity,
   DeleteHotelImageResult,
   DeleteHotelServiceResult,
   DeletePromotionResult,
+  HotelAmenityLinkResult,
   HotelDetail,
   HotelHighlight,
   HotelImage,
@@ -27,6 +29,7 @@ export interface SearchHotelsParams {
   min_rating?: number;
   districts?: string[];
   amenities?: string[];
+  room_amenities?: string[];
   services?: string[];
   has_promotion?: boolean;
   page?: number;
@@ -137,4 +140,10 @@ export const hotelsApi = {
     apiFetch<DeleteHotelImageResult>(`/hotels/images/${imageId}`, { method: "DELETE", auth: true }),
   setPrimaryImage: (imageId: number) =>
     apiFetch<HotelImage>(`/hotels/images/${imageId}/primary`, { method: "PATCH", auth: true }),
+
+  assignAmenity: (amenityId: number) =>
+    apiFetch<HotelAmenityLinkResult>(`/hotels/amenities/${amenityId}`, { method: "POST", auth: true }),
+  unassignAmenity: (amenityId: number) =>
+    apiFetch<HotelAmenityLinkResult>(`/hotels/amenities/${amenityId}`, { method: "DELETE", auth: true }),
+  listAmenities: () => apiFetch<Amenity[]>("/hotels/amenities", { auth: true }),
 };

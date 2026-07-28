@@ -207,8 +207,14 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
             <CardTitle>Hóa đơn {invoiceQuery.data.invoice_number}</CardTitle>
             <CardDescription>Xuất ngày {formatDate(invoiceQuery.data.issued_at)}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-1">
             <p className="text-sm">Tổng tiền đã thanh toán: {formatMoney(invoiceQuery.data.total_amount)}</p>
+            <p className="text-sm text-muted-foreground">
+              Người mua: {invoiceQuery.data.buyer_name} ({invoiceQuery.data.buyer_email})
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Đơn vị cung cấp: {invoiceQuery.data.seller_name} - {invoiceQuery.data.seller_address}
+            </p>
           </CardContent>
         </Card>
       )}

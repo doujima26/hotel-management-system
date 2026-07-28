@@ -32,6 +32,13 @@ class InvoiceResponse(BaseModel):
     invoice_number: str
     booking_id: int
     payment_id: int
+    buyer_name: str
+    buyer_email: str
+    buyer_phone: str | None = None
+    seller_name: str
+    seller_address: str
+    seller_phone: str | None = None
+    seller_email: str | None = None
     total_room_price: float
     total_service_price: float
     discount_amount: float

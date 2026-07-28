@@ -2,7 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.enums import RoomStatus
+from app.core.enums import AmenityScope, RoomStatus
 
 
 # Schema du lieu dau vao cho tao loai phong.
@@ -47,9 +47,10 @@ class UpdateRoomRequest(BaseModel):
     is_active: bool | None = None
 
 
-# Schema du lieu dau vao cho tao tien nghi.
+# Schema du lieu dau vao cho tao tien nghi (Super Admin tao trong danh muc chung).
 class CreateAmenityRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)
+    scope: AmenityScope
     icon: str | None = Field(default=None, max_length=100)
     category: str | None = Field(default=None, max_length=50)
 
@@ -109,7 +110,7 @@ class AmenityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    hotel_id: int
+    scope: AmenityScope
     name: str
     icon: str | None = None
     category: str | None = None
@@ -118,6 +119,12 @@ class AmenityResponse(BaseModel):
 # Schema du lieu tra ve sau khi gan/go tien nghi khoi loai phong.
 class RoomTypeAmenityLinkResponse(BaseModel):
     room_type_id: int
+    amenity_id: int
+
+
+# Schema du lieu tra ve sau khi gan/go tien nghi khoi khach san.
+class HotelAmenityLinkResponse(BaseModel):
+    hotel_id: int
     amenity_id: int
 
 

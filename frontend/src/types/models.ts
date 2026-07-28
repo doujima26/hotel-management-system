@@ -1,4 +1,5 @@
 import type {
+  AmenityScope,
   BookingStatus,
   DiscountType,
   HotelStatus,
@@ -86,11 +87,17 @@ export interface HotelSearchResult {
   total_pages: number;
 }
 
+export interface AmenityFacetItem {
+  name: string;
+  count: number;
+}
+
 export interface HotelSearchFilters {
   price_min: number | null;
   price_max: number | null;
   districts: string[];
-  amenities: string[];
+  amenities: AmenityFacetItem[];
+  room_amenities: AmenityFacetItem[];
   services: string[];
 }
 
@@ -223,6 +230,13 @@ export interface Invoice {
   invoice_number: string;
   booking_id: number;
   payment_id: number;
+  buyer_name: string;
+  buyer_email: string;
+  buyer_phone: string | null;
+  seller_name: string;
+  seller_address: string;
+  seller_phone: string | null;
+  seller_email: string | null;
   total_room_price: number;
   total_service_price: number;
   discount_amount: number;
@@ -380,7 +394,7 @@ export interface RoomListResult {
 
 export interface Amenity {
   id: number;
-  hotel_id: number;
+  scope: AmenityScope;
   name: string;
   icon: string | null;
   category: string | null;
@@ -388,6 +402,11 @@ export interface Amenity {
 
 export interface RoomTypeAmenityLinkResult {
   room_type_id: number;
+  amenity_id: number;
+}
+
+export interface HotelAmenityLinkResult {
+  hotel_id: number;
   amenity_id: number;
 }
 

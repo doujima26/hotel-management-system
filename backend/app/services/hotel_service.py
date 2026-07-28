@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, HotelSortOption, HotelStatus, UserRole
+from app.core.enums import AmenityScope, DiscountType, HotelSortOption, HotelStatus, UserRole
 from app.models.entities import Amenity, Hotel, HotelImage, HotelService, Promotion, User
 from app.repositories.booking_repository import count_bookings_by_promotion_id
 from app.repositories.hotel_repository import (
@@ -38,7 +38,14 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
-from app.repositories.room_repository import list_amenity_records, list_room_type_amenity_records
+from app.repositories.room_repository import (
+    create_hotel_amenity_link,
+    delete_hotel_amenity_link,
+    get_amenity_by_id,
+    get_hotel_amenity_link,
+    list_hotel_amenity_records,
+    list_room_type_amenity_records,
+)
 from app.repositories.staff_repository import get_staff_member_by_user_id
 from app.schemas.hotels import (
     CreateHotelImageRequest,
@@ -62,6 +69,7 @@ from app.schemas.hotels import (
     UpdateHotelServiceRequest,
     UpdatePromotionRequest,
 )
+from app.schemas.rooms import AmenityResponse, HotelAmenityLinkResponse
 
 
 # Chuyen khach san thanh du lieu tra ve.
@@ -222,9 +230,54 @@ def get_hotel_detail(db: Session, hotel_id: int) -> dict:
         )
 
     images = list_hotel_image_records(db, hotel.id)
-    amenities = list_amenity_records(db, hotel.id)
+    amenities = list_hotel_amenity_records(db, hotel.id)
     services = [service for service in list_hotel_service_records(db, hotel.id) if service.is_active]
     return serialize_hotel_detail(hotel, images, amenities, services)
+
+
+# Xu ly gan tien nghi chung (scope=hotel) vao khach san cua admin hien tai.
+def assign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+
+    amenity = get_amenity_by_id(db, amenity_id)
+    if not amenity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
+    if amenity.scope != AmenityScope.HOTEL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chi duoc gan tien nghi thuoc danh muc 'Tien nghi' chung vao khach san",
+        )
+
+    if get_hotel_amenity_link(db, hotel.id, amenity_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tien nghi da duoc gan vao khach san",
+        )
+
+    create_hotel_amenity_link(db, hotel.id, amenity_id)
+    return HotelAmenityLinkResponse(hotel_id=hotel.id, amenity_id=amenity_id).model_dump(mode="json")
+
+
+# Xu ly go 1 tien nghi chung khoi khach san cua admin hien tai (khong xoa amenity, chi xoa lien ket).
+def unassign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+
+    link = get_hotel_amenity_link(db, hotel.id, amenity_id)
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tien nghi chua duoc gan vao khach san nay",
+        )
+
+    delete_hotel_amenity_link(db, link)
+    return HotelAmenityLinkResponse(hotel_id=hotel.id, amenity_id=amenity_id).model_dump(mode="json")
+
+
+# Xu ly lay danh sach tien nghi chung da gan cho khach san cua admin hien tai.
+def list_hotel_amenities(db: Session, current_user: User) -> list[dict]:
+    hotel = get_approved_admin_hotel(db, current_user)
+    amenities = list_hotel_amenity_records(db, hotel.id)
+    return [AmenityResponse.model_validate(item).model_dump(mode="json") for item in amenities]
 
 
 # Xu ly tao dich vu khach san.
@@ -525,6 +578,7 @@ def search_hotels(
     min_rating: float | None = None,
     districts: list[str] | None = None,
     amenities: list[str] | None = None,
+    room_amenities: list[str] | None = None,
     services: list[str] | None = None,
     has_promotion: bool = False,
     page: int,
@@ -559,6 +613,7 @@ def search_hotels(
         min_rating=min_rating,
         districts=districts,
         amenities=amenities,
+        room_amenities=room_amenities,
         services=services,
         has_promotion=has_promotion,
         page=page,
@@ -573,9 +628,9 @@ def search_hotels(
     for hotel in hotels:
         room_type = reference_room_types.get(hotel.id)
         price_per_night = float(room_type.base_price) if room_type else None
-        room_amenities: list[str] = []
+        card_room_amenities: list[str] = []
         if room_type is not None:
-            room_amenities = [a.name for a in list_room_type_amenity_records(db, room_type.id)[:3]]
+            card_room_amenities = [a.name for a in list_room_type_amenity_records(db, room_type.id)[:3]]
         service_names = [s.name for s in list_hotel_service_records(db, hotel.id) if s.is_active][:2]
 
         total_price = None
@@ -609,7 +664,7 @@ def search_hotels(
                 primary_image_url=image_urls.get(hotel.id),
                 room_type_name=room_type.name if room_type else None,
                 bed_type=room_type.bed_type if room_type else None,
-                room_amenities=room_amenities,
+                room_amenities=card_room_amenities,
                 hotel_service_names=service_names,
                 promotion_name=promotion_name,
                 price_per_night=price_per_night,

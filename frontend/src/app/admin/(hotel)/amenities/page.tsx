@@ -3,23 +3,13 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
-import type { Amenity } from "@/types/models";
 import { useAdminHotel } from "../layout";
 
 export default function AdminAmenitiesPage() {
@@ -27,25 +17,25 @@ export default function AdminAmenitiesPage() {
   const approved = hotel.status === "approved";
   const queryClient = useQueryClient();
 
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [hotelAmenityError, setHotelAmenityError] = useState<string | null>(null);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
-  const [assignError, setAssignError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Amenity | null>(null);
-  const [editError, setEditError] = useState<string | null>(null);
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [roomAmenityError, setRoomAmenityError] = useState<string | null>(null);
 
-  const {
-    data: amenities,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["amenities"],
-    queryFn: () => roomsApi.listAmenities(),
+  const { data: hotelCatalog, isLoading: hotelCatalogLoading } = useQuery({
+    queryKey: ["amenities", "hotel"],
+    queryFn: () => roomsApi.listAmenities("hotel"),
+    enabled: approved,
+  });
+
+  const { data: assignedHotelAmenities } = useQuery({
+    queryKey: ["hotel-amenities", hotel.id],
+    queryFn: () => hotelsApi.listAmenities(),
+    enabled: approved,
+  });
+
+  const { data: roomCatalog, isLoading: roomCatalogLoading } = useQuery({
+    queryKey: ["amenities", "room"],
+    queryFn: () => roomsApi.listAmenities("room"),
     enabled: approved,
   });
 
@@ -57,271 +47,155 @@ export default function AdminAmenitiesPage() {
 
   const roomTypeId = selectedRoomTypeId ? Number(selectedRoomTypeId) : null;
 
-  const { data: assignedAmenities } = useQuery({
+  const { data: assignedRoomTypeAmenities } = useQuery({
     queryKey: ["room-type-amenities", roomTypeId],
     queryFn: () => roomsApi.listRoomTypeAmenities(roomTypeId as number),
     enabled: approved && roomTypeId !== null,
   });
 
-  async function handleCreate() {
-    setFormError(null);
-    setSubmitting(true);
+  async function handleToggleHotelAmenity(amenityId: number, assigned: boolean) {
+    setHotelAmenityError(null);
     try {
-      await roomsApi.createAmenity({ name: name.trim(), category: category.trim() || undefined });
-      toast.success("Tạo tiện nghi thành công");
-      setName("");
-      setCategory("");
-      await queryClient.invalidateQueries({ queryKey: ["amenities"] });
+      if (assigned) {
+        await hotelsApi.unassignAmenity(amenityId);
+        toast.success("Đã gỡ tiện nghi khỏi khách sạn");
+      } else {
+        await hotelsApi.assignAmenity(amenityId);
+        toast.success("Gán tiện nghi vào khách sạn thành công");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["hotel-amenities", hotel.id] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo tiện nghi thất bại");
-    } finally {
-      setSubmitting(false);
+      setHotelAmenityError(err instanceof ApiError ? err.message : "Thao tác thất bại");
     }
   }
 
-  async function handleAssign(amenityId: number) {
+  async function handleAssignRoomAmenity(amenityId: number) {
     if (roomTypeId === null) return;
-    setAssignError(null);
+    setRoomAmenityError(null);
     try {
       await roomsApi.assignAmenityToRoomType(roomTypeId, amenityId);
       toast.success("Gán tiện nghi thành công");
       await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
     } catch (err) {
-      setAssignError(err instanceof ApiError ? err.message : "Gán tiện nghi thất bại");
+      setRoomAmenityError(err instanceof ApiError ? err.message : "Gán tiện nghi thất bại");
     }
   }
 
-  async function handleUnassign(amenityId: number) {
+  async function handleUnassignRoomAmenity(amenityId: number) {
     if (roomTypeId === null) return;
-    setAssignError(null);
+    setRoomAmenityError(null);
     try {
       await roomsApi.unassignAmenityFromRoomType(roomTypeId, amenityId);
       toast.success("Đã gỡ tiện nghi khỏi loại phòng");
       await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
     } catch (err) {
-      setAssignError(err instanceof ApiError ? err.message : "Gỡ tiện nghi thất bại");
+      setRoomAmenityError(err instanceof ApiError ? err.message : "Gỡ tiện nghi thất bại");
     }
   }
 
-  async function handleDelete(amenityId: number) {
-    setDeleteError(null);
-    setDeleteBusyId(amenityId);
-    try {
-      await roomsApi.deleteAmenity(amenityId);
-      toast.success("Xóa tiện nghi thành công");
-      await queryClient.invalidateQueries({ queryKey: ["amenities"] });
-      if (roomTypeId !== null) {
-        await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
-      }
-    } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Xóa tiện nghi thất bại");
-    } finally {
-      setDeleteBusyId(null);
-    }
-  }
+  const assignedHotelAmenityIds = new Set(assignedHotelAmenities?.map((a) => a.id));
+  const assignedRoomTypeAmenityIds = new Set(assignedRoomTypeAmenities?.map((a) => a.id));
 
-  async function saveEdit(values: { name: string; category: string }) {
-    if (!editing) return;
-    setEditError(null);
-    setEditSubmitting(true);
-    try {
-      await roomsApi.updateAmenity(editing.id, {
-        name: values.name.trim(),
-        category: values.category.trim() || undefined,
-      });
-      toast.success("Cập nhật tiện nghi thành công");
-      await queryClient.invalidateQueries({ queryKey: ["amenities"] });
-      setEditing(null);
-    } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
-    } finally {
-      setEditSubmitting(false);
-    }
+  if (!approved) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Tiện nghi</CardTitle>
+          <CardDescription>Khách sạn cần được duyệt trước khi chọn tiện nghi.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
-
-  const assignedIds = new Set(assignedAmenities?.map((a) => a.id));
 
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Tạo tiện nghi khách sạn</CardTitle>
+          <CardTitle>Tiện nghi</CardTitle>
           <CardDescription>
-            {approved
-              ? "Tiện nghi dùng chung cho toàn khách sạn, sẽ gán vào từng loại phòng bên dưới."
-              : "Khách sạn cần được duyệt trước khi tạo tiện nghi."}
+            Tiện nghi chung của khách sạn (hồ bơi, bãi đỗ xe, gym...). Chọn từ danh mục do Super Admin quản lý.
           </CardDescription>
         </CardHeader>
-        {approved && (
-          <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="amenity_name">Tên tiện nghi</Label>
-                <Input id="amenity_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Wifi miễn phí" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="amenity_category">Danh mục (không bắt buộc)</Label>
-                <Input id="amenity_category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ví dụ: Kết nối" />
-              </div>
-            </div>
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
-            <Button onClick={handleCreate} disabled={submitting || !name.trim()} className="self-start">
-              {submitting ? "Đang tạo..." : "Tạo tiện nghi"}
-            </Button>
-          </CardContent>
-        )}
+        <CardContent className="flex flex-col gap-3">
+          {hotelCatalogLoading && <p className="text-muted-foreground">Đang tải...</p>}
+          {hotelAmenityError && <p className="text-sm text-destructive">{hotelAmenityError}</p>}
+          <div className="flex flex-wrap gap-2">
+            {hotelCatalog?.map((amenity) => {
+              const assigned = assignedHotelAmenityIds.has(amenity.id);
+              return (
+                <Button
+                  key={amenity.id}
+                  type="button"
+                  size="sm"
+                  variant={assigned ? "secondary" : "outline"}
+                  onClick={() => handleToggleHotelAmenity(amenity.id, assigned)}
+                >
+                  {amenity.name} {assigned ? "✓ (bấm để gỡ)" : ""}
+                </Button>
+              );
+            })}
+            {hotelCatalog && hotelCatalog.length === 0 && (
+              <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào trong danh mục.</p>
+            )}
+          </div>
+        </CardContent>
       </Card>
 
-      {approved && (
-        <>
-          <div className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">Danh sách tiện nghi</h2>
-            {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
-            {error && (
-              <p className="text-sm text-destructive">
-                {error instanceof ApiError ? error.message : "Không thể tải danh sách tiện nghi"}
-              </p>
-            )}
-            {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tiện nghi phòng</CardTitle>
+          <CardDescription>
+            Tiện nghi riêng của từng loại phòng (điều hòa, TV, minibar...). Chọn 1 loại phòng, sau đó bấm gán cho từng tiện nghi.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="room_type_select">Loại phòng</Label>
+            <Select
+              value={selectedRoomTypeId || "none"}
+              onValueChange={(v) => setSelectedRoomTypeId(!v || v === "none" ? "" : v)}
+            >
+              <SelectTrigger id="room_type_select" className="w-full sm:w-64">
+                {/* Phai tu format: mac dinh SelectValue hien gia tri tho (id loai phong). */}
+                <SelectValue>
+                  {(current) => roomTypes?.find((rt) => String(rt.id) === current)?.name ?? "Chọn loại phòng"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Chọn loại phòng</SelectItem>
+                {roomTypes?.map((rt) => (
+                  <SelectItem key={rt.id} value={String(rt.id)}>
+                    {rt.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {roomCatalogLoading && <p className="text-muted-foreground">Đang tải...</p>}
+          {roomAmenityError && <p className="text-sm text-destructive">{roomAmenityError}</p>}
+          {roomTypeId !== null && (
             <div className="flex flex-wrap gap-2">
-              {amenities?.map((amenity) => (
-                <div key={amenity.id} className="flex items-center gap-1 rounded-full border px-1 py-1 pl-3">
-                  <Badge variant="outline" className="border-0 p-0">
-                    {amenity.name}
-                    {amenity.category ? ` · ${amenity.category}` : ""}
-                  </Badge>
-                  <button
+              {roomCatalog?.map((amenity) => {
+                const assigned = assignedRoomTypeAmenityIds.has(amenity.id);
+                return (
+                  <Button
+                    key={amenity.id}
                     type="button"
-                    onClick={() => setEditing(amenity)}
-                    className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    size="sm"
+                    variant={assigned ? "secondary" : "outline"}
+                    onClick={() => (assigned ? handleUnassignRoomAmenity(amenity.id) : handleAssignRoomAmenity(amenity.id))}
                   >
-                    Sửa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(amenity.id)}
-                    disabled={deleteBusyId === amenity.id}
-                    className="px-1.5 text-xs text-destructive hover:underline"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              ))}
-              {amenities && amenities.length === 0 && <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào.</p>}
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Gán tiện nghi vào loại phòng</CardTitle>
-              <CardDescription>Chọn 1 loại phòng, sau đó bấm gán cho từng tiện nghi.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="room_type_select">Loại phòng</Label>
-                <Select
-                  value={selectedRoomTypeId || "none"}
-                  onValueChange={(v) => setSelectedRoomTypeId(!v || v === "none" ? "" : v)}
-                >
-                  <SelectTrigger id="room_type_select" className="w-full sm:w-64">
-                    {/* Phai tu format: mac dinh SelectValue hien gia tri tho (id loai phong). */}
-                    <SelectValue>
-                      {(current) => roomTypes?.find((rt) => String(rt.id) === current)?.name ?? "Chọn loại phòng"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Chọn loại phòng</SelectItem>
-                    {roomTypes?.map((rt) => (
-                      <SelectItem key={rt.id} value={String(rt.id)}>
-                        {rt.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {assignError && <p className="text-sm text-destructive">{assignError}</p>}
-              {roomTypeId !== null && (
-                <div className="flex flex-wrap gap-2">
-                  {amenities?.map((amenity) => {
-                    const assigned = assignedIds.has(amenity.id);
-                    return (
-                      <Button
-                        key={amenity.id}
-                        type="button"
-                        size="sm"
-                        variant={assigned ? "secondary" : "outline"}
-                        onClick={() => (assigned ? handleUnassign(amenity.id) : handleAssign(amenity.id))}
-                      >
-                        {amenity.name} {assigned ? "✓ (bấm để gỡ)" : ""}
-                      </Button>
-                    );
-                  })}
-                  {amenities && amenities.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào để gán.</p>
-                  )}
-                </div>
+                    {amenity.name} {assigned ? "✓ (bấm để gỡ)" : ""}
+                  </Button>
+                );
+              })}
+              {roomCatalog && roomCatalog.length === 0 && (
+                <p className="text-sm text-muted-foreground">Chưa có tiện nghi nào trong danh mục.</p>
               )}
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {editing && (
-        <EditAmenityDialog
-          amenity={editing}
-          error={editError}
-          submitting={editSubmitting}
-          onClose={() => setEditing(null)}
-          onSave={saveEdit}
-        />
-      )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
-}
-
-function EditAmenityDialog({
-  amenity,
-  error,
-  submitting,
-  onClose,
-  onSave,
-}: {
-  amenity: Amenity;
-  error: string | null;
-  submitting: boolean;
-  onClose: () => void;
-  onSave: (values: { name: string; category: string }) => void;
-}) {
-  const [name, setName] = useState(amenity.name);
-  const [category, setCategory] = useState(amenity.category ?? "");
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Sửa tiện nghi</DialogTitle>
-          <DialogDescription>Cập nhật tên/danh mục tiện nghi.</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_amenity_name">Tên tiện nghi</Label>
-            <Input id="edit_amenity_name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_amenity_category">Danh mục (không bắt buộc)</Label>
-            <Input id="edit_amenity_category" value={category} onChange={(e) => setCategory(e.target.value)} />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button onClick={() => onSave({ name, category })} disabled={submitting}>
-            Lưu
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

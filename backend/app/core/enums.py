@@ -70,6 +70,12 @@ class CheckType(StrEnum):
     CHECK_OUT = 'check_out'
 
 
+# Dinh nghia pham vi ap dung cua tien nghi: chung khach san hay rieng loai phong.
+class AmenityScope(StrEnum):
+    HOTEL = 'hotel'
+    ROOM = 'room'
+
+
 # Dinh nghia cach sap xep ket qua tim kiem khach san.
 class HotelSortOption(StrEnum):
     RECOMMENDED = 'recommended'

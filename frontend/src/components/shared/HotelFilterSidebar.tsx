@@ -30,6 +30,7 @@ interface HotelFilterSidebarProps {
   selectedStars: number[];
   selectedDistricts: string[];
   selectedAmenities: string[];
+  selectedRoomAmenities: string[];
   selectedServices: string[];
   minRating: string;
   minPrice: string;
@@ -41,6 +42,7 @@ interface NavigateOverrides {
   stars?: number[];
   districts?: string[];
   amenities?: string[];
+  roomAmenities?: string[];
   services?: string[];
   minRating?: string;
   minPrice?: string;
@@ -57,6 +59,7 @@ export function HotelFilterSidebar({
   selectedStars,
   selectedDistricts,
   selectedAmenities,
+  selectedRoomAmenities,
   selectedServices,
   minRating,
   minPrice,
@@ -73,6 +76,7 @@ export function HotelFilterSidebar({
     const stars = overrides.stars ?? selectedStars;
     const districts = overrides.districts ?? selectedDistricts;
     const amenities = overrides.amenities ?? selectedAmenities;
+    const roomAmenities = overrides.roomAmenities ?? selectedRoomAmenities;
     const services = overrides.services ?? selectedServices;
     const rating = overrides.minRating ?? minRating;
     const priceMin = overrides.minPrice ?? minPrice;
@@ -86,6 +90,7 @@ export function HotelFilterSidebar({
     stars.forEach((s) => params.append("stars", String(s)));
     districts.forEach((d) => params.append("districts", d));
     amenities.forEach((a) => params.append("amenities", a));
+    roomAmenities.forEach((a) => params.append("room_amenities", a));
     services.forEach((s) => params.append("services", s));
     if (rating) params.set("min_rating", rating);
     if (priceMin) params.set("min_price", priceMin);
@@ -114,6 +119,7 @@ export function HotelFilterSidebar({
     selectedStars.length > 0 ||
     selectedDistricts.length > 0 ||
     selectedAmenities.length > 0 ||
+    selectedRoomAmenities.length > 0 ||
     selectedServices.length > 0 ||
     Boolean(minRating) ||
     Boolean(minPrice) ||
@@ -222,19 +228,43 @@ export function HotelFilterSidebar({
         </div>
       )}
 
-      {/* Tien nghi */}
+      {/* Tien nghi chung khach san */}
       {facets.amenities.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="font-medium">Tiện nghi</p>
           {facets.amenities.map((amenity) => (
-            <label key={amenity} className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                className="size-4 accent-primary"
-                checked={selectedAmenities.includes(amenity)}
-                onChange={() => navigate({ amenities: toggle(selectedAmenities, amenity) })}
-              />
-              {amenity}
+            <label key={amenity.name} className="flex cursor-pointer items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={selectedAmenities.includes(amenity.name)}
+                  onChange={() => navigate({ amenities: toggle(selectedAmenities, amenity.name) })}
+                />
+                {amenity.name}
+              </span>
+              <span className="text-xs text-muted-foreground">{amenity.count}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {/* Tien nghi rieng loai phong */}
+      {facets.room_amenities.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Tiện nghi phòng</p>
+          {facets.room_amenities.map((amenity) => (
+            <label key={amenity.name} className="flex cursor-pointer items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={selectedRoomAmenities.includes(amenity.name)}
+                  onChange={() => navigate({ roomAmenities: toggle(selectedRoomAmenities, amenity.name) })}
+                />
+                {amenity.name}
+              </span>
+              <span className="text-xs text-muted-foreground">{amenity.count}</span>
             </label>
           ))}
         </div>

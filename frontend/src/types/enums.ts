@@ -24,6 +24,8 @@ export type ShiftType = "morning" | "afternoon" | "night";
 
 export type CheckType = "check_in" | "check_out";
 
+export type AmenityScope = "hotel" | "room";
+
 export const HOTEL_STATUS_LABELS: Record<HotelStatus, string> = {
   pending: "Chờ duyệt",
   approved: "Đã duyệt",
@@ -52,4 +54,9 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   momo: "MoMo",
   credit_card: "Thẻ tín dụng",
   bank_transfer: "Chuyển khoản",
+};
+
+export const AMENITY_SCOPE_LABELS: Record<AmenityScope, string> = {
+  hotel: "Tiện nghi",
+  room: "Tiện nghi phòng",
 };

@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, RoomStatus
-from app.models.entities import Amenity, Booking, BookingRoom, BookingRoomUnit, Hotel, Room, RoomType, RoomTypeAmenity, RoomTypeImage
+from app.core.enums import AmenityScope, BookingStatus, RoomStatus
+from app.models.entities import Amenity, Booking, BookingRoom, BookingRoomUnit, Hotel, HotelAmenity, Room, RoomType, RoomTypeAmenity, RoomTypeImage
 from app.repositories.booking_repository import booked_quantity_subquery
 from app.schemas.rooms import (
     CreateAmenityRequest,
@@ -222,11 +222,11 @@ def list_room_type_availability(
     return results
 
 
-# Tao tien nghi cho khach san.
-def create_amenity_record(db: Session, hotel_id: int, payload: CreateAmenityRequest) -> Amenity:
+# Tao tien nghi moi trong danh muc chung (Super Admin quan ly).
+def create_amenity_record(db: Session, payload: CreateAmenityRequest) -> Amenity:
     amenity = Amenity(
-        hotel_id=hotel_id,
         name=payload.name,
+        scope=payload.scope,
         icon=payload.icon,
         category=payload.category,
     )
@@ -236,9 +236,43 @@ def create_amenity_record(db: Session, hotel_id: int, payload: CreateAmenityRequ
     return amenity
 
 
-# Lay danh sach tien nghi theo khach san.
-def list_amenity_records(db: Session, hotel_id: int) -> list[Amenity]:
-    return db.query(Amenity).filter(Amenity.hotel_id == hotel_id).order_by(Amenity.name.asc()).all()
+# Lay danh sach tien nghi trong danh muc chung theo pham vi (hotel hoac room).
+def list_amenity_records_by_scope(db: Session, scope: AmenityScope) -> list[Amenity]:
+    return db.query(Amenity).filter(Amenity.scope == scope).order_by(Amenity.name.asc()).all()
+
+
+# Tao lien ket khach san va tien nghi chung.
+def create_hotel_amenity_link(db: Session, hotel_id: int, amenity_id: int) -> HotelAmenity:
+    link = HotelAmenity(hotel_id=hotel_id, amenity_id=amenity_id)
+    db.add(link)
+    db.commit()
+    return link
+
+
+# Lay lien ket khach san va tien nghi chung.
+def get_hotel_amenity_link(db: Session, hotel_id: int, amenity_id: int) -> HotelAmenity | None:
+    return (
+        db.query(HotelAmenity)
+        .filter(HotelAmenity.hotel_id == hotel_id, HotelAmenity.amenity_id == amenity_id)
+        .first()
+    )
+
+
+# Xoa 1 lien ket khach san - tien nghi chung cu the (go tien nghi khoi khach san, khong xoa amenity).
+def delete_hotel_amenity_link(db: Session, link: HotelAmenity) -> None:
+    db.delete(link)
+    db.commit()
+
+
+# Lay danh sach tien nghi chung da gan cho 1 khach san.
+def list_hotel_amenity_records(db: Session, hotel_id: int) -> list[Amenity]:
+    return (
+        db.query(Amenity)
+        .join(HotelAmenity, HotelAmenity.amenity_id == Amenity.id)
+        .filter(HotelAmenity.hotel_id == hotel_id)
+        .order_by(Amenity.name.asc())
+        .all()
+    )
 
 
 # Lay tien nghi theo id.

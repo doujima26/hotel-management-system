@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
-from app.core.enums import UserRole
+from app.core.enums import AmenityScope, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
@@ -176,47 +176,49 @@ def delete_room(
     return ok(data, "Xoa phong thanh cong")
 
 
-# Admin tao tien nghi moi cho khach san cua minh.
+# Super Admin tao tien nghi moi trong danh muc chung (scope=hotel hoac room).
 @router.post("/amenities")
 def create_amenity(
     payload: CreateAmenityRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = create_amenity_action(db, current_user, payload)
+    data = create_amenity_action(db, payload)
     return ok(data, "Tao tien nghi thanh cong")
 
 
-# Admin xem danh sach tien nghi.
+# Admin/Super Admin xem danh sach tien nghi trong danh muc chung theo pham vi.
 @router.get("/amenities")
 def list_amenities(
+    scope: AmenityScope = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)),
 ):
-    data = list_amenities_action(db, current_user)
+    data = list_amenities_action(db, scope)
     return ok(data, "Danh sach tien nghi")
 
 
-# Admin sua tien nghi cua khach san minh.
+# Super Admin sua tien nghi trong danh muc chung.
 @router.patch("/amenities/{amenity_id}")
 def update_amenity(
     amenity_id: int,
     payload: UpdateAmenityRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = update_amenity_action(db, current_user, amenity_id, payload)
+    data = update_amenity_action(db, amenity_id, payload)
     return ok(data, "Cap nhat tien nghi thanh cong")
 
 
-# Admin xoa tien nghi cua khach san minh (tu dong go khoi cac loai phong da gan).
+# Super Admin xoa tien nghi trong danh muc chung (tu dong go khoi cac khach
+# san/loai phong da gan).
 @router.delete("/amenities/{amenity_id}")
 def delete_amenity(
     amenity_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = delete_amenity_action(db, current_user, amenity_id)
+    data = delete_amenity_action(db, amenity_id)
     return ok(data, "Xoa tien nghi thanh cong")
 
 

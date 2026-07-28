@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.enums import BookingStatus
 from app.models.entities import User
 from app.repositories.booking_repository import get_booking_by_id, get_booking_by_id_for_update
+from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import (
     create_invoice_record,
     create_payment_record,
@@ -57,6 +58,12 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
             detail="Booking da duoc thanh toan",
         )
 
+    hotel = get_hotel_by_id(db, booking.hotel_id)
+    seller_address = hotel.address
+    if hotel.district:
+        seller_address = f"{seller_address}, {hotel.district}"
+    seller_address = f"{seller_address}, {hotel.city}"
+
     try:
         payment = create_payment_record(
             db,
@@ -73,6 +80,13 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
             payment_id=payment.id,
             user_id=booking.user_id,
             hotel_id=booking.hotel_id,
+            buyer_name=current_user.full_name,
+            buyer_email=current_user.email,
+            buyer_phone=current_user.phone,
+            seller_name=hotel.name,
+            seller_address=seller_address,
+            seller_phone=hotel.phone,
+            seller_email=hotel.email,
             total_room_price=float(booking.total_room_price),
             total_service_price=float(booking.total_service_price),
             discount_amount=float(booking.discount_amount),
