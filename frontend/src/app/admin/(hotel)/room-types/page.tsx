@@ -208,6 +208,9 @@ export default function AdminRoomTypesPage() {
               <Link href={`/admin/room-types/${roomType.id}/rooms`} className="text-sm text-primary hover:underline">
                 Quản lý phòng vật lý &amp; ảnh &rarr;
               </Link>
+              <Link href={`/admin/room-types/${roomType.id}/rates`} className="text-sm text-primary hover:underline">
+                Giá theo ngày &rarr;
+              </Link>
               <Button size="sm" variant="outline" onClick={() => setEditing(roomType)}>
                 Sửa
               </Button>

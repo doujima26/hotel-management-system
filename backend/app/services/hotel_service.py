@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -43,6 +43,7 @@ from app.repositories.room_repository import (
     delete_hotel_amenity_link,
     get_amenity_by_id,
     get_hotel_amenity_link,
+    get_rates_in_range,
     list_hotel_amenity_records,
     list_room_type_amenity_records,
 )
@@ -638,7 +639,20 @@ def search_hotels(
         discount_percent = None
         promotion_name = None
         if price_per_night is not None:
-            total_price = price_per_night * (num_nights or 1)
+            if check_in and check_out and room_type is not None:
+                # Gia co the khac nhau tung dem (gia theo mua/ngay ghi de) -
+                # cong don gia tung dem thay vi nhan 1 gia phang, giong het
+                # cach tinh tien luc tao booking that (create_booking).
+                rates = get_rates_in_range(db, room_type.id, check_in, check_out)
+                nights_total = 0.0
+                current_night = check_in
+                while current_night < check_out:
+                    nights_total += rates.get(current_night, price_per_night)
+                    current_night += timedelta(days=1)
+                total_price = nights_total
+                price_per_night = nights_total / num_nights if num_nights else price_per_night
+            else:
+                total_price = price_per_night * (num_nights or 1)
             best: tuple[float, float, str] | None = None
             for promotion in list_valid_promotion_records(db, hotel.id, date.today()):
                 result = _calc_effective_discount(promotion, total_price)

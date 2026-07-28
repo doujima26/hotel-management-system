@@ -10,18 +10,24 @@ from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.rooms import (
     CreateAmenityRequest,
+    CreateRoomBlockRequest,
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
+    SeasonalRateRequest,
+    SetRoomTypeRateRequest,
     UpdateAmenityRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
 from app.services.checkin_service import get_room_status_board as get_room_status_board_action
 from app.services.room_service import (
+    apply_seasonal_rate as apply_seasonal_rate_action,
     assign_amenity_to_room_type as assign_amenity_to_room_type_action,
+    clear_room_type_rate as clear_room_type_rate_action,
     create_amenity as create_amenity_action,
     create_room as create_room_action,
+    create_room_block as create_room_block_action,
     create_room_type as create_room_type_action,
     create_room_type_image as create_room_type_image_action,
     delete_amenity as delete_amenity_action,
@@ -30,12 +36,16 @@ from app.services.room_service import (
     delete_room_type_image as delete_room_type_image_action,
     get_room_availability as get_room_availability_action,
     get_room_calendar as get_room_calendar_action,
+    get_room_type_rate_calendar as get_room_type_rate_calendar_action,
     list_amenities as list_amenities_action,
+    list_room_blocks as list_room_blocks_action,
     list_room_type_amenities as list_room_type_amenities_action,
     list_room_type_images as list_room_type_images_action,
     list_room_types as list_room_types_action,
     list_rooms as list_rooms_action,
+    remove_room_block as remove_room_block_action,
     set_primary_room_type_image as set_primary_room_type_image_action,
+    set_room_type_rate as set_room_type_rate_action,
     unassign_amenity_from_room_type as unassign_amenity_from_room_type_action,
     update_amenity as update_amenity_action,
     update_room as update_room_action,
@@ -302,3 +312,87 @@ def set_primary_room_type_image(
 ):
     data = set_primary_room_type_image_action(db, current_user, room_type_id, image_id)
     return ok(data, "Dat anh dai dien thanh cong")
+
+
+# Admin xem lich gia (gia ghi de + gia hieu luc tung ngay) cua loai phong.
+@router.get("/room-types/{room_type_id}/rates")
+def get_room_type_rate_calendar(
+    room_type_id: int,
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = get_room_type_rate_calendar_action(db, current_user, room_type_id, from_date, to_date)
+    return ok(data, "Lich gia loai phong")
+
+
+# Admin ap gia theo mua cho 1 khoang ngay (tinh va ghi de hang loat).
+@router.post("/room-types/{room_type_id}/rates/seasonal")
+def apply_seasonal_rate(
+    room_type_id: int,
+    payload: SeasonalRateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = apply_seasonal_rate_action(db, current_user, room_type_id, payload)
+    return ok(data, "Ap gia theo mua thanh cong")
+
+
+# Admin sua tay gia 1 ngay cu the cua loai phong.
+@router.put("/room-types/{room_type_id}/rates/{rate_date}")
+def set_room_type_rate(
+    room_type_id: int,
+    rate_date: date,
+    payload: SetRoomTypeRateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = set_room_type_rate_action(db, current_user, room_type_id, rate_date, payload)
+    return ok(data, "Cap nhat gia ngay thanh cong")
+
+
+# Admin xoa gia ghi de 1 ngay (quay ve base_price).
+@router.delete("/room-types/{room_type_id}/rates/{rate_date}")
+def clear_room_type_rate(
+    room_type_id: int,
+    rate_date: date,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = clear_room_type_rate_action(db, current_user, room_type_id, rate_date)
+    return ok(data, "Xoa gia ghi de thanh cong")
+
+
+# Admin tao khoa lich cho 1 phong vat ly.
+@router.post("/blocks")
+def create_room_block(
+    payload: CreateRoomBlockRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = create_room_block_action(db, current_user, payload)
+    return ok(data, "Tao khoa lich phong thanh cong")
+
+
+# Admin xem danh sach khoa lich cua khach san minh theo khoang ngay.
+@router.get("/blocks")
+def list_room_blocks(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = list_room_blocks_action(db, current_user, from_date, to_date)
+    return ok(data, "Danh sach khoa lich phong")
+
+
+# Admin xoa 1 khoa lich (huy khoa som).
+@router.delete("/blocks/{block_id}")
+def delete_room_block(
+    block_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = remove_room_block_action(db, current_user, block_id)
+    return ok(data, "Xoa khoa lich phong thanh cong")

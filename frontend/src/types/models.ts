@@ -171,6 +171,33 @@ export interface RoomCalendar {
   items: RoomCalendarRow[];
 }
 
+export interface RoomTypeRateDay {
+  date: string;
+  override_price: number | null;
+  effective_price: number;
+}
+
+export interface RoomTypeRateCalendar {
+  room_type_id: number;
+  from_date: string;
+  to_date: string;
+  days: RoomTypeRateDay[];
+}
+
+export interface RoomBlock {
+  id: number;
+  room_id: number;
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+  created_by: number;
+  created_at: string;
+}
+
+export interface DeleteRoomBlockResult {
+  id: number;
+}
+
 export interface RoomAvailability {
   hotel_id: number;
   check_in: string;
@@ -493,6 +520,8 @@ export interface RoomStatusItem {
   status: RoomStatus;
   current_booking_code: string | null;
   expected_check_out: string | null;
+  is_blocked: boolean;
+  block_reason: string | null;
 }
 
 export interface DeleteScheduleResult {

@@ -3,10 +3,12 @@ import { apiFetch } from "./client";
 import type {
   Amenity,
   DeleteAmenityResult,
+  DeleteRoomBlockResult,
   DeleteRoomResult,
   DeleteRoomTypeImageResult,
   DeleteRoomTypeResult,
   RoomAvailability,
+  RoomBlock,
   RoomCalendar,
   RoomItem,
   RoomListResult,
@@ -14,8 +16,10 @@ import type {
   RoomType,
   RoomTypeAmenityLinkResult,
   RoomTypeImage,
+  RoomTypeRateCalendar,
+  RoomTypeRateDay,
 } from "@/types/models";
-import type { AmenityScope } from "@/types/enums";
+import type { AmenityScope, DiscountType } from "@/types/enums";
 
 export interface RoomAvailabilityParams {
   hotel_id: number;
@@ -75,6 +79,20 @@ export interface UpdateAmenityPayload {
 export interface CreateRoomTypeImagePayload {
   image_url: string;
   is_primary?: boolean;
+}
+
+export interface SeasonalRatePayload {
+  from_date: string;
+  to_date: string;
+  adjustment_type: DiscountType;
+  adjustment_value: number;
+}
+
+export interface CreateRoomBlockPayload {
+  room_id: number;
+  start_date: string;
+  end_date: string;
+  reason?: string;
 }
 
 export const roomsApi = {
@@ -138,4 +156,31 @@ export const roomsApi = {
   statusBoard: () => apiFetch<RoomStatusItem[]>("/rooms/status", { auth: true }),
   calendar: (params: { from_date: string; to_date: string }) =>
     apiFetch<RoomCalendar>("/rooms/calendar", { params, auth: true }),
+
+  getRateCalendar: (roomTypeId: number, params: { from_date: string; to_date: string }) =>
+    apiFetch<RoomTypeRateCalendar>(`/rooms/room-types/${roomTypeId}/rates`, { params, auth: true }),
+  setRate: (roomTypeId: number, rateDate: string, price: number) =>
+    apiFetch<RoomTypeRateDay>(`/rooms/room-types/${roomTypeId}/rates/${rateDate}`, {
+      method: "PUT",
+      body: { price },
+      auth: true,
+    }),
+  clearRate: (roomTypeId: number, rateDate: string) =>
+    apiFetch<RoomTypeRateDay>(`/rooms/room-types/${roomTypeId}/rates/${rateDate}`, {
+      method: "DELETE",
+      auth: true,
+    }),
+  applySeasonalRate: (roomTypeId: number, payload: SeasonalRatePayload) =>
+    apiFetch<RoomTypeRateCalendar>(`/rooms/room-types/${roomTypeId}/rates/seasonal`, {
+      method: "POST",
+      body: payload,
+      auth: true,
+    }),
+
+  createRoomBlock: (payload: CreateRoomBlockPayload) =>
+    apiFetch<RoomBlock>("/rooms/blocks", { method: "POST", body: payload, auth: true }),
+  listRoomBlocks: (params: { from_date: string; to_date: string }) =>
+    apiFetch<RoomBlock[]>("/rooms/blocks", { params, auth: true }),
+  deleteRoomBlock: (blockId: number) =>
+    apiFetch<DeleteRoomBlockResult>(`/rooms/blocks/${blockId}`, { method: "DELETE", auth: true }),
 };

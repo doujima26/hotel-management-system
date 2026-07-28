@@ -4,11 +4,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import AmenityScope, HotelStatus, RoomStatus
+from app.core.enums import AmenityScope, DiscountType, HotelStatus, RoomStatus
 from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeImage, User
 from app.repositories.room_repository import (
+    bulk_upsert_room_type_rates,
     count_rooms_by_room_type,
     create_amenity_record,
+    create_room_block_record,
     create_room_record,
     count_all_rooms_by_room_type,
     count_booking_room_units_by_room,
@@ -17,12 +19,17 @@ from app.repositories.room_repository import (
     create_room_type_image_record,
     create_room_type_record,
     delete_amenity_record,
+    delete_room_block,
     delete_room_record,
     delete_room_type_amenity_link,
     delete_room_type_image_record,
     delete_room_type_record,
+    delete_room_type_rate,
     get_amenity_by_id,
     get_hotel_by_id,
+    get_overlapping_room_blocks,
+    get_rates_in_range,
+    get_room_block_by_id,
     get_room_by_id_for_update,
     get_room_type_amenity_link,
     get_room_type_by_id,
@@ -33,6 +40,7 @@ from app.repositories.room_repository import (
     list_amenity_records_by_scope,
     list_booked_rooms_in_range,
     list_images_by_room_type_ids,
+    list_room_blocks_for_hotel,
     list_room_records,
     list_room_type_amenity_records,
     list_room_type_availability,
@@ -42,18 +50,22 @@ from app.repositories.room_repository import (
     save_room,
     save_room_type,
     set_room_type_image_primary,
+    upsert_room_type_rate,
 )
 from app.schemas.rooms import (
     AmenityResponse,
     CreateAmenityRequest,
+    CreateRoomBlockRequest,
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
     DeleteAmenityResponse,
+    DeleteRoomBlockResponse,
     DeleteRoomResponse,
     DeleteRoomTypeImageResponse,
     DeleteRoomTypeResponse,
     RoomAvailabilityResponse,
+    RoomBlockResponse,
     RoomCalendarDayItem,
     RoomCalendarResponse,
     RoomCalendarRowItem,
@@ -63,7 +75,11 @@ from app.schemas.rooms import (
     RoomTypeAmenityLinkResponse,
     RoomTypeAvailabilityResponse,
     RoomTypeImageResponse,
+    RoomTypeRateCalendarResponse,
+    RoomTypeRateDayItem,
     RoomTypeResponse,
+    SeasonalRateRequest,
+    SetRoomTypeRateRequest,
     UpdateAmenityRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
@@ -422,12 +438,30 @@ def get_room_availability(
     images_by_room_type = list_images_by_room_type_ids(db, room_type_ids)
     amenities_by_room_type = list_amenities_by_room_type_ids(db, room_type_ids)
 
+    num_nights = (check_out - check_in).days
+
+    def _average_effective_price(room_type: RoomType) -> float:
+        # Gia co the khac nhau tung dem (gia theo mua/ngay ghi de trong
+        # room_type_rates) - tra ve gia BINH QUAN/dem cho dung khoang ngay
+        # dang xem, de frontend nhan voi so dem van ra dung tong tien that
+        # (giong het cach create_booking tinh tien).
+        base_price = float(room_type.base_price)
+        rates = get_rates_in_range(db, room_type.id, check_in, check_out)
+        if not rates:
+            return base_price
+        nights_total = 0.0
+        current_night = check_in
+        while current_night < check_out:
+            nights_total += rates.get(current_night, base_price)
+            current_night += timedelta(days=1)
+        return nights_total / num_nights if num_nights else base_price
+
     items = [
         RoomTypeAvailabilityResponse(
             room_type_id=room_type.id,
             name=room_type.name,
             description=room_type.description,
-            base_price=float(room_type.base_price),
+            base_price=_average_effective_price(room_type),
             max_guests=room_type.max_guests,
             bed_type=room_type.bed_type,
             area_sqm=float(room_type.area_sqm) if room_type.area_sqm is not None else None,
@@ -565,3 +599,154 @@ def get_room_calendar(db: Session, current_user: User, from_date: date, to_date:
         dates=dates,
         items=items,
     ).model_dump(mode="json")
+
+
+_MAX_RATE_RANGE_DAYS = 366
+
+
+# Xu ly lay lich gia cua 1 loai phong theo khoang ngay (gia ghi de + gia hieu
+# luc tung ngay - hieu luc = ghi de neu co, khong thi dung base_price).
+def get_room_type_rate_calendar(
+    db: Session, current_user: User, room_type_id: int, from_date: date, to_date: date
+) -> dict:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user)
+    if to_date < from_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+    if (to_date - from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chi xem toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
+        )
+
+    overrides = get_rates_in_range(db, room_type_id, from_date, to_date)
+    base_price = float(room_type.base_price)
+
+    days = []
+    current = from_date
+    while current <= to_date:
+        override_price = overrides.get(current)
+        days.append(
+            RoomTypeRateDayItem(
+                date=current,
+                override_price=override_price,
+                effective_price=override_price if override_price is not None else base_price,
+            )
+        )
+        current += timedelta(days=1)
+
+    return RoomTypeRateCalendarResponse(
+        room_type_id=room_type_id, from_date=from_date, to_date=to_date, days=days
+    ).model_dump(mode="json")
+
+
+# Xu ly sua tay gia 1 ngay cu the.
+def set_room_type_rate(
+    db: Session, current_user: User, room_type_id: int, rate_date: date, payload: SetRoomTypeRateRequest
+) -> dict:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    rate = upsert_room_type_rate(db, room_type_id, rate_date, payload.price)
+    return RoomTypeRateDayItem(
+        date=rate_date, override_price=float(rate.price), effective_price=float(rate.price)
+    ).model_dump(mode="json")
+
+
+# Xu ly xoa gia ghi de 1 ngay (quay ve dung base_price).
+def clear_room_type_rate(db: Session, current_user: User, room_type_id: int, rate_date: date) -> dict:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    deleted = delete_room_type_rate(db, room_type_id, rate_date)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ngay nay chua co gia ghi de")
+
+    return RoomTypeRateDayItem(
+        date=rate_date, override_price=None, effective_price=float(room_type.base_price)
+    ).model_dump(mode="json")
+
+
+# Xu ly ap gia theo mua cho 1 khoang ngay - tinh 1 lan tu base_price + dieu
+# chinh roi ghi de hang loat, khong luu lai "quy tac" nao (xem giai thich o
+# bulk_upsert_room_type_rates). Sau khi ap, Admin van sua tay tung ngay binh
+# thuong qua set_room_type_rate.
+def apply_seasonal_rate(
+    db: Session, current_user: User, room_type_id: int, payload: SeasonalRateRequest
+) -> dict:
+    room_type = get_room_type_by_id(db, room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    if payload.to_date < payload.from_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+    if (payload.to_date - payload.from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chi ap dung toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
+        )
+
+    base_price = float(room_type.base_price)
+    if payload.adjustment_type == DiscountType.PERCENTAGE and payload.adjustment_value <= -100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Muc giam theo phan tram khong duoc tu 100% tro len")
+    if payload.adjustment_type == DiscountType.FIXED_AMOUNT and base_price + payload.adjustment_value <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gia sau dieu chinh phai lon hon 0")
+
+    bulk_upsert_room_type_rates(
+        db,
+        room_type_id,
+        base_price,
+        payload.from_date,
+        payload.to_date,
+        payload.adjustment_type,
+        payload.adjustment_value,
+    )
+    return get_room_type_rate_calendar(db, current_user, room_type_id, payload.from_date, payload.to_date)
+
+
+# Xu ly tao khoa lich cho 1 phong vat ly.
+def create_room_block(db: Session, current_user: User, payload: CreateRoomBlockRequest) -> dict:
+    if payload.end_date < payload.start_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+
+    room = get_room_by_id_for_update(db, payload.room_id)
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+    room_type = get_room_type_by_id(db, room.room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    if get_overlapping_room_blocks(db, room.id, payload.start_date, payload.end_date):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Phong nay da co khoa lich khac trong khoang ngay giao nhau",
+        )
+
+    block = create_room_block_record(
+        db,
+        room_id=room.id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        reason=payload.reason,
+        created_by=current_user.id,
+    )
+    return RoomBlockResponse.model_validate(block).model_dump(mode="json")
+
+
+# Xu ly xoa 1 khoa lich (huy khoa som).
+def remove_room_block(db: Session, current_user: User, block_id: int) -> dict:
+    block = get_room_block_by_id(db, block_id)
+    if not block:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khoa lich khong ton tai")
+
+    room = get_room_by_id_for_update(db, block.room_id)
+    room_type = get_room_type_by_id(db, room.room_type_id)
+    validate_room_type_owner(db, room_type, current_user, require_approved=True)
+
+    delete_room_block(db, block)
+    return DeleteRoomBlockResponse(id=block_id).model_dump(mode="json")
+
+
+# Xu ly lay danh sach khoa lich cua khach san hien tai theo khoang ngay.
+def list_room_blocks(db: Session, current_user: User, from_date: date, to_date: date) -> list[dict]:
+    hotel = get_operational_hotel(db, current_user)
+    blocks = list_room_blocks_for_hotel(db, hotel.id, from_date, to_date)
+    return [RoomBlockResponse.model_validate(block).model_dump(mode="json") for block in blocks]

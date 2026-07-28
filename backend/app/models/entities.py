@@ -157,6 +157,20 @@ class RoomTypeImage(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang room_type_rates - gia ghi de theo tung ngay cu the. Khong co dong
+# nao cho 1 ngay thi dung room_types.base_price lam gia mac dinh.
+class RoomTypeRate(Base):
+    __tablename__ = "room_type_rates"
+    __table_args__ = (UniqueConstraint("room_type_id", "rate_date", name="uq_room_type_rate_date"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="CASCADE"), nullable=False)
+    rate_date: Mapped[Date] = mapped_column(Date, nullable=False)
+    price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 # Model bang rooms.
 class Room(Base):
     __tablename__ = "rooms"
@@ -175,6 +189,22 @@ class Room(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+# Model bang room_blocks - khoa 1 phong vat ly trong 1 khoang ngay (dong ca 2
+# dau: start_date/end_date la ngay dau/cuoi CON bi khoa), dung cho bao tri da
+# len lich truoc hoac giu phong ngoai muc dich ban thong thuong.
+class RoomBlock(Base):
+    __tablename__ = "room_blocks"
+    __table_args__ = (CheckConstraint("end_date >= start_date", name="ck_room_blocks_dates"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    room_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
+    start_date: Mapped[Date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[Date] = mapped_column(Date, nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 # Model bang amenities.

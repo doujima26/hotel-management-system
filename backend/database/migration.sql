@@ -41,7 +41,7 @@ CREATE TYPE check_type AS ENUM ('check_in', 'check_out');
 CREATE TYPE amenity_scope AS ENUM ('hotel', 'room');
 
 -- ============================================================
--- PHẦN 2: BẢNG DỮ LIỆU (22 bảng)
+-- PHẦN 2: BẢNG DỮ LIỆU (24 bảng)
 -- ============================================================
 
 -- -------------------------------------------------------
@@ -145,6 +145,22 @@ CREATE TABLE room_type_images (
 );
 
 -- -------------------------------------------------------
+-- 5b. room_type_rates - Gia ghi de theo tung ngay cu the cua 1 loai phong.
+-- Khong co dong nao cho 1 ngay thi dung room_types.base_price lam gia mac
+-- dinh. Ho tro "ap gia theo mua": tinh 1 lan roi ghi de hang loat vao bang
+-- nay, khong luu lai quy tac rieng nao.
+-- -------------------------------------------------------
+CREATE TABLE room_type_rates (
+    id            BIGSERIAL PRIMARY KEY,
+    room_type_id  BIGINT NOT NULL REFERENCES room_types(id) ON DELETE CASCADE,
+    rate_date     DATE NOT NULL,
+    price         DECIMAL(12, 2) NOT NULL CHECK (price > 0),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (room_type_id, rate_date)
+);
+
+-- -------------------------------------------------------
 -- 6. rooms - Phòng vật lý (theo dõi trạng thái từng phòng)
 -- -------------------------------------------------------
 CREATE TABLE rooms (
@@ -161,6 +177,25 @@ CREATE TABLE rooms (
 );
 
 COMMENT ON TABLE rooms IS 'Phòng vật lý - tách khỏi room_types để theo dõi trạng thái';
+
+-- -------------------------------------------------------
+-- 6b. room_blocks - Khoa 1 phong vat ly trong 1 khoang ngay (dong ca 2 dau)
+-- - dung cho bao tri da len lich truoc hoac giu phong ngoai muc dich ban
+-- thong thuong. Khac voi bookings (nua-mo): start_date/end_date la ngay
+-- dau/cuoi CON bi khoa.
+-- -------------------------------------------------------
+CREATE TABLE room_blocks (
+    id          BIGSERIAL PRIMARY KEY,
+    room_id     BIGINT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    start_date  DATE NOT NULL,
+    end_date    DATE NOT NULL,
+    reason      TEXT,
+    created_by  BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT ck_room_blocks_dates CHECK (end_date >= start_date)
+);
+
+CREATE INDEX idx_room_blocks_room_dates ON room_blocks (room_id, start_date, end_date);
 
 -- -------------------------------------------------------
 -- 7. amenities - Danh muc tien nghi CHUNG toan he thong, do Super Admin

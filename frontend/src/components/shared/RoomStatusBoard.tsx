@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { DoorClosed } from "lucide-react";
+import { DoorClosed, Lock } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { RoomStatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,33 @@ const STATUS_BORDER: Record<RoomStatus, string> = {
   cleaning: "border-l-amber-500",
   maintenance: "border-l-red-500",
 };
+
+// Mau rieng cho phong dang bi khoa lich (room_blocks) - uu tien hien thi mau
+// nay thay cho mau theo status, vi phong nay thuc te khong ban/su dung duoc
+// hom nay du status van la gi.
+const BLOCKED_BORDER = "border-l-purple-500";
+
+const LEGEND_ITEMS: { color: string; label: string }[] = [
+  { color: "bg-green-500", label: ROOM_STATUS_LABELS.available },
+  { color: "bg-blue-500", label: ROOM_STATUS_LABELS.occupied },
+  { color: "bg-amber-500", label: ROOM_STATUS_LABELS.cleaning },
+  { color: "bg-red-500", label: ROOM_STATUS_LABELS.maintenance },
+  { color: "bg-purple-500", label: "Đang khóa lịch" },
+];
+
+// Chu thich mau dung chung cho so do phong.
+function ColorLegend() {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+      {LEGEND_ITEMS.map((item) => (
+        <span key={item.label} className="flex items-center gap-1.5">
+          <span className={cn("size-3 rounded-full", item.color)} />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 // Dem so phong theo tung trang thai.
 function countByStatus(rooms: RoomStatusItem[]): Record<RoomStatus, number> {
@@ -83,9 +110,12 @@ export function RoomStatusBoard() {
   return (
     <div className="flex flex-col gap-5">
       {/* Tong ket toan khach san */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 p-3">
-        <span className="text-sm font-medium">Tổng {rooms.length} phòng</span>
-        <StatusSummary rooms={rooms} />
+      <div className="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-medium">Tổng {rooms.length} phòng</span>
+          <StatusSummary rooms={rooms} />
+        </div>
+        <ColorLegend />
       </div>
 
       {floors.map(([floor, floorRooms]) => (
@@ -102,13 +132,25 @@ export function RoomStatusBoard() {
             {floorRooms.map((room) => (
               <div
                 key={room.room_id}
-                className={cn("flex flex-col gap-1.5 rounded-lg border border-l-4 p-3", STATUS_BORDER[room.status])}
+                className={cn(
+                  "flex flex-col gap-1.5 rounded-lg border border-l-4 p-3",
+                  room.is_blocked ? BLOCKED_BORDER : STATUS_BORDER[room.status],
+                )}
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-lg font-bold">{room.room_number}</span>
                   <span className="truncate text-xs text-muted-foreground">{room.room_type_name}</span>
                 </div>
                 <RoomStatusBadge status={room.status} />
+                {room.is_blocked && (
+                  <span
+                    className="inline-flex w-fit shrink-0 items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                    title={room.block_reason ?? undefined}
+                  >
+                    <Lock className="size-3 shrink-0" />
+                    Đang khóa lịch
+                  </span>
+                )}
                 {room.current_booking_code && (
                   <p className="text-xs text-muted-foreground">
                     {room.current_booking_code}

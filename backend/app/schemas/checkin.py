@@ -15,6 +15,10 @@ class RoomStatusItemResponse(BaseModel):
     status: RoomStatus
     current_booking_code: str | None = None
     expected_check_out: date | None = None
+    # Phong co the dang bi khoa lich (room_blocks) dung hom nay du status van
+    # la AVAILABLE - day la thong tin rieng, khong phai 1 gia tri cua RoomStatus.
+    is_blocked: bool = False
+    block_reason: str | None = None
 
 
 # Schema 1 dong gan phong vat ly cho 1 dong booking_room cu the (co the gan

@@ -14,7 +14,12 @@ from app.repositories.checkin_repository import (
     create_room_status_log,
     get_active_booking_for_room,
 )
-from app.repositories.room_repository import get_room_by_id_for_update, list_rooms_with_type_by_hotel
+from app.repositories.room_repository import (
+    get_active_room_blocks_for_hotel,
+    get_room_blocks_for_stay,
+    get_room_by_id_for_update,
+    list_rooms_with_type_by_hotel,
+)
 from app.repositories.staff_repository import get_staff_member_by_user_id
 from app.schemas.checkin import CheckInRequest, CheckOutRequest, RoomStatusItemResponse
 from app.services.booking_service import serialize_booking
@@ -25,6 +30,7 @@ from app.services.hotel_service import get_operational_hotel
 def get_room_status_board(db: Session, current_user: User) -> list[dict]:
     hotel = get_operational_hotel(db, current_user)
     rows = list_rooms_with_type_by_hotel(db, hotel.id)
+    active_blocks = get_active_room_blocks_for_hotel(db, hotel.id, business_today())
 
     items = []
     for room, room_type in rows:
@@ -36,6 +42,8 @@ def get_room_status_board(db: Session, current_user: User) -> list[dict]:
                 current_booking_code = booking.booking_code
                 expected_check_out = booking.check_out_date
 
+        block = active_blocks.get(room.id)
+
         items.append(
             RoomStatusItemResponse(
                 room_id=room.id,
@@ -46,6 +54,8 @@ def get_room_status_board(db: Session, current_user: User) -> list[dict]:
                 status=room.status,
                 current_booking_code=current_booking_code,
                 expected_check_out=expected_check_out,
+                is_blocked=block is not None,
+                block_reason=block.reason if block else None,
             )
         )
     return [item.model_dump(mode="json") for item in items]
@@ -121,6 +131,13 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Phong {room.room_number} hien khong san sang de nhan phong",
+                )
+            overlapping_blocks = get_room_blocks_for_stay(db, room.id, booking.check_in_date, booking.check_out_date)
+            if overlapping_blocks:
+                reason = overlapping_blocks[0].reason or "khong ro ly do"
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Phong {room.room_number} dang bi khoa lich ({reason}) trong khoang ngay nay",
                 )
             assigned_room_ids.add(room_id)
 

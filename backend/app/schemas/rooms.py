@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.enums import AmenityScope, RoomStatus
+from app.core.enums import AmenityScope, DiscountType, RoomStatus
 
 
 # Schema du lieu dau vao cho tao loai phong.
@@ -206,3 +206,57 @@ class RoomCalendarResponse(BaseModel):
     to_date: date
     dates: list[date]
     items: list[RoomCalendarRowItem]
+
+
+# Schema du lieu dau vao cho sua tay gia 1 ngay cu the.
+class SetRoomTypeRateRequest(BaseModel):
+    price: float = Field(gt=0)
+
+
+# Schema du lieu dau vao cho ap gia theo mua cho 1 khoang ngay.
+class SeasonalRateRequest(BaseModel):
+    from_date: date
+    to_date: date
+    adjustment_type: DiscountType
+    adjustment_value: float
+
+
+# Schema 1 ngay trong lich gia cua 1 loai phong.
+class RoomTypeRateDayItem(BaseModel):
+    date: date
+    override_price: float | None = None
+    effective_price: float
+
+
+# Schema lich gia cua 1 loai phong theo khoang ngay.
+class RoomTypeRateCalendarResponse(BaseModel):
+    room_type_id: int
+    from_date: date
+    to_date: date
+    days: list[RoomTypeRateDayItem]
+
+
+# Schema du lieu dau vao cho tao khoa lich phong vat ly.
+class CreateRoomBlockRequest(BaseModel):
+    room_id: int = Field(gt=0)
+    start_date: date
+    end_date: date
+    reason: str | None = Field(default=None, max_length=500)
+
+
+# Schema du lieu tra ve khoa lich phong.
+class RoomBlockResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    room_id: int
+    start_date: date
+    end_date: date
+    reason: str | None = None
+    created_by: int
+    created_at: datetime
+
+
+# Schema du lieu tra ve sau khi xoa khoa lich phong.
+class DeleteRoomBlockResponse(BaseModel):
+    id: int
