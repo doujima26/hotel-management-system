@@ -12,13 +12,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/utils/format";
-import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
+import { addMonthsToDateString, firstDayOfMonthString, lastDayOfMonthString, todayDateString } from "@/lib/utils/date";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { DiscountType } from "@/types/enums";
+import type { RoomTypeRateDay } from "@/types/models";
 import { useAdminHotel } from "../../../layout";
 
-const WINDOW_DAYS = 14;
+type GridCell =
+  | { kind: "header"; label: string }
+  | { kind: "blank"; key: string }
+  | { kind: "day"; day: RoomTypeRateDay };
+
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 const ADJUSTMENT_TYPE_LABELS: Record<DiscountType, string> = {
@@ -37,8 +42,10 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
   const approved = hotel.status === "approved";
   const queryClient = useQueryClient();
 
-  const [startDate, setStartDate] = useState(todayDateString());
-  const endDate = addDaysToDateString(startDate, WINDOW_DAYS - 1);
+  const [monthAnchor, setMonthAnchor] = useState(firstDayOfMonthString(todayDateString()));
+  const startDate = monthAnchor;
+  const endDate = lastDayOfMonthString(monthAnchor);
+  const currentMonthAnchor = firstDayOfMonthString(todayDateString());
 
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState("");
@@ -193,23 +200,23 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
             <p className="text-sm text-muted-foreground">Không có giá ghi đè thì dùng giá mặc định của loại phòng.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setStartDate(addDaysToDateString(startDate, -WINDOW_DAYS))} aria-label="Kỳ trước">
+            <Button variant="outline" size="sm" onClick={() => setMonthAnchor(addMonthsToDateString(monthAnchor, -1))} aria-label="Tháng trước">
               <ChevronLeft className="size-4" />
             </Button>
             <Input
-              type="date"
-              value={startDate}
+              type="month"
+              value={monthAnchor.slice(0, 7)}
               onChange={(event) => {
-                if (event.target.value) setStartDate(event.target.value);
+                if (event.target.value) setMonthAnchor(`${event.target.value}-01`);
               }}
-              aria-label="Ngày bắt đầu xem lịch giá"
+              aria-label="Chọn tháng xem lịch giá"
               className="w-40"
             />
-            <Button variant="outline" size="sm" onClick={() => setStartDate(addDaysToDateString(startDate, WINDOW_DAYS))} aria-label="Kỳ sau">
+            <Button variant="outline" size="sm" onClick={() => setMonthAnchor(addMonthsToDateString(monthAnchor, 1))} aria-label="Tháng sau">
               <ChevronRight className="size-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setStartDate(todayDateString())} disabled={startDate === todayDateString()}>
-              Hôm nay
+            <Button variant="outline" size="sm" onClick={() => setMonthAnchor(currentMonthAnchor)} disabled={monthAnchor === currentMonthAnchor}>
+              Tháng này
             </Button>
           </div>
         </div>
@@ -220,61 +227,95 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
         )}
         {rowError && <p className="text-sm text-destructive">{rowError}</p>}
 
-        {data && (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {data.days.map((day) => {
-              const d = new Date(day.date);
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-              const isEditing = editingDate === day.date;
-              return (
-                <div key={day.date} className={cn("flex flex-col gap-1.5 rounded-lg border p-3", isWeekend && "bg-muted/30")}>
-                  <span className="text-xs text-muted-foreground">
-                    {WEEKDAYS[d.getDay()]} {d.getDate()}/{d.getMonth() + 1}
-                  </span>
-                  {isEditing ? (
-                    <div className="flex flex-col gap-2">
-                      <Input
-                        type="number"
-                        value={editingPrice}
-                        onChange={(e) => setEditingPrice(e.target.value)}
-                        autoFocus
-                      />
-                      <div className="flex gap-1.5">
-                        <Button size="sm" onClick={() => saveEdit(day.date)} disabled={editBusy}>
-                          Lưu
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingDate(null)}>
-                          Hủy
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(day.date, day.effective_price)}
-                        className="text-left font-semibold hover:underline"
-                      >
-                        {formatMoney(day.effective_price)}
-                      </button>
-                      {day.override_price !== null ? (
-                        <button
-                          type="button"
-                          onClick={() => clearOverride(day.date)}
-                          className="text-xs text-destructive hover:underline"
+        {data &&
+          (() => {
+            // Dung 1 mang phang duy nhat (tieu de + o trong dau/cuoi thang +
+            // tung ngay) de tinh dung hang/cot, ve khung luoi gon gang bao
+            // quanh toan bo lich thay vi tung o roi rac co khoang cach.
+            const leadingBlanks = new Date(startDate).getDay();
+            const contentCells = leadingBlanks + data.days.length;
+            const trailingBlanks = (7 - (contentCells % 7)) % 7;
+            const cells: GridCell[] = [
+              ...WEEKDAYS.map((label) => ({ kind: "header" as const, label })),
+              ...Array.from({ length: leadingBlanks }, (_, index) => ({ kind: "blank" as const, key: `lead-${index}` })),
+              ...data.days.map((day) => ({ kind: "day" as const, day })),
+              ...Array.from({ length: trailingBlanks }, (_, index) => ({ kind: "blank" as const, key: `trail-${index}` })),
+            ];
+            const totalRows = cells.length / 7;
+
+            return (
+              <div className="overflow-hidden rounded-xl border">
+                <div className="grid grid-cols-7">
+                  {cells.map((cell, index) => {
+                    const borderClass = cn(index % 7 !== 6 && "border-r", Math.floor(index / 7) !== totalRows - 1 && "border-b");
+
+                    if (cell.kind === "header") {
+                      return (
+                        <div
+                          key={`header-${cell.label}`}
+                          className={cn("bg-primary py-1.5 text-center text-xs font-medium text-primary-foreground", borderClass)}
                         >
-                          Xóa giá ghi đè
-                        </button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Giá mặc định</span>
-                      )}
-                    </>
-                  )}
+                          {cell.label}
+                        </div>
+                      );
+                    }
+                    if (cell.kind === "blank") {
+                      return <div key={cell.key} className={cn("bg-muted/10", borderClass)} />;
+                    }
+
+                    const day = cell.day;
+                    const d = new Date(day.date);
+                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                    const isEditing = editingDate === day.date;
+                    return (
+                      <div key={day.date} className={cn("flex flex-col gap-1 p-2 sm:p-3", isWeekend && "bg-muted/20", borderClass)}>
+                        <span className="text-xs text-muted-foreground">{d.getDate()}</span>
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <Input
+                              type="number"
+                              value={editingPrice}
+                              onChange={(e) => setEditingPrice(e.target.value)}
+                              autoFocus
+                            />
+                            <div className="flex gap-1.5">
+                              <Button size="sm" onClick={() => saveEdit(day.date)} disabled={editBusy}>
+                                Lưu
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingDate(null)}>
+                                Hủy
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(day.date, day.effective_price)}
+                              className="truncate text-left text-sm font-semibold hover:underline sm:text-base"
+                            >
+                              {formatMoney(day.effective_price)}
+                            </button>
+                            {day.override_price !== null ? (
+                              <button
+                                type="button"
+                                onClick={() => clearOverride(day.date)}
+                                className="text-left text-xs text-destructive hover:underline"
+                              >
+                                Xóa giá ghi đè
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Giá mặc định</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })()}
       </div>
     </div>
   );
