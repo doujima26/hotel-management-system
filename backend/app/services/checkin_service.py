@@ -21,7 +21,8 @@ from app.repositories.room_repository import (
     list_rooms_with_type_by_hotel,
 )
 from app.repositories.staff_repository import get_staff_member_by_user_id
-from app.schemas.checkin import CheckInRequest, CheckOutRequest, RoomStatusItemResponse
+from app.schemas.checkin import CheckInRequest, CheckOutRequest, RoomStatusItemResponse, SetRoomMaintenanceRequest
+from app.schemas.rooms import RoomResponse
 from app.services.booking_service import serialize_booking
 from app.services.hotel_service import get_operational_hotel
 
@@ -185,7 +186,9 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
             continue
         room = get_room_by_id_for_update(db, unit.room_id)
         previous_status = room.status.value
-        room.status = RoomStatus.AVAILABLE
+        # Check-out chuyen ve CLEANING (cho don phong), chua san sang ban ngay -
+        # Staff phai bam "Da don xong" (mark_room_cleaned) de tra ve AVAILABLE.
+        room.status = RoomStatus.CLEANING
         db.add(room)
         create_room_status_log(
             db,
@@ -205,3 +208,85 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
 
     rooms = list_booking_rooms(db, booking.id)
     return serialize_booking(booking, rooms)
+
+
+# Lay phong vat ly va kiem tra thuoc dung khach san cua staff hien tai.
+def _get_staff_room(db: Session, staff, room_id: int):
+    room = get_room_by_id_for_update(db, room_id)
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+    if room.hotel_id != staff.hotel_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc thao tac phong cua khach san minh")
+    return room
+
+
+# Lay phong vat ly va kiem tra thuoc dung khach san dang van hanh - dung chung
+# cho ca Admin va Staff (khac _get_staff_room chi danh cho Staff), ap dung cho
+# 2 hanh dong dat/go bao tri ma Admin cung duoc phep thao tac.
+def _get_operational_room(db: Session, current_user: User, room_id: int):
+    hotel = get_operational_hotel(db, current_user)
+    room = get_room_by_id_for_update(db, room_id)
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+    if room.hotel_id != hotel.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc thao tac phong cua khach san minh")
+    return room
+
+
+# Ghi log doi trang thai phong roi commit, tra ve du lieu phong moi nhat.
+def _apply_room_status_change(db: Session, current_user: User, room, new_status: RoomStatus, reason: str) -> dict:
+    previous_status = room.status.value
+    room.status = new_status
+    db.add(room)
+    create_room_status_log(
+        db,
+        room_id=room.id,
+        previous_status=previous_status,
+        new_status=new_status.value,
+        changed_by=current_user.id,
+        reason=reason,
+    )
+    db.commit()
+    db.refresh(room)
+    return RoomResponse.model_validate(room).model_dump(mode="json")
+
+
+# Xu ly Staff danh dau 1 phong da don xong: CLEANING -> AVAILABLE.
+def mark_room_cleaned(db: Session, current_user: User, room_id: int) -> dict:
+    staff = _require_staff(db, current_user)
+    room = _get_staff_room(db, staff, room_id)
+    if room.status != RoomStatus.CLEANING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phong {room.room_number} khong o trang thai dang don, khong the danh dau da don xong",
+        )
+    return _apply_room_status_change(db, current_user, room, RoomStatus.AVAILABLE, "Da don xong")
+
+
+# Xu ly dat 1 phong vao trang thai bao tri (Admin hoac Staff cua khach san do)
+# - chi cho tu AVAILABLE hoac CLEANING (khong cho tu OCCUPIED, vi khach dang o
+# trong phong).
+def set_room_maintenance(db: Session, current_user: User, room_id: int, payload: SetRoomMaintenanceRequest) -> dict:
+    room = _get_operational_room(db, current_user, room_id)
+    if room.status == RoomStatus.OCCUPIED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phong {room.room_number} dang co khach, khong the dat bao tri",
+        )
+    if room.status == RoomStatus.MAINTENANCE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phong {room.room_number} da dang bao tri",
+        )
+    return _apply_room_status_change(db, current_user, room, RoomStatus.MAINTENANCE, payload.reason)
+
+
+# Xu ly hoan tat bao tri 1 phong (Admin hoac Staff cua khach san do): MAINTENANCE -> AVAILABLE.
+def clear_room_maintenance(db: Session, current_user: User, room_id: int) -> dict:
+    room = _get_operational_room(db, current_user, room_id)
+    if room.status != RoomStatus.MAINTENANCE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phong {room.room_number} khong o trang thai bao tri",
+        )
+    return _apply_room_status_change(db, current_user, room, RoomStatus.AVAILABLE, "Hoan tat bao tri")

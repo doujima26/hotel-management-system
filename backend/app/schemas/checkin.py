@@ -37,3 +37,8 @@ class CheckInRequest(BaseModel):
 # Schema du lieu dau vao cho check-out 1 booking.
 class CheckOutRequest(BaseModel):
     notes: str | None = None
+
+
+# Schema du lieu dau vao cho dat 1 phong vao trang thai bao tri.
+class SetRoomMaintenanceRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)

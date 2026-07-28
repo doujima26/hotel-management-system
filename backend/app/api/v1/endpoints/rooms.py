@@ -8,6 +8,7 @@ from app.core.enums import AmenityScope, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
+from app.schemas.checkin import SetRoomMaintenanceRequest
 from app.schemas.rooms import (
     CreateAmenityRequest,
     CreateRoomBlockRequest,
@@ -20,7 +21,12 @@ from app.schemas.rooms import (
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
-from app.services.checkin_service import get_room_status_board as get_room_status_board_action
+from app.services.checkin_service import (
+    clear_room_maintenance as clear_room_maintenance_action,
+    get_room_status_board as get_room_status_board_action,
+    mark_room_cleaned as mark_room_cleaned_action,
+    set_room_maintenance as set_room_maintenance_action,
+)
 from app.services.room_service import (
     apply_seasonal_rate as apply_seasonal_rate_action,
     assign_amenity_to_room_type as assign_amenity_to_room_type_action,
@@ -184,6 +190,40 @@ def delete_room(
 ):
     data = delete_room_action(db, current_user, room_id)
     return ok(data, "Xoa phong thanh cong")
+
+
+# Staff danh dau 1 phong da don xong (CLEANING -> AVAILABLE) sau khi check-out.
+@router.patch("/{room_id}/cleaned")
+def mark_room_cleaned(
+    room_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STAFF)),
+):
+    data = mark_room_cleaned_action(db, current_user, room_id)
+    return ok(data, "Danh dau da don phong thanh cong")
+
+
+# Staff hoac Admin dat 1 phong vao trang thai bao tri (khong cho tu OCCUPIED).
+@router.post("/{room_id}/maintenance")
+def set_room_maintenance(
+    room_id: int,
+    payload: SetRoomMaintenanceRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STAFF, UserRole.ADMIN)),
+):
+    data = set_room_maintenance_action(db, current_user, room_id, payload)
+    return ok(data, "Dat phong bao tri thanh cong")
+
+
+# Staff hoac Admin hoan tat bao tri 1 phong (MAINTENANCE -> AVAILABLE).
+@router.delete("/{room_id}/maintenance")
+def clear_room_maintenance(
+    room_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STAFF, UserRole.ADMIN)),
+):
+    data = clear_room_maintenance_action(db, current_user, room_id)
+    return ok(data, "Hoan tat bao tri thanh cong")
 
 
 # Super Admin tao tien nghi moi trong danh muc chung (scope=hotel hoac room).

@@ -1,7 +1,20 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { DoorClosed, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { RoomStatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
@@ -71,11 +84,58 @@ function StatusSummary({ rooms }: { rooms: RoomStatusItem[] }) {
 
 // So do phong: gom phong theo TANG, moi phong hien trang thai bang mau + icon.
 // Dung chung cho khu Staff va Admin (API /rooms/status cho ca 2 vai tro).
-export function RoomStatusBoard() {
+// canManageStatus (trang Staff): hien ca 3 nut (da don xong, dat bao tri, hoan
+// tat bao tri). canManageMaintenance (trang Admin): chi hien 2 nut bao tri -
+// Admin khong duoc danh dau da don phong o backend (hanh dong nay chi danh
+// cho Staff van hanh truc tiep).
+export function RoomStatusBoard({
+  canManageStatus = false,
+  canManageMaintenance = false,
+}: {
+  canManageStatus?: boolean;
+  canManageMaintenance?: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [maintenanceTarget, setMaintenanceTarget] = useState<RoomStatusItem | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busyRoomId, setBusyRoomId] = useState<number | null>(null);
+
   const { data: rooms, isLoading, error } = useQuery({
     queryKey: ["room-status-board"],
     queryFn: () => roomsApi.statusBoard(),
   });
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["room-status-board"] });
+  }
+
+  async function handleMarkCleaned(room: RoomStatusItem) {
+    setActionError(null);
+    setBusyRoomId(room.room_id);
+    try {
+      await roomsApi.markRoomCleaned(room.room_id);
+      toast.success(`Đã đánh dấu phòng ${room.room_number} dọn xong`);
+      await refresh();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setBusyRoomId(null);
+    }
+  }
+
+  async function handleClearMaintenance(room: RoomStatusItem) {
+    setActionError(null);
+    setBusyRoomId(room.room_id);
+    try {
+      await roomsApi.clearRoomMaintenance(room.room_id);
+      toast.success(`Đã hoàn tất bảo trì phòng ${room.room_number}`);
+      await refresh();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setBusyRoomId(null);
+    }
+  }
 
   if (isLoading) return <p className="text-muted-foreground">Đang tải...</p>;
   if (error) {
@@ -118,6 +178,8 @@ export function RoomStatusBoard() {
         <ColorLegend />
       </div>
 
+      {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+
       {floors.map(([floor, floorRooms]) => (
         <section key={floor ?? "unknown"} className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-1.5">
@@ -157,11 +219,99 @@ export function RoomStatusBoard() {
                     {room.expected_check_out ? ` · trả ${formatDate(room.expected_check_out)}` : ""}
                   </p>
                 )}
+
+                {(canManageStatus || canManageMaintenance) && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {canManageStatus && room.status === "cleaning" && (
+                      <Button size="sm" variant="outline" disabled={busyRoomId === room.room_id} onClick={() => handleMarkCleaned(room)}>
+                        Đã dọn xong
+                      </Button>
+                    )}
+                    {(room.status === "available" || room.status === "cleaning") && (
+                      <Button size="sm" variant="outline" disabled={busyRoomId === room.room_id} onClick={() => setMaintenanceTarget(room)}>
+                        Đặt bảo trì
+                      </Button>
+                    )}
+                    {room.status === "maintenance" && (
+                      <Button size="sm" variant="outline" disabled={busyRoomId === room.room_id} onClick={() => handleClearMaintenance(room)}>
+                        Hoàn tất bảo trì
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </section>
       ))}
+
+      {maintenanceTarget && (
+        <SetMaintenanceDialog
+          room={maintenanceTarget}
+          onClose={() => setMaintenanceTarget(null)}
+          onSuccess={refresh}
+        />
+      )}
     </div>
+  );
+}
+
+function SetMaintenanceDialog({
+  room,
+  onClose,
+  onSuccess,
+}: {
+  room: RoomStatusItem;
+  onClose: () => void;
+  onSuccess: () => Promise<void>;
+}) {
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    if (!reason.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await roomsApi.setRoomMaintenance(room.room_id, reason.trim());
+      toast.success(`Đã đặt phòng ${room.room_number} vào trạng thái bảo trì`);
+      await onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Đặt bảo trì thất bại");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Đặt phòng {room.room_number} vào bảo trì</DialogTitle>
+          <DialogDescription>Nhập lý do bảo trì (bắt buộc) - phòng sẽ không bán/gán được cho đến khi hoàn tất.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="maintenance_reason">Lý do</Label>
+          <Input
+            id="maintenance_reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Ví dụ: Hỏng điều hòa"
+            autoFocus
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting || !reason.trim()}>
+            {submitting ? "Đang đặt..." : "Đặt bảo trì"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

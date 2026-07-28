@@ -117,6 +117,12 @@ export const roomsApi = {
     apiFetch<RoomItem>(`/rooms/${roomId}`, { method: "PATCH", body: payload, auth: true }),
   deleteRoom: (roomId: number) => apiFetch<DeleteRoomResult>(`/rooms/${roomId}`, { method: "DELETE", auth: true }),
 
+  markRoomCleaned: (roomId: number) => apiFetch<RoomItem>(`/rooms/${roomId}/cleaned`, { method: "PATCH", auth: true }),
+  setRoomMaintenance: (roomId: number, reason: string) =>
+    apiFetch<RoomItem>(`/rooms/${roomId}/maintenance`, { method: "POST", body: { reason }, auth: true }),
+  clearRoomMaintenance: (roomId: number) =>
+    apiFetch<RoomItem>(`/rooms/${roomId}/maintenance`, { method: "DELETE", auth: true }),
+
   createAmenity: (payload: CreateAmenityPayload) =>
     apiFetch<Amenity>("/rooms/amenities", { method: "POST", body: payload, auth: true }),
   listAmenities: (scope: AmenityScope) =>
