@@ -22,8 +22,7 @@ export function useAdminHotel(): AdminHotel {
   return hotel;
 }
 
-// Gom theo 4 nhom chuc nang (xem tai-lieu-thiet-ke-extranet.md muc 2) thay vi
-// 8 muc phang - de tim va phan biet nhom cong viec.
+// Gom theo 4 nhom chuc nang thay vi 8 muc phang - de tim va phan biet nhom cong viec.
 function buildNavGroups(pendingBookings: number): SidebarGroup[] {
   return [
     {
@@ -38,6 +37,7 @@ function buildNavGroups(pendingBookings: number): SidebarGroup[] {
     {
       label: "Kinh doanh",
       items: [
+        { href: "/admin/revenue", label: "Doanh thu" },
         { href: "/admin/calendar", label: "Lịch phòng" },
         { href: "/admin/promotions", label: "Khuyến mãi" },
       ],
