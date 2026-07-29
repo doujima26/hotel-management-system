@@ -25,9 +25,9 @@ import {
   type RoomStatus,
 } from "@/types/enums";
 
-// He mau trang thai dung chung toan he thong (xem tai-lieu-thiet-ke-extranet.md
-// muc 5): 1 mau = 1 y nghia, khong dung 1 mau cho 2 y nghia khac nhau. Luon kem
-// icon de khong phu thuoc rieng vao mau (accessibility).
+// He mau trang thai dung chung toan he thong: 1 mau = 1 y nghia, khong dung 1
+// mau cho 2 y nghia khac nhau. Luon kem icon de khong phu thuoc rieng vao mau
+// (accessibility).
 type Tone = "success" | "warning" | "danger" | "neutral" | "info";
 
 const TONE_CLASSES: Record<Tone, string> = {

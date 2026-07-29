@@ -2,8 +2,7 @@ import { Inbox, type LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
   title: string;
-  // Cau huong dan viec can lam tiep theo - tranh man hinh trong khong biet lam gi
-  // (xem tai-lieu-thiet-ke-extranet.md muc 6.5).
+  // Cau huong dan viec can lam tiep theo - tranh man hinh trong khong biet lam gi.
   hint?: string;
   icon?: LucideIcon;
   action?: React.ReactNode;

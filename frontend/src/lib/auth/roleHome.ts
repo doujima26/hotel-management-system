@@ -8,7 +8,7 @@ export function getRoleHomePath(role: UserRole): string {
     case "admin":
       // AdminHotelLayout ((hotel)/layout.tsx) tu redirect sang /admin/onboarding
       // neu admin chua dang ky khach san. Vao thang Dashboard vi day la tac vu
-      // hang ngay (xem tai-lieu-thiet-ke-extranet.md muc 6.1).
+      // hang ngay.
       return "/admin/dashboard";
     case "staff":
       return "/staff/bookings";
