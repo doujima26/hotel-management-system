@@ -273,6 +273,19 @@ def get_room_blocks_for_stay(db: Session, room_id: int, check_in: date, check_ou
     )
 
 
+# Dem so phong vat ly theo tung trang thai (RoomStatus) cua 1 khach san -
+# dung cho Dashboard tong quan van hanh.
+def count_rooms_by_status(db: Session, hotel_id: int) -> dict[str, int]:
+    rows = (
+        db.query(Room.status, func.count(Room.id))
+        .join(RoomType, RoomType.id == Room.room_type_id)
+        .filter(RoomType.hotel_id == hotel_id)
+        .group_by(Room.status)
+        .all()
+    )
+    return {status.value: int(count) for status, count in rows}
+
+
 # Lay khoa lich dang co hieu luc DUNG 1 ngay cu the, cho tat ca phong thuoc 1
 # khach san trong 1 lan truy van - dung cho so do phong, tranh N+1.
 def get_active_room_blocks_for_hotel(db: Session, hotel_id: int, on_date: date) -> dict[int, RoomBlock]:

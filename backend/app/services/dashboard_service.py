@@ -6,16 +6,37 @@ from sqlalchemy.orm import Session
 from app.core.timeutils import business_today
 from app.models.entities import User
 from app.repositories.dashboard_repository import (
+    count_arrivals_and_departures_today,
     count_bookings_created,
     count_new_users,
+    count_overdue_confirmed_bookings,
+    count_pending_bookings,
     get_revenue,
     get_top_services,
     get_total_room_capacity,
     list_active_booking_rooms_in_range,
 )
 from app.repositories.hotel_repository import get_hotel_by_id
-from app.schemas.dashboard import HotelDashboardResponse, PlatformDashboardResponse, TopServiceItem
+from app.repositories.review_repository import list_reviews_with_user_by_hotel
+from app.repositories.room_repository import count_rooms_by_status, get_active_room_blocks_for_hotel
+from app.repositories.staff_repository import list_schedules_with_staff_by_hotel
+from app.schemas.dashboard import (
+    DailyTrendPoint,
+    HotelDashboardResponse,
+    HotelOperationsOverviewResponse,
+    PlatformDashboardResponse,
+    RecentReviewItem,
+    RoomStatusOverview,
+    StaffShiftItem,
+    TopServiceItem,
+)
 from app.services.hotel_service import get_approved_admin_hotel
+
+# So review gan day nhat hien tren khoi "Danh gia moi" cua Dashboard.
+_RECENT_REVIEWS_LIMIT = 5
+
+# So ngay hien thi trong bieu do doanh thu + hieu suat tren Dashboard.
+_TREND_DAYS = 7
 
 
 # Mac dinh khoang ngay la thang hien tai neu khong truyen from_date/to_date.
@@ -98,4 +119,73 @@ def get_platform_dashboard(db: Session, from_date: date | None, to_date: date | 
         total_bookings=total_bookings,
         new_users_count=new_users_count,
         hotel=hotel_data,
+    ).model_dump(mode="json")
+
+
+# Tinh doanh thu + ty le lap day cho tung ngay trong _TREND_DAYS ngay gan nhat
+# (tinh ca hom nay), thu tu tu cu den moi - dung cho bieu do "Doanh thu va
+# hieu suat 7 ngay" tren Dashboard.
+def _build_daily_trend(db: Session, hotel_id: int, today: date) -> list[DailyTrendPoint]:
+    points = []
+    for offset in range(_TREND_DAYS - 1, -1, -1):
+        day = today - timedelta(days=offset)
+        revenue = get_revenue(db, day, day, hotel_id=hotel_id)
+        occupancy_rate = _compute_occupancy_rate(db, hotel_id, day, day)
+        points.append(DailyTrendPoint(date=day, revenue=revenue, occupancy_rate=occupancy_rate))
+    return points
+
+
+# Xu ly Admin xem Dashboard tong quan van hanh cua khach san minh - luon la
+# anh chup "hom nay" (khac han get_hotel_dashboard tinh theo khoang ngay,
+# thien ve tai chinh - da chuyen sang trang Doanh thu rieng, khong dung chung
+# logic voi ham nay).
+def get_hotel_operations_overview(db: Session, current_user: User) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    today = business_today()
+
+    pending_bookings = count_pending_bookings(db, hotel.id)
+    overdue_confirmed_bookings = count_overdue_confirmed_bookings(db, hotel.id, today)
+    arrivals_today, departures_today, in_house = count_arrivals_and_departures_today(db, hotel.id, today)
+
+    room_counts = count_rooms_by_status(db, hotel.id)
+    blocked_today = len(get_active_room_blocks_for_hotel(db, hotel.id, today))
+    room_status = RoomStatusOverview(
+        available=room_counts.get("available", 0),
+        occupied=room_counts.get("occupied", 0),
+        cleaning=room_counts.get("cleaning", 0),
+        maintenance=room_counts.get("maintenance", 0),
+        blocked_today=blocked_today,
+    )
+
+    daily_trend = _build_daily_trend(db, hotel.id, today)
+
+    staff_shifts_today = [
+        StaffShiftItem(
+            staff_id=schedule.staff_id,
+            staff_name=user.full_name,
+            staff_position=staff.position,
+            shift_type=schedule.shift_type,
+            start_time=schedule.start_time,
+            end_time=schedule.end_time,
+        )
+        for schedule, staff, user in list_schedules_with_staff_by_hotel(db, hotel.id, today, today)
+    ]
+
+    recent_reviews = [
+        RecentReviewItem(id=review.id, reviewer_name=user.full_name, rating=review.rating, comment=review.comment, created_at=review.created_at)
+        for review, user in list_reviews_with_user_by_hotel(db, hotel.id)[:_RECENT_REVIEWS_LIMIT]
+    ]
+
+    return HotelOperationsOverviewResponse(
+        hotel_id=hotel.id,
+        date=today,
+        pending_bookings=pending_bookings,
+        overdue_confirmed_bookings=overdue_confirmed_bookings,
+        arrivals_today=arrivals_today,
+        departures_today=departures_today,
+        in_house=in_house,
+        room_status=room_status,
+        daily_trend=daily_trend,
+        staff_shifts_today=staff_shifts_today,
+        recent_reviews=recent_reviews,
     ).model_dump(mode="json")

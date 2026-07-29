@@ -362,6 +362,51 @@ export interface PlatformDashboard {
   hotel: HotelDashboard | null;
 }
 
+export interface RoomStatusOverview {
+  available: number;
+  occupied: number;
+  cleaning: number;
+  maintenance: number;
+  blocked_today: number;
+}
+
+export interface StaffShiftItem {
+  staff_id: number;
+  staff_name: string;
+  staff_position: string;
+  shift_type: ShiftType;
+  start_time: string;
+  end_time: string;
+}
+
+export interface RecentReviewItem {
+  id: number;
+  reviewer_name: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface DailyTrendPoint {
+  date: string;
+  revenue: number;
+  occupancy_rate: number;
+}
+
+export interface HotelOperationsOverview {
+  hotel_id: number;
+  date: string;
+  pending_bookings: number;
+  overdue_confirmed_bookings: number;
+  arrivals_today: number;
+  departures_today: number;
+  in_house: number;
+  room_status: RoomStatusOverview;
+  daily_trend: DailyTrendPoint[];
+  staff_shifts_today: StaffShiftItem[];
+  recent_reviews: RecentReviewItem[];
+}
+
 export interface HotelServiceItem {
   id: number;
   hotel_id: number;

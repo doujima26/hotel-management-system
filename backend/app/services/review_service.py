@@ -15,6 +15,7 @@ from app.repositories.review_repository import (
     save_review,
 )
 from app.schemas.reviews import CreateReviewRequest, DeleteReviewResponse, ReviewResponse, UpdateReviewRequest
+from app.services.hotel_service import get_approved_admin_hotel
 
 
 # Chuyen Review + User thanh du lieu tra ve.
@@ -67,6 +68,15 @@ def list_hotel_reviews(db: Session, hotel_id: int) -> list[dict]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
 
     rows = list_reviews_with_user_by_hotel(db, hotel_id)
+    return [_serialize_review(review, user) for review, user in rows]
+
+
+# Xu ly Admin xem toan bo danh gia cua khach san minh - khac ham cong khai o
+# tren, hotel duoc server tu suy ra tu current_user (khong nhan hotel_id tu
+# client) giong quy uoc chung cua cac endpoint Admin khac.
+def list_hotel_reviews_for_admin(db: Session, current_user: User) -> list[dict]:
+    hotel = get_approved_admin_hotel(db, current_user)
+    rows = list_reviews_with_user_by_hotel(db, hotel.id)
     return [_serialize_review(review, user) for review, user in rows]
 
 

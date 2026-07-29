@@ -50,6 +50,7 @@ function buildNavGroups(pendingBookings: number): SidebarGroup[] {
         { href: "/admin/room-blocks", label: "Khóa lịch phòng" },
         { href: "/admin/staff/schedule", label: "Lịch làm việc" },
         { href: "/admin/staff", label: "Nhân viên" },
+        { href: "/admin/reviews", label: "Đánh giá" },
       ],
     },
     { label: "Báo cáo", items: [{ href: "/admin/dashboard", label: "Dashboard" }] },

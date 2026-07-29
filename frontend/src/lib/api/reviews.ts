@@ -21,6 +21,9 @@ export const reviewsApi = {
   // dung khi trang can vua fetch phia client vua khong can dang nhap.
   listForHotelClient: (hotelId: number) => apiFetch<Review[]>("/reviews", { params: { hotel_id: hotelId } }),
 
+  // Admin xem toan bo danh gia cua khach san minh (khac 2 ham cong khai o tren).
+  listForOwnHotel: () => apiFetch<Review[]>("/reviews/hotel", { auth: true }),
+
   // Client Component (can auth), goi qua rewrites proxy.
   create: (payload: CreateReviewPayload) => apiFetch<Review>("/reviews", { method: "POST", body: payload, auth: true }),
   update: (reviewId: number, payload: UpdateReviewPayload) =>
