@@ -26,24 +26,26 @@ import type { RoomStatusItem } from "@/types/models";
 
 const STATUS_ORDER: RoomStatus[] = ["available", "occupied", "cleaning", "maintenance"];
 
-// Vien trai cua o phong theo trang thai - dung cung y nghia mau voi RoomStatusBadge.
+// Vien trai cua o phong theo trang thai - dung cung token mau voi RoomStatusBadge
+// (bg-success/-warning/-danger/-info: mau dac dung cho cham/vien, xem globals.css).
 const STATUS_BORDER: Record<RoomStatus, string> = {
-  available: "border-l-green-500",
-  occupied: "border-l-blue-500",
-  cleaning: "border-l-amber-500",
-  maintenance: "border-l-red-500",
+  available: "border-l-success",
+  occupied: "border-l-info",
+  cleaning: "border-l-warning",
+  maintenance: "border-l-danger",
 };
 
 // Mau rieng cho phong dang bi khoa lich (room_blocks) - uu tien hien thi mau
 // nay thay cho mau theo status, vi phong nay thuc te khong ban/su dung duoc
-// hom nay du status van la gi.
+// hom nay du status van la gi. Day la truc y nghia rieng (khong phai 1 trong 4
+// trang thai chinh) nen khong dung chung token success/warning/danger/info.
 const BLOCKED_BORDER = "border-l-purple-500";
 
 const LEGEND_ITEMS: { color: string; label: string }[] = [
-  { color: "bg-green-500", label: ROOM_STATUS_LABELS.available },
-  { color: "bg-blue-500", label: ROOM_STATUS_LABELS.occupied },
-  { color: "bg-amber-500", label: ROOM_STATUS_LABELS.cleaning },
-  { color: "bg-red-500", label: ROOM_STATUS_LABELS.maintenance },
+  { color: "bg-success", label: ROOM_STATUS_LABELS.available },
+  { color: "bg-info", label: ROOM_STATUS_LABELS.occupied },
+  { color: "bg-warning", label: ROOM_STATUS_LABELS.cleaning },
+  { color: "bg-danger", label: ROOM_STATUS_LABELS.maintenance },
   { color: "bg-purple-500", label: "Đang khóa lịch" },
 ];
 

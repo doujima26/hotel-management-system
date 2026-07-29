@@ -151,10 +151,10 @@ export default function AdminCalendarPage() {
                           className={cn(
                             "flex h-9 items-center justify-center rounded-md text-sm font-semibold",
                             soldOut
-                              ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                              ? "bg-danger-subtle text-danger-strong"
                               : almostFull
-                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                                : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+                                ? "bg-warning-subtle text-warning-strong"
+                                : "bg-success-subtle text-success-strong",
                           )}
                         >
                           {day.available_rooms}
@@ -172,13 +172,13 @@ export default function AdminCalendarPage() {
       {/* Chu thich mau - theo he mau trang thai chung cua he thong. */}
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded bg-green-100 dark:bg-green-950" /> Còn nhiều phòng
+          <span className="size-3 rounded bg-success-subtle" /> Còn nhiều phòng
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded bg-amber-100 dark:bg-amber-950" /> Sắp hết phòng
+          <span className="size-3 rounded bg-warning-subtle" /> Sắp hết phòng
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded bg-red-100 dark:bg-red-950" /> Hết phòng
+          <span className="size-3 rounded bg-danger-subtle" /> Hết phòng
         </span>
       </div>
     </div>

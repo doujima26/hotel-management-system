@@ -28,11 +28,11 @@ import {
 type Tone = "success" | "warning" | "danger" | "neutral" | "info";
 
 const TONE_CLASSES: Record<Tone, string> = {
-  success: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
-  warning: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  danger: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  success: "bg-success-subtle text-success-strong",
+  warning: "bg-warning-subtle text-warning-strong",
+  danger: "bg-danger-subtle text-danger-strong",
   neutral: "bg-muted text-muted-foreground",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  info: "bg-info-subtle text-info-strong",
 };
 
 const BOOKING_TONES: Record<BookingStatus, { tone: Tone; icon: LucideIcon }> = {
