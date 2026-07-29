@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomItem } from "@/types/models";
@@ -122,7 +123,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/admin/room-types" className="text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/admin/room-types" className={cn(buttonVariants({ size: "sm", variant: "outline" }), "self-start")}>
         &larr; Danh sách loại phòng
       </Link>
 

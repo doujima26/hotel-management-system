@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/utils/format";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
@@ -205,11 +206,11 @@ export default function AdminRoomTypesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
-              <Link href={`/admin/room-types/${roomType.id}/rooms`} className="text-sm text-primary hover:underline">
-                Quản lý phòng vật lý &amp; ảnh &rarr;
+              <Link href={`/admin/room-types/${roomType.id}/rooms`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+                Quản lý phòng vật lý &amp; ảnh
               </Link>
-              <Link href={`/admin/room-types/${roomType.id}/rates`} className="text-sm text-primary hover:underline">
-                Giá theo ngày &rarr;
+              <Link href={`/admin/room-types/${roomType.id}/rates`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+                Giá theo ngày
               </Link>
               <Button size="sm" variant="outline" onClick={() => setEditing(roomType)}>
                 Sửa
