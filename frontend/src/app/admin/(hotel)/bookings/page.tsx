@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Mail, MessageSquareText, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +20,8 @@ import { formatDate, formatMoney } from "@/lib/utils/format";
 import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
-import { type BookingStatus } from "@/types/enums";
-import { BookingStatusBadge } from "@/components/shared/StatusBadge";
+import { PAYMENT_METHOD_LABELS, type BookingStatus } from "@/types/enums";
+import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
 const FILTER_OPTIONS: { value: BookingStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
@@ -135,49 +136,117 @@ export default function AdminBookingsPage() {
                 <BookingStatusBadge status={booking.status} />
               </div>
               <CardDescription>
-                {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)} - {booking.num_guests} khách -{" "}
-                {formatMoney(booking.total_amount)}
+                {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)} - {booking.num_guests} khách
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-2">
-              {booking.status === "pending" && (
-                <>
-                  <Button size="sm" onClick={() => handleConfirm(booking.id)} disabled={busyId === booking.id}>
-                    Xác nhận
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => openCancelDialog(booking.id)}
-                    disabled={busyId === booking.id}
-                  >
-                    Hủy hộ khách
-                  </Button>
-                </>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <User className="size-3.5 text-muted-foreground" />
+                  {booking.customer_name}
+                </span>
+                {booking.customer_phone && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Phone className="size-3.5" />
+                    {booking.customer_phone}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Mail className="size-3.5" />
+                  {booking.customer_email}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1 rounded-lg border p-2.5 text-sm">
+                {booking.rooms.map((room) => (
+                  <div key={room.id} className="flex items-center justify-between gap-2">
+                    <span>
+                      {room.room_type_name} x{room.quantity} · {room.num_nights} đêm
+                    </span>
+                    <span className="font-medium">{formatMoney(room.subtotal)}</span>
+                  </div>
+                ))}
+                {booking.services.map((service) => (
+                  <div key={service.service_id} className="flex items-center justify-between gap-2 text-muted-foreground">
+                    <span>
+                      {service.name} x{service.quantity}
+                    </span>
+                    <span>{formatMoney(service.subtotal)}</span>
+                  </div>
+                ))}
+                {booking.discount_amount > 0 && (
+                  <div className="flex items-center justify-between gap-2 text-success-strong">
+                    <span>Khuyến mãi</span>
+                    <span>-{formatMoney(booking.discount_amount)}</span>
+                  </div>
+                )}
+                <div className="mt-1 flex items-center justify-between gap-2 border-t pt-1 font-semibold">
+                  <span>Tổng tiền</span>
+                  <span>{formatMoney(booking.total_amount)}</span>
+                </div>
+              </div>
+
+              {booking.special_requests && (
+                <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                  <MessageSquareText className="mt-0.5 size-3.5 shrink-0" />
+                  {booking.special_requests}
+                </p>
               )}
-              {booking.status === "confirmed" && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => openCancelDialog(booking.id)}
-                    disabled={busyId === booking.id}
-                  >
-                    Hủy hộ khách
-                  </Button>
-                  {booking.check_in_date < todayDateString() && (
+
+              <div className="flex items-center gap-2">
+                {booking.payment_status ? (
+                  <>
+                    <PaymentStatusBadge status={booking.payment_status} />
+                    {booking.payment_method && (
+                      <span className="text-xs text-muted-foreground">{PAYMENT_METHOD_LABELS[booking.payment_method]}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Chưa thanh toán</span>
+                )}
+              </div>
+            </CardContent>
+            {(booking.status === "pending" || booking.status === "confirmed") && (
+              <CardFooter className="gap-2">
+                {booking.status === "pending" && (
+                  <>
+                    <Button size="sm" onClick={() => handleConfirm(booking.id)} disabled={busyId === booking.id}>
+                      Xác nhận
+                    </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => handleMarkNoShow(booking.id)}
+                      variant="destructive"
+                      onClick={() => openCancelDialog(booking.id)}
                       disabled={busyId === booking.id}
                     >
-                      Đánh dấu không đến
+                      Hủy hộ khách
                     </Button>
-                  )}
-                </>
-              )}
-            </CardContent>
+                  </>
+                )}
+                {booking.status === "confirmed" && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => openCancelDialog(booking.id)}
+                      disabled={busyId === booking.id}
+                    >
+                      Hủy hộ khách
+                    </Button>
+                    {booking.check_in_date < todayDateString() && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMarkNoShow(booking.id)}
+                        disabled={busyId === booking.id}
+                      >
+                        Đánh dấu không đến
+                      </Button>
+                    )}
+                  </>
+                )}
+              </CardFooter>
+            )}
           </Card>
         ))}
         {data && data.length === 0 && (

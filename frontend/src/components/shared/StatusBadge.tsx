@@ -7,6 +7,7 @@ import {
   DoorOpen,
   LogOut,
   Minus,
+  RotateCcw,
   Sparkles,
   Wrench,
   XCircle,
@@ -16,9 +17,11 @@ import { cn } from "@/lib/utils";
 import {
   BOOKING_STATUS_LABELS,
   HOTEL_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
   ROOM_STATUS_LABELS,
   type BookingStatus,
   type HotelStatus,
+  type PaymentStatus,
   type RoomStatus,
 } from "@/types/enums";
 
@@ -58,6 +61,13 @@ const ROOM_TONES: Record<RoomStatus, { tone: Tone; icon: LucideIcon }> = {
   maintenance: { tone: "danger", icon: Wrench },
 };
 
+const PAYMENT_TONES: Record<PaymentStatus, { tone: Tone; icon: LucideIcon }> = {
+  pending: { tone: "warning", icon: Clock },
+  completed: { tone: "success", icon: CheckCircle2 },
+  failed: { tone: "danger", icon: XCircle },
+  refunded: { tone: "neutral", icon: RotateCcw },
+};
+
 function Pill({ tone, icon: Icon, label, className }: { tone: Tone; icon: LucideIcon; label: string; className?: string }) {
   return (
     <span
@@ -89,6 +99,12 @@ export function HotelStatusBadge({ status, className }: { status: HotelStatus; c
 export function RoomStatusBadge({ status, className }: { status: RoomStatus; className?: string }) {
   const { tone, icon } = ROOM_TONES[status] ?? { tone: "neutral" as Tone, icon: Minus };
   return <Pill tone={tone} icon={icon} label={ROOM_STATUS_LABELS[status] ?? status} className={className} />;
+}
+
+// Badge trang thai thanh toan cua booking.
+export function PaymentStatusBadge({ status, className }: { status: PaymentStatus; className?: string }) {
+  const { tone, icon } = PAYMENT_TONES[status] ?? { tone: "neutral" as Tone, icon: Minus };
+  return <Pill tone={tone} icon={icon} label={PAYMENT_STATUS_LABELS[status] ?? status} className={className} />;
 }
 
 // Badge bat/tat chung (tai khoan, dich vu, khuyen mai...).

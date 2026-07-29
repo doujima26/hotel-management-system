@@ -209,6 +209,7 @@ export interface RoomAvailability {
 export interface BookingRoomItem {
   id: number;
   room_type_id: number;
+  room_type_name: string;
   quantity: number;
   price_per_night: number;
   num_nights: number;
@@ -227,6 +228,9 @@ export interface Booking {
   id: number;
   booking_code: string;
   hotel_id: number;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
   check_in_date: string;
   check_out_date: string;
   num_guests: number;
@@ -236,6 +240,8 @@ export interface Booking {
   promotion_id: number | null;
   total_amount: number;
   status: BookingStatus;
+  payment_status: PaymentStatus | null;
+  payment_method: PaymentMethod | null;
   special_requests: string | null;
   cancellation_reason: string | null;
   cancelled_at: string | null;

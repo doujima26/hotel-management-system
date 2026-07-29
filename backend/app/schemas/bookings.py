@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.enums import BookingStatus
+from app.core.enums import BookingStatus, PaymentMethod, PaymentStatus
 
 
 # Schema 1 dong yeu cau dat phong theo loai phong va so luong.
@@ -40,6 +40,7 @@ class BookingRoomResponse(BaseModel):
 
     id: int
     room_type_id: int
+    room_type_name: str
     quantity: int
     price_per_night: float
     num_nights: int
@@ -60,6 +61,9 @@ class BookingResponse(BaseModel):
     id: int
     booking_code: str
     hotel_id: int
+    customer_name: str
+    customer_email: str
+    customer_phone: str | None = None
     check_in_date: date
     check_out_date: date
     num_guests: int
@@ -69,6 +73,8 @@ class BookingResponse(BaseModel):
     promotion_id: int | None = None
     total_amount: float
     status: BookingStatus
+    payment_status: PaymentStatus | None = None
+    payment_method: PaymentMethod | None = None
     special_requests: str | None = None
     cancellation_reason: str | None = None
     cancelled_at: datetime | None = None

@@ -165,7 +165,7 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
     db.refresh(booking)
 
     rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(db, booking, rooms)
 
 
 # Xu ly Staff check-out 1 booking: nha lai tat ca phong da gan ve available, booking sang checked_out.
@@ -207,7 +207,7 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
     db.refresh(booking)
 
     rooms = list_booking_rooms(db, booking.id)
-    return serialize_booking(booking, rooms)
+    return serialize_booking(db, booking, rooms)
 
 
 # Lay phong vat ly va kiem tra thuoc dung khach san cua staff hien tai.

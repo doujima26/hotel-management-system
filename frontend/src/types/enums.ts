@@ -56,6 +56,13 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   bank_transfer: "Chuyển khoản",
 };
 
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: "Chờ thanh toán",
+  completed: "Đã thanh toán",
+  failed: "Thanh toán thất bại",
+  refunded: "Đã hoàn tiền",
+};
+
 export const AMENITY_SCOPE_LABELS: Record<AmenityScope, string> = {
   hotel: "Tiện nghi",
   room: "Tiện nghi phòng",
