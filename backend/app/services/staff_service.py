@@ -1,5 +1,5 @@
 import secrets
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -164,14 +164,24 @@ def _get_owned_schedule(db: Session, current_user: User, schedule_id: int) -> St
     return schedule
 
 
+# Kiem tra khung gio cua 1 ca lam viec.
+#
+# Ngay lam viec cua khach san chay 06:00 -> 06:00 hom sau nen ca Dem (22:00 den
+# 06:00) VUOT QUA NUA DEM: gio ket thuc nho hon gio bat dau la hop le, hieu la
+# ket thuc vao ngay hom sau. Chi ca dai 0 tieng (ket thuc trung gio bat dau) moi
+# la sai.
+def _validate_shift_times(start_time: time, end_time: time) -> None:
+    if end_time == start_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Gio ket thuc ca khong duoc trung gio bat dau",
+        )
+
+
 # Xu ly Admin xep ca lam viec moi cho 1 nhan vien cua khach san minh.
 def create_staff_schedule(db: Session, current_user: User, staff_id: int, payload: CreateStaffScheduleRequest) -> dict:
     staff = _get_owned_staff_member(db, current_user, staff_id)
-    if payload.end_time <= payload.start_time:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Gio ket thuc ca phai sau gio bat dau",
-        )
+    _validate_shift_times(payload.start_time, payload.end_time)
 
     schedule = create_staff_schedule_record(
         db,
@@ -212,11 +222,7 @@ def update_staff_schedule(db: Session, current_user: User, schedule_id: int, pay
     for field, value in update_data.items():
         setattr(schedule, field, value)
 
-    if schedule.end_time <= schedule.start_time:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Gio ket thuc ca phai sau gio bat dau",
-        )
+    _validate_shift_times(schedule.start_time, schedule.end_time)
 
     schedule = save_staff_schedule(db, schedule)
     return _serialize_schedule(schedule)
