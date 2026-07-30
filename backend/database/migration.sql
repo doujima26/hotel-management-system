@@ -503,7 +503,6 @@ CREATE INDEX idx_bookings_user ON bookings(user_id);
 -- Phòng
 CREATE INDEX idx_rooms_status ON rooms(status);
 CREATE INDEX idx_rooms_room_type ON rooms(room_type_id);
-CREATE INDEX idx_amenities_hotel ON amenities(hotel_id);
 
 -- Loại phòng theo giá
 CREATE INDEX idx_room_types_hotel_price ON room_types(hotel_id, base_price);

@@ -12,6 +12,39 @@
 
 BEGIN;
 
+-- ============================================================
+-- DANH MUC TIEN NGHI + TIEN NGHI DUNG CHUNG
+-- Tien nghi la danh muc CHUNG toan he thong (UNIQUE(name, scope)), khong thuoc
+-- rieng khach san nao. Vi vay phai tao mot lan o day, roi tung khach san chi
+-- LIEN KET qua hotel_amenities (tien nghi chung cua khach san) va
+-- room_type_amenities (tien nghi trong phong). Phai tach thanh statement rieng
+-- dat truoc cac khoi khach san: dong vua chen trong CTE khong the SELECT lai
+-- duoc o cung mot statement.
+-- ============================================================
+INSERT INTO amenity_categories (name, icon)
+VALUES
+    ('general', 'coffee'),
+    ('room', 'flame'),
+    ('view', 'waves'),
+    ('activity', 'leaf');
+
+-- Cung mot ten duoc tao o ca 2 pham vi: ban cua khach san (scope=hotel) va ban
+-- cua phong (scope=room) la 2 dong khac nhau theo rang buoc UNIQUE(name, scope).
+INSERT INTO amenities (name, scope, category_id)
+SELECT names.name, scopes.scope, (SELECT id FROM amenity_categories WHERE name = names.category)
+FROM (VALUES
+    ('Free WiFi', 'general'),
+    ('Breakfast Included', 'general'),
+    ('Gym', 'general'),
+    ('Pool', 'general'),
+    ('Air Conditioner', 'room'),
+    ('Fireplace', 'room'),
+    ('Sea View', 'view'),
+    ('Lake View', 'view'),
+    ('Tea Garden Tour', 'activity')
+) AS names(name, category)
+CROSS JOIN (VALUES ('hotel'::amenity_scope), ('room'::amenity_scope)) AS scopes(scope);
+
 WITH seeded_users AS (
     INSERT INTO users (email, password_hash, full_name, phone, role, is_active, is_verified)
     VALUES
@@ -85,17 +118,15 @@ hotel1_rooms AS (
         ((SELECT id FROM hotel1), (SELECT id FROM hotel1_deluxe), '301', 3, 'available', true),
         ((SELECT id FROM hotel1), (SELECT id FROM hotel1_deluxe), '302', 3, 'available', true)
 ),
-hotel1_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM hotel1), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM hotel1), 'Air Conditioner', 'snowflake', 'room'),
-        ((SELECT id FROM hotel1), 'Sea View', 'waves', 'view')
-    RETURNING id, name
+-- Tro toi cac tien nghi dung chung da tao o dau file (khong tao moi).
+hotel1_wifi AS (SELECT id FROM amenities WHERE name = 'Free WiFi' AND scope = 'room'),
+hotel1_ac AS (SELECT id FROM amenities WHERE name = 'Air Conditioner' AND scope = 'room'),
+hotel1_sea_view AS (SELECT id FROM amenities WHERE name = 'Sea View' AND scope = 'room'),
+hotel1_ha AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM hotel1), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Pool', 'Sea View')
 ),
-hotel1_wifi AS (SELECT id FROM hotel1_amenities WHERE name = 'Free WiFi'),
-hotel1_ac AS (SELECT id FROM hotel1_amenities WHERE name = 'Air Conditioner'),
-hotel1_sea_view AS (SELECT id FROM hotel1_amenities WHERE name = 'Sea View'),
 hotel1_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
     VALUES
@@ -193,17 +224,14 @@ hotel2_rooms AS (
         ((SELECT id FROM hotel2), (SELECT id FROM hotel2_suite), '501', 5, 'available', true),
         ((SELECT id FROM hotel2), (SELECT id FROM hotel2_suite), '502', 5, 'available', true)
 ),
-hotel2_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM hotel2), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM hotel2), 'Breakfast Included', 'coffee', 'general'),
-        ((SELECT id FROM hotel2), 'Gym', 'dumbbell', 'general')
-    RETURNING id, name
+hotel2_wifi AS (SELECT id FROM amenities WHERE name = 'Free WiFi' AND scope = 'room'),
+hotel2_breakfast AS (SELECT id FROM amenities WHERE name = 'Breakfast Included' AND scope = 'room'),
+hotel2_gym AS (SELECT id FROM amenities WHERE name = 'Gym' AND scope = 'room'),
+hotel2_ha AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM hotel2), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Breakfast Included', 'Gym')
 ),
-hotel2_wifi AS (SELECT id FROM hotel2_amenities WHERE name = 'Free WiFi'),
-hotel2_breakfast AS (SELECT id FROM hotel2_amenities WHERE name = 'Breakfast Included'),
-hotel2_gym AS (SELECT id FROM hotel2_amenities WHERE name = 'Gym'),
 hotel2_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
     VALUES
@@ -333,17 +361,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '602', 6, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '603', 6, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
-        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Pool', 'Sea View')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Pool', 'Sea View')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -432,16 +458,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '102', 1, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '103', 1, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Air Conditioner', 'snowflake', 'room')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Air Conditioner')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Air Conditioner')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -530,16 +555,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '202', 2, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '203', 2, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Breakfast Included')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Breakfast Included')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -628,17 +652,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '302', 3, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '303', 3, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
-        ((SELECT id FROM new_hotel), 'Lake View', 'waves', 'view')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Gym', 'Lake View')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Gym', 'Lake View')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -727,17 +749,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '402', 4, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '403', 4, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
-        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Gym', 'Breakfast Included')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Gym', 'Breakfast Included')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -826,17 +846,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '2002', 20, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '2003', 20, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
-        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Pool', 'Gym')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Pool', 'Gym')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -925,15 +943,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '12', 1, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '13', 1, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1000,17 +1018,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '102', 1, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '103', 1, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general'),
-        ((SELECT id FROM new_hotel), 'Fireplace', 'flame', 'room')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Breakfast Included', 'Fireplace')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Breakfast Included', 'Fireplace')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1099,16 +1115,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '202', 2, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '203', 2, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Breakfast Included', 'coffee', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Breakfast Included')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Breakfast Included')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1174,16 +1189,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), 'B1', 1, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), 'B2', 1, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Tea Garden Tour', 'leaf', 'activity')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Tea Garden Tour')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Tea Garden Tour')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1272,17 +1286,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '1502', 15, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '1503', 15, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Pool', 'waves', 'general'),
-        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Pool', 'Sea View')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Pool', 'Sea View')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1371,17 +1383,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '802', 8, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '803', 8, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general'),
-        ((SELECT id FROM new_hotel), 'Gym', 'dumbbell', 'general'),
-        ((SELECT id FROM new_hotel), 'Sea View', 'waves', 'view')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi', 'Gym', 'Sea View')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi', 'Gym', 'Sea View')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
@@ -1448,15 +1458,15 @@ new_rooms AS (
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '22', 2, 'available', true),
         ((SELECT id FROM new_hotel), (SELECT id FROM new_room_type), '23', 2, 'available', true)
 ),
-new_amenities AS (
-    INSERT INTO amenities (hotel_id, name, icon, category)
-    VALUES
-        ((SELECT id FROM new_hotel), 'Free WiFi', 'wifi', 'general')
-    RETURNING id
+new_hotel_amenities AS (
+    INSERT INTO hotel_amenities (hotel_id, amenity_id)
+    SELECT (SELECT id FROM new_hotel), id FROM amenities
+    WHERE scope = 'hotel' AND name IN ('Free WiFi')
 ),
 new_rta AS (
     INSERT INTO room_type_amenities (room_type_id, amenity_id)
-    SELECT (SELECT id FROM new_hotel), (SELECT id FROM new_room_type), id FROM new_amenities
+    SELECT (SELECT id FROM new_room_type), id FROM amenities
+    WHERE scope = 'room' AND name IN ('Free WiFi')
 ),
 new_service AS (
     INSERT INTO hotel_services (hotel_id, name, description, price, unit, is_active)
