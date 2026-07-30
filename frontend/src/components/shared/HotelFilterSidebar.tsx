@@ -13,12 +13,12 @@ const PRICE_MIN = 0;
 const PRICE_MAX = 20000000;
 const PRICE_STEP = 100000;
 
-// Cac muc diem danh gia: nhan thang 10 (giong Booking) -> gia tri gui la thang 5 sao.
+// Cac muc diem danh gia - gia tri gui di cung la thang 10 nhu nhan hien thi.
 const RATING_OPTIONS = [
-  { label: "Tuyệt vời: 9+", value: "4.5" },
-  { label: "Rất tốt: 8+", value: "4" },
-  { label: "Tốt: 7+", value: "3.5" },
-  { label: "Dễ chịu: 6+", value: "3" },
+  { label: "Tuyệt vời: 9+", value: "9" },
+  { label: "Rất tốt: 8+", value: "8" },
+  { label: "Tốt: 7+", value: "7" },
+  { label: "Dễ chịu: 6+", value: "6" },
 ];
 
 const STAR_OPTIONS = [5, 4, 3, 2, 1];

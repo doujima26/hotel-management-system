@@ -2,6 +2,7 @@ import { serverFetch } from "./server";
 import { apiFetch } from "./client";
 import type {
   Amenity,
+  AmenityCategory,
   DeleteAmenityResult,
   DeleteRoomBlockResult,
   DeleteRoomResult,
@@ -66,14 +67,12 @@ export interface UpdateRoomPayload {
 export interface CreateAmenityPayload {
   name: string;
   scope: AmenityScope;
-  icon?: string;
-  category?: string;
+  category_id?: number;
 }
 
 export interface UpdateAmenityPayload {
   name?: string;
-  icon?: string;
-  category?: string;
+  category_id?: number;
 }
 
 export interface CreateRoomTypeImagePayload {
@@ -131,6 +130,18 @@ export const roomsApi = {
     apiFetch<Amenity>(`/rooms/amenities/${amenityId}`, { method: "PATCH", body: payload, auth: true }),
   deleteAmenity: (amenityId: number) =>
     apiFetch<DeleteAmenityResult>(`/rooms/amenities/${amenityId}`, { method: "DELETE", auth: true }),
+
+  listAmenityCategories: () => apiFetch<AmenityCategory[]>("/rooms/amenity-categories", { auth: true }),
+  createAmenityCategory: (name: string, icon?: string) =>
+    apiFetch<AmenityCategory>("/rooms/amenity-categories", { method: "POST", body: { name, icon }, auth: true }),
+  updateAmenityCategory: (categoryId: number, name: string, icon?: string) =>
+    apiFetch<AmenityCategory>(`/rooms/amenity-categories/${categoryId}`, {
+      method: "PATCH",
+      body: { name, icon },
+      auth: true,
+    }),
+  deleteAmenityCategory: (categoryId: number) =>
+    apiFetch<{ id: number }>(`/rooms/amenity-categories/${categoryId}`, { method: "DELETE", auth: true }),
   assignAmenityToRoomType: (roomTypeId: number, amenityId: number) =>
     apiFetch<RoomTypeAmenityLinkResult>(`/rooms/room-types/${roomTypeId}/amenities/${amenityId}`, {
       method: "POST",

@@ -5,10 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.enums import AmenityScope, DiscountType, HotelStatus, RoomStatus
-from app.models.entities import Amenity, Hotel, Room, RoomType, RoomTypeImage, User
+from app.models.entities import Amenity, AmenityCategory, Hotel, Room, RoomType, RoomTypeImage, User
 from app.repositories.room_repository import (
     bulk_upsert_room_type_rates,
     count_rooms_by_room_type,
+    count_amenities_in_category,
+    create_amenity_category_record,
     create_amenity_record,
     create_room_block_record,
     create_room_record,
@@ -18,6 +20,7 @@ from app.repositories.room_repository import (
     create_room_type_amenity_link,
     create_room_type_image_record,
     create_room_type_record,
+    delete_amenity_category_record,
     delete_amenity_record,
     delete_room_block,
     delete_room_record,
@@ -26,6 +29,7 @@ from app.repositories.room_repository import (
     delete_room_type_record,
     delete_room_type_rate,
     get_amenity_by_id,
+    get_amenity_category_by_id,
     get_hotel_by_id,
     get_overlapping_room_blocks,
     get_rates_in_range,
@@ -37,6 +41,7 @@ from app.repositories.room_repository import (
     get_room_type_image_by_id,
     count_sellable_rooms_by_room_type_map,
     list_amenities_by_room_type_ids,
+    list_amenity_category_records,
     list_amenity_records_by_scope,
     list_booked_rooms_in_range,
     list_images_by_room_type_ids,
@@ -48,18 +53,22 @@ from app.repositories.room_repository import (
     list_room_type_image_records,
     list_room_type_records,
     save_amenity,
+    save_amenity_category,
     save_room,
     save_room_type,
     set_room_type_image_primary,
     upsert_room_type_rate,
 )
 from app.schemas.rooms import (
+    AmenityCategoryResponse,
     AmenityResponse,
+    CreateAmenityCategoryRequest,
     CreateAmenityRequest,
     CreateRoomBlockRequest,
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
+    DeleteAmenityCategoryResponse,
     DeleteAmenityResponse,
     DeleteRoomBlockResponse,
     DeleteRoomResponse,
@@ -81,6 +90,7 @@ from app.schemas.rooms import (
     RoomTypeResponse,
     SeasonalRateRequest,
     SetRoomTypeRateRequest,
+    UpdateAmenityCategoryRequest,
     UpdateAmenityRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
@@ -105,7 +115,15 @@ def serialize_room(room: Room) -> dict:
 
 # Chuyen tien nghi thanh du lieu tra ve.
 def serialize_amenity(amenity: Amenity) -> dict:
-    return AmenityResponse.model_validate(amenity).model_dump(mode="json")
+    # category tra ve TEN danh muc (chuoi) de giu nguyen hop dong API cu cho
+    # cac trang dang gom tien nghi theo danh muc; category_id/category_icon la
+    # cac field them moi.
+    return AmenityResponse.from_amenity(amenity).model_dump(mode="json")
+
+
+# Chuyen danh muc con cua tien nghi thanh du lieu tra ve.
+def serialize_amenity_category(category: AmenityCategory) -> dict:
+    return AmenityCategoryResponse.model_validate(category).model_dump(mode="json")
 
 
 # Kiem tra admin co quyen quan ly khach san.
@@ -302,8 +320,17 @@ def delete_room(db: Session, current_user: User, room_id: int) -> dict:
     return DeleteRoomResponse(id=room_id).model_dump(mode="json")
 
 
+# Kiem tra danh muc con ton tai (dung khi tao/sua tien nghi co chon danh muc).
+def _validate_amenity_category(db: Session, category_id: int | None) -> None:
+    if category_id is None:
+        return
+    if not get_amenity_category_by_id(db, category_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+
+
 # Xu ly tao tien nghi moi trong danh muc chung (chi Super Admin).
 def create_amenity(db: Session, payload: CreateAmenityRequest) -> dict:
+    _validate_amenity_category(db, payload.category_id)
     try:
         amenity = create_amenity_record(db, payload)
     except IntegrityError as exc:
@@ -327,6 +354,8 @@ def update_amenity(db: Session, amenity_id: int, payload: UpdateAmenityRequest) 
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
+
+    _validate_amenity_category(db, payload.category_id)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -352,6 +381,58 @@ def delete_amenity(db: Session, amenity_id: int) -> dict:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
     delete_amenity_record(db, amenity)
     return DeleteAmenityResponse(id=amenity_id).model_dump(mode="json")
+
+
+# Xu ly tao danh muc con moi cho tien nghi (chi Super Admin).
+def create_amenity_category(db: Session, payload: CreateAmenityCategoryRequest) -> dict:
+    try:
+        category = create_amenity_category_record(db, payload.name.strip(), payload.icon or None)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh muc tien nghi da ton tai") from exc
+
+    return serialize_amenity_category(category)
+
+
+# Xu ly lay danh sach danh muc con cua tien nghi.
+def list_amenity_categories(db: Session) -> list[dict]:
+    return [serialize_amenity_category(item) for item in list_amenity_category_records(db)]
+
+
+# Xu ly sua ten danh muc con cua tien nghi (chi Super Admin).
+def update_amenity_category(db: Session, category_id: int, payload: UpdateAmenityCategoryRequest) -> dict:
+    category = get_amenity_category_by_id(db, category_id)
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+
+    category.name = payload.name.strip()
+    category.icon = payload.icon or None
+    try:
+        category = save_amenity_category(db, category)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh muc tien nghi da ton tai") from exc
+
+    return serialize_amenity_category(category)
+
+
+# Xu ly xoa danh muc con cua tien nghi (chi Super Admin) - chan xoa khi danh
+# muc dang con tien nghi de khong am tham lam mat phan loai cua hang loat
+# tien nghi. Rang buoc ON DELETE RESTRICT o DB la luoi an toan cuoi.
+def delete_amenity_category(db: Session, category_id: int) -> dict:
+    category = get_amenity_category_by_id(db, category_id)
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+
+    usage_count = count_amenities_in_category(db, category_id)
+    if usage_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Danh muc dang co {usage_count} tien nghi, hay chuyen sang danh muc khac truoc khi xoa",
+        )
+
+    delete_amenity_category_record(db, category)
+    return DeleteAmenityCategoryResponse(id=category_id).model_dump(mode="json")
 
 
 # Xu ly gan tien nghi vao loai phong.
@@ -470,7 +551,7 @@ def get_room_availability(
             available_rooms=available_rooms,
             images=[image.image_url for image in images_by_room_type.get(room_type.id, [])],
             amenities=[
-                RoomTypeAmenityItem(name=amenity.name, category=amenity.category)
+                RoomTypeAmenityItem(name=amenity.name, category=amenity.category.name if amenity.category else None)
                 for amenity in amenities_by_room_type.get(room_type.id, [])
             ],
         )

@@ -300,14 +300,9 @@ export default function AdminDashboardPage() {
                   <div className="flex flex-col gap-2">
                     {data.recent_reviews.map((review) => (
                       <div key={review.id} className="flex items-start gap-2 text-sm">
-                        <div className="flex shrink-0 gap-0.5 pt-0.5">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={cn("size-3", i < review.rating ? "fill-primary text-primary" : "text-muted-foreground")}
-                            />
-                          ))}
-                        </div>
+                        <span className="shrink-0 rounded bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+                          {review.rating}
+                        </span>
                         <p className="line-clamp-1 text-muted-foreground">
                           <span className="font-medium text-foreground">{review.reviewer_name}</span>
                           {review.comment ? `: ${review.comment}` : ""}

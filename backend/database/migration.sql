@@ -79,10 +79,10 @@ CREATE TABLE hotels (
     longitude         DECIMAL(11, 8),
     phone             VARCHAR(20),
     email             VARCHAR(255),
-    star_rating       SMALLINT CHECK (star_rating BETWEEN 1 AND 5),
+    star_rating       SMALLINT CHECK (star_rating BETWEEN 1 AND 5),  -- Hạng sao khách sạn, KHÁC điểm đánh giá
     status            hotel_status NOT NULL DEFAULT 'pending',
     rejection_reason  TEXT,
-    avg_rating        DECIMAL(3, 2) NOT NULL DEFAULT 0,
+    avg_rating        DECIMAL(4, 2) NOT NULL DEFAULT 0,  -- Điểm đánh giá thang 10, cần 4 chữ số cho 10.00
     total_reviews     INTEGER NOT NULL DEFAULT 0,
     check_in_time     TIME NOT NULL DEFAULT '14:00',
     check_out_time    TIME NOT NULL DEFAULT '12:00',
@@ -198,16 +198,30 @@ CREATE TABLE room_blocks (
 CREATE INDEX idx_room_blocks_room_dates ON room_blocks (room_id, start_date, end_date);
 
 -- -------------------------------------------------------
+-- 6c. amenity_categories - Danh muc con cua tien nghi (vd Giai tri, Tam nhin),
+-- do Super Admin quan ly. Dung chung cho CA 2 pham vi tien nghi (hotel/room).
+-- icon dai dien cho ca danh muc - tien nghi khong co icon rieng.
+-- -------------------------------------------------------
+CREATE TABLE amenity_categories (
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE,
+    icon        VARCHAR(100),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- -------------------------------------------------------
 -- 7. amenities - Danh muc tien nghi CHUNG toan he thong, do Super Admin
 -- quan ly. scope=hotel la tien nghi chung khach san (gan qua hotel_amenities),
 -- scope=room la tien nghi rieng loai phong (gan qua room_type_amenities).
+-- category_id dung RESTRICT: chan xoa danh muc dang con tien nghi (tang
+-- service kiem tra truoc de tra thong bao de hieu).
 -- -------------------------------------------------------
 CREATE TABLE amenities (
     id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,
     scope       amenity_scope NOT NULL,
-    icon        VARCHAR(100),
-    category    VARCHAR(50),
+    category_id BIGINT REFERENCES amenity_categories(id) ON DELETE RESTRICT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(name, scope)
 );
@@ -437,7 +451,7 @@ CREATE TABLE reviews (
     user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     hotel_id    BIGINT NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
     booking_id  BIGINT NOT NULL REFERENCES bookings(id) ON DELETE RESTRICT,
-    rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 10),  -- Thang 10 điểm
     comment     TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -577,7 +591,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     UPDATE hotels SET
         avg_rating = (
-            SELECT COALESCE(AVG(rating)::DECIMAL(3,2), 0)
+            SELECT COALESCE(AVG(rating)::DECIMAL(4,2), 0)
             FROM reviews WHERE hotel_id = COALESCE(NEW.hotel_id, OLD.hotel_id)
         ),
         total_reviews = (

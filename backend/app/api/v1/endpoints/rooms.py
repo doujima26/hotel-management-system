@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.checkin import SetRoomMaintenanceRequest
 from app.schemas.rooms import (
+    CreateAmenityCategoryRequest,
     CreateAmenityRequest,
     CreateRoomBlockRequest,
     CreateRoomRequest,
@@ -17,6 +18,7 @@ from app.schemas.rooms import (
     CreateRoomTypeRequest,
     SeasonalRateRequest,
     SetRoomTypeRateRequest,
+    UpdateAmenityCategoryRequest,
     UpdateAmenityRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
@@ -32,11 +34,13 @@ from app.services.room_service import (
     assign_amenity_to_room_type as assign_amenity_to_room_type_action,
     clear_room_type_rate as clear_room_type_rate_action,
     create_amenity as create_amenity_action,
+    create_amenity_category as create_amenity_category_action,
     create_room as create_room_action,
     create_room_block as create_room_block_action,
     create_room_type as create_room_type_action,
     create_room_type_image as create_room_type_image_action,
     delete_amenity as delete_amenity_action,
+    delete_amenity_category as delete_amenity_category_action,
     delete_room as delete_room_action,
     delete_room_type as delete_room_type_action,
     delete_room_type_image as delete_room_type_image_action,
@@ -44,6 +48,7 @@ from app.services.room_service import (
     get_room_calendar as get_room_calendar_action,
     get_room_type_rate_calendar as get_room_type_rate_calendar_action,
     list_amenities as list_amenities_action,
+    list_amenity_categories as list_amenity_categories_action,
     list_room_blocks as list_room_blocks_action,
     list_room_type_amenities as list_room_type_amenities_action,
     list_room_type_images as list_room_type_images_action,
@@ -54,6 +59,7 @@ from app.services.room_service import (
     set_room_type_rate as set_room_type_rate_action,
     unassign_amenity_from_room_type as unassign_amenity_from_room_type_action,
     update_amenity as update_amenity_action,
+    update_amenity_category as update_amenity_category_action,
     update_room as update_room_action,
     update_room_type as update_room_type_action,
 )
@@ -270,6 +276,50 @@ def delete_amenity(
 ):
     data = delete_amenity_action(db, amenity_id)
     return ok(data, "Xoa tien nghi thanh cong")
+
+
+# Super Admin tao danh muc con moi cho tien nghi.
+@router.post("/amenity-categories")
+def create_amenity_category(
+    payload: CreateAmenityCategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = create_amenity_category_action(db, payload)
+    return ok(data, "Tao danh muc tien nghi thanh cong")
+
+
+# Super Admin xem danh sach danh muc con cua tien nghi.
+@router.get("/amenity-categories")
+def list_amenity_categories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = list_amenity_categories_action(db)
+    return ok(data, "Danh sach danh muc tien nghi")
+
+
+# Super Admin sua ten danh muc con cua tien nghi.
+@router.patch("/amenity-categories/{category_id}")
+def update_amenity_category(
+    category_id: int,
+    payload: UpdateAmenityCategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = update_amenity_category_action(db, category_id, payload)
+    return ok(data, "Cap nhat danh muc tien nghi thanh cong")
+
+
+# Super Admin xoa danh muc con cua tien nghi (chan neu danh muc dang con tien nghi).
+@router.delete("/amenity-categories/{category_id}")
+def delete_amenity_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = delete_amenity_category_action(db, category_id)
+    return ok(data, "Xoa danh muc tien nghi thanh cong")
 
 
 # Admin gan tien nghi vao loai phong cua khach san minh.

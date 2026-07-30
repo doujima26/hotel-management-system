@@ -29,4 +29,11 @@ Thumbs.db
 # test files
 backend/tests/
 
+# Cau hinh cong cu local va file sinh ra khi chay - khong phai code cua app
+.claude/
+skills-lock.json
+design.md
+DESIGN.md
+.hallmark/
+
 

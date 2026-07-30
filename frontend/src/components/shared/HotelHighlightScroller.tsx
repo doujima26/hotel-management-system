@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Building2, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatMoney } from "@/lib/utils/format";
 import type { HotelHighlight } from "@/types/models";
 
@@ -102,9 +102,13 @@ export function HotelHighlightScroller({ title, subtitle, items }: HotelHighligh
                 <p className="truncate font-semibold">{hotel.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{hotel.city}</p>
                 {hotel.total_reviews > 0 && (
-                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="size-3 fill-primary text-primary" />
-                    {hotel.avg_rating.toFixed(1)} ({hotel.total_reviews} đánh giá)
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {/* Diem thang 10 de trong the diem, khong dung icon ngoi sao -
+                        ngoi sao de danh cho HANG SAO cua khach san. */}
+                    <span className="rounded bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground">
+                      {hotel.avg_rating.toFixed(1)}
+                    </span>
+                    ({hotel.total_reviews} đánh giá)
                   </p>
                 )}
                 {hotel.from_price != null && (

@@ -17,7 +17,7 @@ from app.repositories.dashboard_repository import (
     list_active_booking_rooms_in_range,
 )
 from app.repositories.hotel_repository import get_hotel_by_id
-from app.repositories.review_repository import list_reviews_with_user_by_hotel
+from app.repositories.review_repository import list_reviews_with_user_and_booking_by_hotel
 from app.repositories.room_repository import count_rooms_by_status, get_active_room_blocks_for_hotel
 from app.repositories.staff_repository import list_schedules_with_staff_by_hotel
 from app.schemas.dashboard import (
@@ -173,7 +173,7 @@ def get_hotel_operations_overview(db: Session, current_user: User) -> dict:
 
     recent_reviews = [
         RecentReviewItem(id=review.id, reviewer_name=user.full_name, rating=review.rating, comment=review.comment, created_at=review.created_at)
-        for review, user in list_reviews_with_user_by_hotel(db, hotel.id)[:_RECENT_REVIEWS_LIMIT]
+        for review, user, _booking in list_reviews_with_user_and_booking_by_hotel(db, hotel.id)[:_RECENT_REVIEWS_LIMIT]
     ]
 
     return HotelOperationsOverviewResponse(

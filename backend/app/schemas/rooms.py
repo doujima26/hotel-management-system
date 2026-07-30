@@ -51,15 +51,39 @@ class UpdateRoomRequest(BaseModel):
 class CreateAmenityRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     scope: AmenityScope
-    icon: str | None = Field(default=None, max_length=100)
-    category: str | None = Field(default=None, max_length=50)
+    category_id: int | None = Field(default=None, gt=0)
 
 
 # Schema du lieu dau vao cho sua tien nghi (tat ca field tuy chon).
 class UpdateAmenityRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
+    category_id: int | None = Field(default=None, gt=0)
+
+
+# Schema du lieu dau vao cho tao danh muc con cua tien nghi.
+class CreateAmenityCategoryRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
     icon: str | None = Field(default=None, max_length=100)
-    category: str | None = Field(default=None, max_length=50)
+
+
+# Schema du lieu dau vao cho sua danh muc con cua tien nghi.
+class UpdateAmenityCategoryRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    icon: str | None = Field(default=None, max_length=100)
+
+
+# Schema du lieu tra ve 1 danh muc con cua tien nghi.
+class AmenityCategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    icon: str | None = None
+
+
+# Schema du lieu tra ve sau khi xoa danh muc con cua tien nghi.
+class DeleteAmenityCategoryResponse(BaseModel):
+    id: int
 
 
 # Schema du lieu tra ve sau khi xoa loai phong.
@@ -105,15 +129,34 @@ class RoomListResponse(BaseModel):
     remaining_rooms: int
 
 
-# Schema du lieu tra ve tien nghi.
+# Schema du lieu tra ve tien nghi. category van la CHUOI ten danh muc (lay qua
+# quan he) de khong pha vo cac noi dang tieu thu san, category_id la field them
+# moi cho form chon danh muc. Tien nghi khong con icon rieng - icon thuoc ve
+# danh muc, tra kem qua category_icon de FE khong phai goi them API danh muc.
 class AmenityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     scope: AmenityScope
     name: str
-    icon: str | None = None
+    category_id: int | None = None
     category: str | None = None
+    category_icon: str | None = None
+
+    # Dung tu ORM Amenity - phai qua ham nay thay vi model_validate() vi
+    # Amenity.category la QUAN HE (doi tuong AmenityCategory) chu khong phai
+    # chuoi, can lay .name/.icon ra. Dat o day de moi service dung chung 1
+    # nguon, tranh import vong giua room_service va hotel_service.
+    @classmethod
+    def from_amenity(cls, amenity) -> "AmenityResponse":
+        return cls(
+            id=amenity.id,
+            scope=amenity.scope,
+            name=amenity.name,
+            category_id=amenity.category_id,
+            category=amenity.category.name if amenity.category else None,
+            category_icon=amenity.category.icon if amenity.category else None,
+        )
 
 
 # Schema du lieu tra ve sau khi gan/go tien nghi khoi loai phong.

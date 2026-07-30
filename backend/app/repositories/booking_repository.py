@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus
-from app.models.entities import Booking, BookingRoom, BookingRoomUnit, BookingService, HotelService
+from app.models.entities import Booking, BookingRoom, BookingRoomUnit, BookingService, HotelService, RoomType
 
 # Cac trang thai booking khong con chiem giu phong. Checked_out cung tinh la
 # khong con chiem giu du check_out_date goc chua toi - khach da check-out (ke
@@ -166,6 +166,24 @@ def list_booking_services(db: Session, booking_id: int) -> list[tuple[BookingSer
         .filter(BookingService.booking_id == booking_id)
         .all()
     )
+
+
+# Lay ten loai phong cua NHIEU booking trong 1 query (tranh N+1 khi liet ke
+# danh gia can hien khach da o loai phong nao).
+def list_room_type_names_by_booking_ids(db: Session, booking_ids: list[int]) -> dict[int, list[str]]:
+    if not booking_ids:
+        return {}
+    rows = (
+        db.query(BookingRoom.booking_id, RoomType.name)
+        .join(RoomType, RoomType.id == BookingRoom.room_type_id)
+        .filter(BookingRoom.booking_id.in_(booking_ids))
+        .order_by(RoomType.name.asc())
+        .all()
+    )
+    grouped: dict[int, list[str]] = {}
+    for booking_id, name in rows:
+        grouped.setdefault(booking_id, []).append(name)
+    return grouped
 
 
 # Lay danh sach booking cua nguoi dung, moi nhat truoc.

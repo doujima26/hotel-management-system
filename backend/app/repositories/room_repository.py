@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.enums import AmenityScope, BookingStatus, DiscountType, RoomStatus
 from app.models.entities import (
     Amenity,
+    AmenityCategory,
     Booking,
     BookingRoom,
     BookingRoomUnit,
@@ -455,8 +456,7 @@ def create_amenity_record(db: Session, payload: CreateAmenityRequest) -> Amenity
     amenity = Amenity(
         name=payload.name,
         scope=payload.scope,
-        icon=payload.icon,
-        category=payload.category,
+        category_id=payload.category_id,
     )
     db.add(amenity)
     db.commit()
@@ -520,6 +520,44 @@ def save_amenity(db: Session, amenity: Amenity) -> Amenity:
 def delete_amenity_record(db: Session, amenity: Amenity) -> None:
     db.delete(amenity)
     db.commit()
+
+
+# Tao danh muc con moi cho tien nghi (Super Admin quan ly).
+def create_amenity_category_record(db: Session, name: str, icon: str | None) -> AmenityCategory:
+    category = AmenityCategory(name=name, icon=icon)
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+# Lay toan bo danh muc con cua tien nghi, sap theo ten.
+def list_amenity_category_records(db: Session) -> list[AmenityCategory]:
+    return db.query(AmenityCategory).order_by(AmenityCategory.name.asc()).all()
+
+
+# Lay danh muc con theo id.
+def get_amenity_category_by_id(db: Session, category_id: int) -> AmenityCategory | None:
+    return db.query(AmenityCategory).filter(AmenityCategory.id == category_id).first()
+
+
+# Luu thay doi danh muc con (sua ten).
+def save_amenity_category(db: Session, category: AmenityCategory) -> AmenityCategory:
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+# Xoa danh muc con.
+def delete_amenity_category_record(db: Session, category: AmenityCategory) -> None:
+    db.delete(category)
+    db.commit()
+
+
+# Dem so tien nghi dang thuoc 1 danh muc - dung de chan xoa danh muc dang duoc dung.
+def count_amenities_in_category(db: Session, category_id: int) -> int:
+    return int(db.query(func.count(Amenity.id)).filter(Amenity.category_id == category_id).scalar() or 0)
 
 
 # Xoa 1 lien ket loai phong - tien nghi cu the (go tien nghi khoi loai phong, khong xoa amenity).

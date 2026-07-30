@@ -1,14 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Star } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { BedDouble, CalendarDays, Receipt } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/utils/format";
+import { formatDate, getRatingLabel } from "@/lib/utils/format";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 import { useAdminHotel } from "../layout";
+
+// Tinh so dem luu tru tu 2 moc ngay (chuoi YYYY-MM-DD) de hien kem khoang ngay.
+function countNights(checkIn: string, checkOut: string): number {
+  const diff = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
 
 export default function AdminReviewsPage() {
   const hotel = useAdminHotel();
@@ -46,17 +51,48 @@ export default function AdminReviewsPage() {
         <div className="flex flex-col gap-3">
           {data.map((review) => (
             <Card key={review.id}>
-              <CardContent className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium">{review.reviewer_name}</p>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={cn("size-4", i < review.rating ? "fill-primary text-primary" : "text-muted-foreground")} />
-                    ))}
+              <CardHeader>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <CardTitle>{review.reviewer_name}</CardTitle>
+                    <CardDescription>Đánh giá ngày {formatDate(review.created_at)}</CardDescription>
+                  </div>
+                  {/* Diem thang 10 kem nhan chu - cung mot cach hien nhu trang
+                      cong khai, khong dung ngoi sao (ngoi sao la hang sao khach san). */}
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-primary px-2 py-0.5 text-sm font-bold text-primary-foreground">
+                      {review.rating}
+                    </span>
+                    <span className="text-sm font-medium">{getRatingLabel(review.rating)}</span>
                   </div>
                 </div>
-                {review.comment && <p className="text-sm">{review.comment}</p>}
-                <p className="text-xs text-muted-foreground">{formatDate(review.created_at)}</p>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {/* Thong tin lan luu tru bi danh gia - de Admin biet danh gia noi
+                    ve don nao, loai phong nao ma khong phai tra cuu sang trang booking. */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Receipt className="size-3.5 text-muted-foreground" />
+                    {review.booking_code}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CalendarDays className="size-3.5" />
+                    {formatDate(review.check_in_date)} - {formatDate(review.check_out_date)} ·{" "}
+                    {countNights(review.check_in_date, review.check_out_date)} đêm
+                  </span>
+                  {review.room_type_names.length > 0 && (
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <BedDouble className="size-3.5" />
+                      {review.room_type_names.join(", ")}
+                    </span>
+                  )}
+                </div>
+
+                {review.comment ? (
+                  <p className="rounded-lg border bg-muted/40 p-2.5 text-sm">{review.comment}</p>
+                ) : (
+                  <p className="text-sm italic text-muted-foreground">Khách không để lại nhận xét.</p>
+                )}
               </CardContent>
             </Card>
           ))}

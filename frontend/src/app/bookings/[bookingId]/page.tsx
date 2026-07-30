@@ -8,15 +8,17 @@ import { RequireAuth } from "@/components/shared/RequireAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { formatDate, formatMoney } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
+import { formatDate, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 
 import type { Review } from "@/types/models";
 import { BookingStatusBadge } from "@/components/shared/StatusBadge";
+
+const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 interface BookingDetailPageProps {
   params: Promise<{ bookingId: string }>;
@@ -36,7 +38,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [rating, setRating] = useState("5");
+  const [rating, setRating] = useState("10");
   const [comment, setComment] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -234,21 +236,29 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
             <CardDescription>Chia sẻ trải nghiệm của bạn về kỳ nghỉ này.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            {/* Hang nut 1-10 thay cho dropdown: thang diem 10 co 10 muc, chon
+                bang 1 lan bam va thay het cac muc cung luc de de uoc luong. */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="rating">Số sao</Label>
-              <Select value={rating} onValueChange={(v) => v && setRating(v)}>
-                <SelectTrigger id="rating" className="w-32">
-                  {/* Phai tu format: mac dinh SelectValue hien gia tri tho (so, thieu chu "sao"). */}
-                  <SelectValue>{(current) => (current ? `${current} sao` : "")}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 4, 3, 2, 1].map((value) => (
-                    <SelectItem key={value} value={String(value)}>
-                      {value} sao
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Điểm đánh giá (thang 10)</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {RATING_SCALE.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRating(String(value))}
+                    aria-pressed={Number(rating) === value}
+                    className={cn(
+                      "size-9 rounded-lg border text-sm font-semibold transition-colors",
+                      Number(rating) === value
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:border-primary hover:text-primary",
+                    )}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">{getRatingLabel(Number(rating))}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="comment">Nhận xét (không bắt buộc)</Label>
@@ -282,7 +292,9 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Đánh giá của bạn</CardTitle>
-            <CardDescription>{myReview.rating} sao</CardDescription>
+            <CardDescription>
+              {myReview.rating}/10 - {getRatingLabel(myReview.rating)}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {myReview.comment && <p className="text-sm">{myReview.comment}</p>}

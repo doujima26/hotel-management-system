@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, Check, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatMoney, getRatingLabel, toTenPointScore } from "@/lib/utils/format";
+import { formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
@@ -195,7 +195,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
               if (numGuests) detailQs.set("num_guests", numGuests);
               const suffix = detailQs.toString();
               const detailHref = `/hotels/${hotel.id}${suffix ? `?${suffix}` : ""}`;
-              const score = hotel.total_reviews > 0 ? toTenPointScore(hotel.avg_rating) : null;
+              const score = hotel.total_reviews > 0 ? hotel.avg_rating : null;
               const highlights = [...hotel.room_amenities, ...hotel.hotel_service_names];
 
               return (

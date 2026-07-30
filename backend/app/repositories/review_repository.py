@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models.entities import Review, User
+from app.models.entities import Booking, Review, User
 
 
 # Lay danh gia theo nguoi dung va booking, dung de kiem tra da danh gia chua.
@@ -23,11 +23,14 @@ def create_review_record(db: Session, *, user_id: int, hotel_id: int, booking_id
     return review
 
 
-# Lay danh sach danh gia kem thong tin nguoi danh gia theo khach san, moi nhat truoc.
-def list_reviews_with_user_by_hotel(db: Session, hotel_id: int) -> list[tuple[Review, User]]:
+# Lay danh sach danh gia kem nguoi danh gia va don booking theo khach san, moi
+# nhat truoc. Join booking ngay tai day de khong phai truy van lai theo tung
+# danh gia khi can hien ma don va ngay luu tru.
+def list_reviews_with_user_and_booking_by_hotel(db: Session, hotel_id: int) -> list[tuple[Review, User, Booking]]:
     return (
-        db.query(Review, User)
+        db.query(Review, User, Booking)
         .join(User, User.id == Review.user_id)
+        .join(Booking, Booking.id == Review.booking_id)
         .filter(Review.hotel_id == hotel_id)
         .order_by(Review.created_at.desc())
         .all()

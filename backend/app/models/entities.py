@@ -71,7 +71,7 @@ class Hotel(Base):
         default=HotelStatus.PENDING,
     )
     rejection_reason: Mapped[str | None] = mapped_column(Text)
-    avg_rating: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=0)
+    avg_rating: Mapped[float] = mapped_column(Numeric(4, 2), nullable=False, default=0)
     total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # Quy tac chung (house rules): gio nhan/tra phong, chinh sach huy/tre em, thu cung.
     check_in_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'14:00'"))
@@ -207,6 +207,20 @@ class RoomBlock(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang amenity_categories - danh muc con cua tien nghi (vd Giai tri,
+# Tam nhin), dung chung cho ca 2 pham vi tien nghi (hotel va room).
+class AmenityCategory(Base):
+    __tablename__ = "amenity_categories"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    # Icon dai dien cho ca danh muc - moi tien nghi trong danh muc dung chung
+    # icon nay (tien nghi khong con icon rieng).
+    icon: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 # Model bang amenities.
 class Amenity(Base):
     __tablename__ = "amenities"
@@ -221,8 +235,12 @@ class Amenity(Base):
         Enum(AmenityScope, name="amenity_scope", values_callable=enum_values),
         nullable=False,
     )
-    icon: Mapped[str | None] = mapped_column(String(100))
-    category: Mapped[str | None] = mapped_column(String(50))
+    # RESTRICT: chan xoa danh muc dang con tien nghi (tang service kiem tra
+    # truoc de tra thong bao de hieu, day la luoi an toan cuoi cua DB).
+    category_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("amenity_categories.id", ondelete="RESTRICT")
+    )
+    category: Mapped["AmenityCategory | None"] = relationship(lazy="joined")
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

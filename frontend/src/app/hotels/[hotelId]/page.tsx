@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Clock, CreditCard, PawPrint, Star } from "lucide-react";
+import { BedDouble, Check, Clock, CreditCard, PawPrint, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
@@ -8,13 +8,23 @@ import { HotelDetailSearchForm } from "@/components/shared/HotelDetailSearchForm
 import { HotelGallery } from "@/components/shared/HotelGallery";
 import { RoomAvailabilityTable } from "@/components/shared/RoomAvailabilityTable";
 import { cn } from "@/lib/utils";
-import { formatDate, formatMoney, getRatingLabel, toTenPointScore } from "@/lib/utils/format";
+import { formatDate, formatMonthYear, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { Review } from "@/types/models";
+
+// Cac dai diem dung cho bang phan bo danh gia. Diem luu trong DB la so nguyen
+// 1-10 nen moi dai la mot khoang so nguyen ro rang.
+const RATING_BANDS = [
+  { label: "Tuyệt vời", range: "9 - 10", match: (rating: number) => rating >= 9 },
+  { label: "Rất tốt", range: "8", match: (rating: number) => rating === 8 },
+  { label: "Tốt", range: "7", match: (rating: number) => rating === 7 },
+  { label: "Khá", range: "6", match: (rating: number) => rating === 6 },
+  { label: "Trung bình", range: "1 - 5", match: (rating: number) => rating <= 5 },
+];
 
 interface HotelDetailPageProps {
   params: Promise<{ hotelId: string }>;
@@ -67,14 +77,16 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
     checkIn && checkOut
       ? Math.max(0, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000))
       : 0;
-  const score = hotel.total_reviews > 0 ? toTenPointScore(hotel.avg_rating) : null;
+  const score = hotel.total_reviews > 0 ? hotel.avg_rating : null;
   const fromPrice =
     availability && availability.items.length > 0 ? Math.min(...availability.items.map((r) => r.base_price)) : null;
 
-  // Phan bo so luong danh gia theo tung muc sao (tinh tu reviews da lay).
-  const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({
-    star,
-    count: reviews.filter((r) => r.rating === star).length,
+  // Phan bo so luong danh gia theo dai diem (tinh tu reviews da lay). Gom thanh
+  // 5 dai thay vi liet ke 10 muc diem rieng le cho khoi roi, nguong dai trung
+  // voi nhan diem o getRatingLabel va voi bo loc diem ben trang tim kiem.
+  const ratingBreakdown = RATING_BANDS.map((band) => ({
+    ...band,
+    count: reviews.filter((r) => band.match(r.rating)).length,
   }));
 
   // Nhom tien nghi theo category + them nhom "Dich vu" tu services.
@@ -249,9 +261,11 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
                   <p className="text-sm text-muted-foreground">{hotel.total_reviews} đánh giá</p>
                 </div>
                 <div className="flex flex-col justify-center gap-2">
-                  {ratingBreakdown.map(({ star, count }) => (
-                    <div key={star} className="grid grid-cols-[3.5rem_1fr_2rem] items-center gap-3 text-sm">
-                      <span className="text-muted-foreground">{star} sao</span>
+                  {ratingBreakdown.map(({ label, range, count }) => (
+                    <div key={label} className="grid grid-cols-[7.5rem_1fr_2rem] items-center gap-3 text-sm">
+                      <span className="text-muted-foreground">
+                        {label} <span className="text-xs">({range})</span>
+                      </span>
                       <div className="h-2 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full bg-primary"
@@ -276,9 +290,17 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
                         <p className="text-xs text-muted-foreground">{formatDate(review.created_at)}</p>
                       </div>
                       <span className="rounded-md bg-primary px-2 py-0.5 text-sm font-bold text-primary-foreground">
-                        {toTenPointScore(review.rating).toFixed(1)}
+                        {review.rating}
                       </span>
                     </div>
+                    {/* Loai phong da o va thang luu tru - giup khach biet danh gia
+                        den tu lan o that va thuoc dung loai phong minh dang xem.
+                        Khong hien ma don de tranh lo thong tin don cua nguoi khac. */}
+                    <p className="mt-2.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                      <BedDouble className="size-3.5 shrink-0" />
+                      {review.room_type_names.length > 0 && <span>{review.room_type_names.join(", ")} ·</span>}
+                      <span>Đã ở {formatMonthYear(review.check_in_date)}</span>
+                    </p>
                     {review.comment && <p className="mt-2.5 text-sm">{review.comment}</p>}
                   </div>
                 ))}

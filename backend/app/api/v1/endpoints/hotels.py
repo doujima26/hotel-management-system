@@ -65,7 +65,7 @@ def search_hotels_endpoint(
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
     stars: list[int] | None = Query(default=None),
-    min_rating: float | None = Query(default=None, ge=0, le=5),
+    min_rating: float | None = Query(default=None, ge=0, le=10),
     districts: list[str] | None = Query(default=None),
     amenities: list[str] | None = Query(default=None),
     room_amenities: list[str] | None = Query(default=None),

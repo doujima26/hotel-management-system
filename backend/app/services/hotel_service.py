@@ -113,7 +113,7 @@ def serialize_hotel_detail(
         children_policy=hotel.children_policy,
         pets_allowed=hotel.pets_allowed,
         payment_methods=hotel.payment_methods,
-        amenities=[HotelAmenityItem(name=a.name, category=a.category) for a in amenities],
+        amenities=[HotelAmenityItem(name=a.name, category=a.category.name if a.category else None) for a in amenities],
         services=[s.name for s in services],
         images=[HotelImageResponse.model_validate(image) for image in images],
     ).model_dump(mode="json")
@@ -278,7 +278,7 @@ def unassign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> 
 def list_hotel_amenities(db: Session, current_user: User) -> list[dict]:
     hotel = get_approved_admin_hotel(db, current_user)
     amenities = list_hotel_amenity_records(db, hotel.id)
-    return [AmenityResponse.model_validate(item).model_dump(mode="json") for item in amenities]
+    return [AmenityResponse.from_amenity(item).model_dump(mode="json") for item in amenities]
 
 
 # Xu ly tao dich vu khach san.

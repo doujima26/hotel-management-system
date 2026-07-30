@@ -1497,7 +1497,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user1@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Vi tri rat trung tam, tien di lai';
 
 WITH seed_booking AS (
@@ -1523,7 +1523,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user2@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Saigon Central Hotel'),
     (SELECT id FROM seed_booking),
-    3,
+    6,
     'On, hoi on ao';
 
 -- Danh gia cho Bitexco View Hotel
@@ -1550,7 +1550,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user1@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Tuyet voi, view dep khong the che';
 
 WITH seed_booking AS (
@@ -1576,7 +1576,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user2@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Dich vu 5 sao dung nghia';
 
 WITH seed_booking AS (
@@ -1602,7 +1602,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user3@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Rat tot, gia hoi cao';
 
 WITH seed_booking AS (
@@ -1628,7 +1628,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user4@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Se quay lai lan sau';
 
 WITH seed_booking AS (
@@ -1654,7 +1654,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user5@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Bitexco View Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Phong sach dep, nhan vien nhiet tinh';
 
 -- Danh gia cho Dalat Pine Hill Resort
@@ -1681,7 +1681,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user2@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Khong khi mat me, view thong dep';
 
 WITH seed_booking AS (
@@ -1707,7 +1707,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user3@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Rat thich hop nghi duong';
 
 WITH seed_booking AS (
@@ -1733,7 +1733,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user6@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Dalat Pine Hill Resort'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Dich vu tot, gia hop ly';
 
 -- Danh gia cho Xuan Huong Lakeside Hotel
@@ -1760,7 +1760,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user4@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
     (SELECT id FROM seed_booking),
-    3,
+    6,
     'Vi tri dep nhung phong hoi cu';
 
 WITH seed_booking AS (
@@ -1786,7 +1786,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user5@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Xuan Huong Lakeside Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'On trong tam gia';
 
 -- Danh gia cho Cau Dat Tea Village Homestay
@@ -1813,7 +1813,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user6@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Cau Dat Tea Village Homestay'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Trai nghiem doc dao, view doi che tuyet dep';
 
 -- Danh gia cho Nha Trang Ocean Pearl Resort
@@ -1840,7 +1840,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user1@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Bien dep, resort sang trong';
 
 WITH seed_booking AS (
@@ -1866,7 +1866,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user3@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Dang tien tung dong';
 
 WITH seed_booking AS (
@@ -1892,7 +1892,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user4@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Ky nghi tuyet voi ben gia dinh';
 
 WITH seed_booking AS (
@@ -1918,7 +1918,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user5@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Nha Trang Ocean Pearl Resort'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Rat tot, do an hoi dat';
 
 -- Danh gia cho Vinpearl View Hotel
@@ -1945,7 +1945,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user2@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'View dep, gan bien';
 
 WITH seed_booking AS (
@@ -1971,7 +1971,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user6@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
     (SELECT id FROM seed_booking),
-    5,
+    10,
     'Rat hai long';
 
 WITH seed_booking AS (
@@ -1997,7 +1997,7 @@ SELECT
     (SELECT id FROM users WHERE email = 'user1@gmail.com'),
     (SELECT id FROM hotels WHERE name = 'Vinpearl View Hotel'),
     (SELECT id FROM seed_booking),
-    4,
+    8,
     'Sach se, nhan vien than thien';
 
 COMMIT;

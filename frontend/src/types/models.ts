@@ -471,12 +471,23 @@ export interface RoomListResult {
   remaining_rooms: number;
 }
 
+export interface AmenityCategory {
+  id: number;
+  name: string;
+  // Icon dai dien cho ca danh muc - tien nghi khong co icon rieng.
+  icon: string | null;
+}
+
 export interface Amenity {
   id: number;
   scope: AmenityScope;
   name: string;
-  icon: string | null;
+  // category la TEN danh muc (chuoi) - giu nguyen de cac trang gom tien nghi
+  // theo danh muc khong phai doi; category_id dung cho form chon danh muc;
+  // category_icon de hien icon o tieu de nhom ma khong phai goi them API.
+  category_id: number | null;
   category: string | null;
+  category_icon: string | null;
 }
 
 export interface RoomTypeAmenityLinkResult {
@@ -586,6 +597,10 @@ export interface Review {
   reviewer_name: string;
   hotel_id: number;
   booking_id: number;
+  booking_code: string;
+  check_in_date: string;
+  check_out_date: string;
+  room_type_names: string[];
   rating: number;
   comment: string | null;
   created_at: string;

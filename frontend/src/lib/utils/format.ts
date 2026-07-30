@@ -10,6 +10,11 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   year: "numeric",
 });
 
+const monthYearFormatter = new Intl.DateTimeFormat("vi-VN", {
+  month: "long",
+  year: "numeric",
+});
+
 export function formatMoney(amount: number): string {
   return currencyFormatter.format(amount);
 }
@@ -19,9 +24,11 @@ export function formatDate(value: string | Date): string {
   return dateFormatter.format(date);
 }
 
-// Doi diem trung binh 5 sao (avg_rating) sang thang diem 10 kieu OTA de hien thi.
-export function toTenPointScore(avgRating: number): number {
-  return Math.round(avgRating * 2 * 10) / 10;
+// Chi hien thang/nam - dung cho danh gia cong khai, du de khach biet lan luu tru
+// gan day den dau ma khong tiet lo ngay o cu the cua nguoi danh gia.
+export function formatMonthYear(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return monthYearFormatter.format(date);
 }
 
 // Nhan chu cho diem 10 - nguong tham khao theo quy uoc pho bien cua cac trang OTA.

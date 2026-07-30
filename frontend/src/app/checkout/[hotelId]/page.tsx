@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatDate, formatMoney, getRatingLabel, toTenPointScore } from "@/lib/utils/format";
+import { formatDate, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { apiFetch } from "@/lib/api/client";
 import { bookingsApi } from "@/lib/api/bookings";
 import { paymentsApi } from "@/lib/api/payments";
@@ -159,7 +159,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
 
   const currentStep = payResult ? 2 : booking ? 1 : 0;
   const primaryImage = hotel?.images.find((img) => img.is_primary) ?? hotel?.images[0];
-  const score = hotel && hotel.total_reviews > 0 ? toTenPointScore(hotel.avg_rating) : null;
+  const score = hotel && hotel.total_reviews > 0 ? hotel.avg_rating : null;
 
   if (roomSelection.length === 0 || !checkIn || !checkOut) {
     return (
