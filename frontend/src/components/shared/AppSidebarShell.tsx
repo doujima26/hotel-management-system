@@ -17,8 +17,11 @@ export interface SidebarItem {
 
 // Nhom cac muc theo chuc nang (co tieu de nhom). Neu truyen mang phang thi
 // khong hien tieu de - giu tuong thich cho Staff/Super Admin.
+//
+// label de trong = nhom khong co tieu de, dung cho muc dung mot minh (vd "Tong
+// quan" dat rieng dau menu).
 export interface SidebarGroup {
-  label: string;
+  label?: string;
   items: SidebarItem[];
 }
 
@@ -76,11 +79,16 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
         <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible md:px-3">
           {isGrouped(items)
             ? items.map((group) => (
-                <div key={group.label} className="flex shrink-0 gap-1 md:mt-3 md:flex-col md:first:mt-0">
+                <div
+                  key={group.label ?? group.items[0]?.href}
+                  className="flex shrink-0 gap-1 md:mt-3 md:flex-col md:first:mt-0"
+                >
                   {/* Tieu de nhom chi hien tren desktop - mobile la thanh ngang cuon. */}
-                  <p className="hidden px-3 pb-1 text-[11px] font-semibold tracking-wide text-sidebar-foreground/50 uppercase md:block">
-                    {group.label}
-                  </p>
+                  {group.label && (
+                    <p className="hidden px-3 pb-1 text-[11px] font-semibold tracking-wide text-sidebar-foreground/50 uppercase md:block">
+                      {group.label}
+                    </p>
+                  )}
                   {group.items.map((item) => (
                     <SidebarLink key={item.href} item={item} activeHref={activeHref} />
                   ))}

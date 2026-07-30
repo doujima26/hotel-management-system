@@ -38,7 +38,7 @@ export default function AdminCalendarPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Lịch phòng</h2>
+          <h2 className="text-lg font-semibold">Lịch trống phòng</h2>
           <p className="text-sm text-muted-foreground">
             Số phòng còn trống theo từng ngày. Ô đỏ là đã kín phòng.
           </p>

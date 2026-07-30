@@ -58,7 +58,7 @@ export default function StaffBookingsPage() {
     setBusyId(id);
     try {
       await bookingsApi.markNoShow(id);
-      toast.success("Đã đánh dấu booking không đến");
+      toast.success("Đã đánh dấu đơn không đến");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
@@ -70,7 +70,7 @@ export default function StaffBookingsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Booking của khách sạn</h2>
+        <h2 className="text-lg font-semibold">Đơn đặt phòng</h2>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BookingStatus | "all")}>
           <SelectTrigger className="w-56">
             {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma trang thai). */}
@@ -91,7 +91,7 @@ export default function StaffBookingsPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách booking"}
+          {error instanceof ApiError ? error.message : "Không thể tải danh sách đơn đặt phòng"}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
@@ -136,7 +136,7 @@ export default function StaffBookingsPage() {
           </Card>
         ))}
         {data && data.length === 0 && (
-          <p className="text-center text-muted-foreground">Không có booking nào ở trạng thái này.</p>
+          <p className="text-center text-muted-foreground">Không có đơn nào ở trạng thái này.</p>
         )}
       </div>
     </div>

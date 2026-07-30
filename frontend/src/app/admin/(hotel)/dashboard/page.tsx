@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-lg font-semibold">Dashboard</h2>
+        <h2 className="text-lg font-semibold">Tổng quan</h2>
         <p className="text-sm text-muted-foreground">Tổng quan vận hành hôm nay - bấm vào từng khối để xem chi tiết.</p>
       </div>
 

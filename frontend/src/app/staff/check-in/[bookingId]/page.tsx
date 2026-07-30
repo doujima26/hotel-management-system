@@ -81,10 +81,10 @@ export default function StaffCheckInPage({ params }: CheckInPageProps) {
   if (booking.status !== "confirmed") {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-center text-muted-foreground">
-        Booking phải ở trạng thái &quot;Đã xác nhận&quot; mới check-in được.
+        Đơn đặt phòng phải ở trạng thái &quot;Đã xác nhận&quot; mới check-in được.
         <div className="mt-4">
           <Link href="/staff/bookings" className="text-primary underline-offset-4 hover:underline">
-            Quay lại danh sách booking
+            Quay lại danh sách đơn đặt phòng
           </Link>
         </div>
       </div>

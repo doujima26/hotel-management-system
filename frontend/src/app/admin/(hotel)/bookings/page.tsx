@@ -71,7 +71,7 @@ function AdminBookingsContent() {
     setBusyId(id);
     try {
       await bookingsApi.confirm(id);
-      toast.success("Xác nhận booking thành công, đã gửi email cho khách");
+      toast.success("Xác nhận đơn thành công, đã gửi email cho khách");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Xác nhận thất bại");
@@ -91,10 +91,10 @@ function AdminBookingsContent() {
     setBusyId(cancelTarget);
     try {
       await bookingsApi.adminCancel(cancelTarget, { cancellation_reason: cancelReason || undefined });
-      toast.success("Hủy booking thành công");
+      toast.success("Hủy đơn thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Hủy booking thất bại");
+      setActionError(err instanceof ApiError ? err.message : "Hủy đơn thất bại");
     } finally {
       setBusyId(null);
       setCancelTarget(null);
@@ -109,7 +109,7 @@ function AdminBookingsContent() {
     setBusyId(id);
     try {
       await bookingsApi.markNoShow(id);
-      toast.success("Đã đánh dấu booking không đến");
+      toast.success("Đã đánh dấu đơn không đến");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
@@ -121,7 +121,7 @@ function AdminBookingsContent() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Booking của khách sạn</h2>
+        <h2 className="text-lg font-semibold">Đơn đặt phòng</h2>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BookingStatus | "all")}>
           <SelectTrigger className="w-44">
             {/* Phai tu format: mac dinh SelectValue hien gia tri tho (ma trang thai). */}
@@ -142,7 +142,7 @@ function AdminBookingsContent() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách booking"}
+          {error instanceof ApiError ? error.message : "Không thể tải danh sách đơn đặt phòng"}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}

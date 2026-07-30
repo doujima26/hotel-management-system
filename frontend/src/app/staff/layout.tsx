@@ -4,7 +4,7 @@ import { RequireAuth } from "@/components/shared/RequireAuth";
 import { AppSidebarShell } from "@/components/shared/AppSidebarShell";
 
 const TABS = [
-  { href: "/staff/bookings", label: "Booking khách sạn" },
+  { href: "/staff/bookings", label: "Đơn đặt phòng" },
   { href: "/staff/rooms", label: "Sơ đồ phòng" },
   { href: "/staff/schedule", label: "Lịch làm việc" },
 ];

@@ -22,9 +22,32 @@ export function useAdminHotel(): AdminHotel {
   return hotel;
 }
 
-// Gom theo 4 nhom chuc nang thay vi 8 muc phang - de tim va phan biet nhom cong viec.
+// Gom theo nhom cong viec thay vi de phang. Thu tu nhom di theo tan suat dung:
+// viec lam hang ngay (van hanh) len tren, phan thiet lap mot lan (co so luu tru,
+// nhan su) xuong duoi.
 function buildNavGroups(pendingBookings: number): SidebarGroup[] {
   return [
+    // Trang mo dau ngay lam viec - dat rieng dau menu, khong thuoc nhom nao.
+    { items: [{ href: "/admin/dashboard", label: "Tổng quan" }] },
+    {
+      label: "Vận hành",
+      items: [
+        { href: "/admin/bookings", label: "Đơn đặt phòng", badgeCount: pendingBookings },
+        { href: "/admin/rooms", label: "Sơ đồ phòng" },
+        { href: "/admin/room-blocks", label: "Khóa lịch phòng" },
+      ],
+    },
+    {
+      label: "Kinh doanh",
+      items: [
+        { href: "/admin/revenue", label: "Doanh thu" },
+        // "Lich trong phong" chu khong phai "Lich phong": phan biet ro voi
+        // "Khoa lich phong" ben Van hanh - 2 ten cu gan trung nhau nen de nham.
+        { href: "/admin/calendar", label: "Lịch trống phòng" },
+        { href: "/admin/promotions", label: "Khuyến mãi" },
+        { href: "/admin/reviews", label: "Đánh giá" },
+      ],
+    },
     {
       label: "Cơ sở lưu trú",
       items: [
@@ -35,25 +58,12 @@ function buildNavGroups(pendingBookings: number): SidebarGroup[] {
       ],
     },
     {
-      label: "Kinh doanh",
+      label: "Nhân sự",
       items: [
-        { href: "/admin/revenue", label: "Doanh thu" },
-        { href: "/admin/calendar", label: "Lịch phòng" },
-        { href: "/admin/promotions", label: "Khuyến mãi" },
-      ],
-    },
-    {
-      label: "Vận hành",
-      items: [
-        { href: "/admin/bookings", label: "Booking", badgeCount: pendingBookings },
-        { href: "/admin/rooms", label: "Sơ đồ phòng" },
-        { href: "/admin/room-blocks", label: "Khóa lịch phòng" },
-        { href: "/admin/staff/schedule", label: "Lịch làm việc" },
         { href: "/admin/staff", label: "Nhân viên" },
-        { href: "/admin/reviews", label: "Đánh giá" },
+        { href: "/admin/staff/schedule", label: "Lịch làm việc" },
       ],
     },
-    { label: "Báo cáo", items: [{ href: "/admin/dashboard", label: "Dashboard" }] },
   ];
 }
 
