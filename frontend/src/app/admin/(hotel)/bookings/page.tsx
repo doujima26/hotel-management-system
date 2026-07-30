@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Mail, MessageSquareText, Phone, User } from "lucide-react";
@@ -33,9 +34,28 @@ const FILTER_OPTIONS: { value: BookingStatus | "all"; label: string }[] = [
   { value: "no_show", label: "Không đến" },
 ];
 
+// Boc Suspense vi ben trong dung useSearchParams - dung khuyen nghi cua Next
+// de phan con lai cua trang van duoc prerender.
 export default function AdminBookingsPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">Đang tải...</p>}>
+      <AdminBookingsContent />
+    </Suspense>
+  );
+}
+
+function AdminBookingsContent() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("pending");
+  const searchParams = useSearchParams();
+
+  // Mac dinh xem tat ca don. Chi mo san mot bo loc khi duoc dieu huong kem
+  // ?status= (cac o tren Dashboard), va chi nhan gia tri co trong danh sach bo
+  // loc de tham so bua khong bi gui thang len API.
+  const statusParam = searchParams.get("status");
+  const initialStatus = FILTER_OPTIONS.some((opt) => opt.value === statusParam)
+    ? (statusParam as BookingStatus | "all")
+    : "all";
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">(initialStatus);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);

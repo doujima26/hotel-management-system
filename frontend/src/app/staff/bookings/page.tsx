@@ -27,7 +27,8 @@ const FILTER_OPTIONS: { value: BookingStatus | "all"; label: string }[] = [
 
 export default function StaffBookingsPage() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("confirmed");
+  // Mac dinh xem tat ca don, khong loc san theo trang thai nao.
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("all");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
