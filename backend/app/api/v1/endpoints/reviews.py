@@ -10,6 +10,7 @@ from app.schemas.reviews import CreateReviewRequest, UpdateReviewRequest
 from app.services.review_service import (
     create_review as create_review_action,
     delete_review as delete_review_action,
+    get_room_type_review_breakdown_for_admin as get_room_type_review_breakdown_action,
     list_hotel_reviews as list_hotel_reviews_action,
     list_hotel_reviews_for_admin as list_hotel_reviews_for_admin_action,
     update_review as update_review_action,
@@ -37,6 +38,16 @@ def list_hotel_reviews_for_admin(
 ):
     data = list_hotel_reviews_for_admin_action(db, current_user)
     return ok(data, "Danh sach danh gia khach san")
+
+
+# Admin xem phan bo danh gia theo loai phong cua khach san minh.
+@router.get("/hotel/room-type-breakdown")
+def get_room_type_review_breakdown(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = get_room_type_review_breakdown_action(db, current_user)
+    return ok(data, "Phan bo danh gia theo loai phong")
 
 
 # Xem danh sach danh gia cong khai cua 1 khach san.

@@ -7,6 +7,8 @@ from app.models.entities import Booking, Review, User
 from app.repositories.booking_repository import get_booking_by_id, list_room_type_names_by_booking_ids
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.review_repository import (
+    count_reviews_by_room_type_and_rating,
+    count_reviews_without_room_type,
     create_review_record,
     delete_review_record,
     get_review_by_id,
@@ -14,7 +16,14 @@ from app.repositories.review_repository import (
     list_reviews_with_user_and_booking_by_hotel,
     save_review,
 )
-from app.schemas.reviews import CreateReviewRequest, DeleteReviewResponse, ReviewResponse, UpdateReviewRequest
+from app.schemas.reviews import (
+    CreateReviewRequest,
+    DeleteReviewResponse,
+    ReviewResponse,
+    RoomTypeReviewBreakdownItem,
+    RoomTypeReviewBreakdownResponse,
+    UpdateReviewRequest,
+)
 from app.services.hotel_service import get_approved_admin_hotel
 
 
@@ -102,6 +111,58 @@ def list_hotel_reviews(db: Session, hotel_id: int) -> list[dict]:
 def list_hotel_reviews_for_admin(db: Session, current_user: User) -> list[dict]:
     hotel = get_approved_admin_hotel(db, current_user)
     return _serialize_review_rows(db, list_reviews_with_user_and_booking_by_hotel(db, hotel.id))
+
+
+# Nguong chia dai diem (thang 10). Dat o tang service vi day la quy tac nghiep
+# vu, khong phai chuyen truy van - trung nguong nhan diem dung o giao dien
+# (Rat tot tu 8, Tot tu 7) de nguoi doc khong thay 2 cach phan loai khac nhau.
+_HIGH_RATING_FROM = 8
+_MEDIUM_RATING_FROM = 6
+
+
+# Xu ly Admin xem phan bo danh gia theo loai phong cua khach san minh: loai phong
+# nao dang duoc danh gia cao nhat / thap nhat, va trong tung loai phong thi ty le
+# danh gia cao/trung binh/thap ra sao.
+def get_room_type_review_breakdown_for_admin(db: Session, current_user: User) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+
+    # Gom cac dong (loai phong, diem, so luot) thanh 1 dong cho moi loai phong.
+    grouped: dict[int, dict] = {}
+    for room_type_id, name, rating, count in count_reviews_by_room_type_and_rating(db, hotel.id):
+        row = grouped.setdefault(
+            room_type_id,
+            {"name": name, "total": 0, "rating_sum": 0, "high": 0, "medium": 0, "low": 0},
+        )
+        row["total"] += count
+        row["rating_sum"] += rating * count
+        if rating >= _HIGH_RATING_FROM:
+            row["high"] += count
+        elif rating >= _MEDIUM_RATING_FROM:
+            row["medium"] += count
+        else:
+            row["low"] += count
+
+    items = [
+        RoomTypeReviewBreakdownItem(
+            room_type_id=room_type_id,
+            name=row["name"],
+            total_reviews=row["total"],
+            avg_rating=round(row["rating_sum"] / row["total"], 1),
+            high_count=row["high"],
+            medium_count=row["medium"],
+            low_count=row["low"],
+        )
+        for room_type_id, row in grouped.items()
+    ]
+    # Diem cao nhat len dau; cung diem thi loai phong nhieu luot danh gia hon dung
+    # truoc (diem tin cay hon), roi den ten de thu tu on dinh.
+    items.sort(key=lambda item: (-item.avg_rating, -item.total_reviews, item.name))
+
+    return RoomTypeReviewBreakdownResponse(
+        hotel_id=hotel.id,
+        items=items,
+        unattributed_reviews=count_reviews_without_room_type(db, hotel.id),
+    ).model_dump(mode="json")
 
 
 # Xu ly khach tu sua danh gia cua chinh minh. Trigger DB tu cap nhat lai

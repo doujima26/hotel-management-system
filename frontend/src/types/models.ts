@@ -611,6 +611,22 @@ export interface Review {
   created_at: string;
 }
 
+export interface RoomTypeReviewBreakdownItem {
+  room_type_id: number;
+  name: string;
+  total_reviews: number;
+  avg_rating: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+}
+
+export interface RoomTypeReviewBreakdown {
+  hotel_id: number;
+  items: RoomTypeReviewBreakdownItem[];
+  unattributed_reviews: number;
+}
+
 export interface Favorite {
   id: number;
   hotel_id: number;

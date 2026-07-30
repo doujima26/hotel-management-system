@@ -1,6 +1,6 @@
 import { serverFetch } from "./server";
 import { apiFetch } from "./client";
-import type { Review } from "@/types/models";
+import type { Review, RoomTypeReviewBreakdown } from "@/types/models";
 
 export interface CreateReviewPayload {
   booking_id: number;
@@ -23,6 +23,10 @@ export const reviewsApi = {
 
   // Admin xem toan bo danh gia cua khach san minh (khac 2 ham cong khai o tren).
   listForOwnHotel: () => apiFetch<Review[]>("/reviews/hotel", { auth: true }),
+
+  // Admin xem phan bo danh gia theo loai phong (loai phong nao cao/thap nhat).
+  roomTypeBreakdownForOwnHotel: () =>
+    apiFetch<RoomTypeReviewBreakdown>("/reviews/hotel/room-type-breakdown", { auth: true }),
 
   // Client Component (can auth), goi qua rewrites proxy.
   create: (payload: CreateReviewPayload) => apiFetch<Review>("/reviews", { method: "POST", body: payload, auth: true }),
