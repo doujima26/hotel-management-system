@@ -451,6 +451,8 @@ export interface RoomType {
   name: string;
   base_price: number;
   max_guests: number;
+  bed_type: string | null;
+  area_sqm: number | null;
   total_rooms: number;
   is_active: boolean;
 }

@@ -41,13 +41,15 @@ export interface CreateRoomTypePayload {
   total_rooms: number;
 }
 
+// area_sqm/bed_type nhan null de xoa gia tri da nhap - backend dung
+// exclude_unset nen null la "dat ve rong", con khong gui field thi giu nguyen.
 export interface UpdateRoomTypePayload {
   name?: string;
   description?: string;
   base_price?: number;
   max_guests?: number;
-  area_sqm?: number;
-  bed_type?: string;
+  area_sqm?: number | null;
+  bed_type?: string | null;
   total_rooms?: number;
   is_active?: boolean;
 }

@@ -96,7 +96,9 @@ class DeleteRoomResponse(BaseModel):
     id: int
 
 
-# Schema du lieu tra ve loai phong.
+# Schema du lieu tra ve loai phong. Co bed_type/area_sqm de trang quan ly hien
+# va sua duoc 2 thong tin nay - truoc day chi trang dat phong cong khai doc
+# chung nen ben quan ly khong co cach nao xem lai gia tri da nhap.
 class RoomTypeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -105,6 +107,8 @@ class RoomTypeResponse(BaseModel):
     name: str
     base_price: float
     max_guests: int
+    bed_type: str | None = None
+    area_sqm: float | None = None
     total_rooms: int
     is_active: bool
 
