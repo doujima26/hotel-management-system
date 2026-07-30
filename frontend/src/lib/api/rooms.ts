@@ -38,6 +38,7 @@ export interface CreateRoomTypePayload {
   max_guests: number;
   area_sqm?: number;
   bed_type?: string;
+  bed_count?: number;
   total_rooms: number;
 }
 
@@ -50,6 +51,7 @@ export interface UpdateRoomTypePayload {
   max_guests?: number;
   area_sqm?: number | null;
   bed_type?: string | null;
+  bed_count?: number | null;
   total_rooms?: number;
   is_active?: boolean;
 }

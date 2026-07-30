@@ -153,6 +153,7 @@ class HotelSearchItemResponse(BaseModel):
     # nhat noi chung neu khong truyen so khach) - dung de hien gia/tien nghi.
     room_type_name: str | None = None
     bed_type: str | None = None
+    bed_count: int | None = None
     room_amenities: list[str] = []
     hotel_service_names: list[str] = []
     promotion_name: str | None = None

@@ -678,6 +678,7 @@ def search_hotels(
                 primary_image_url=image_urls.get(hotel.id),
                 room_type_name=room_type.name if room_type else None,
                 bed_type=room_type.bed_type if room_type else None,
+                bed_count=room_type.bed_count if room_type else None,
                 room_amenities=card_room_amenities,
                 hotel_service_names=service_names,
                 promotion_name=promotion_name,

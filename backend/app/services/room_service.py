@@ -168,10 +168,22 @@ def validate_room_type_owner(db: Session, room_type: RoomType | None, current_us
     return hotel
 
 
+# Kiem tra cap loai giuong / so luong giuong. So luong khong co nghia neu chua
+# biet la giuong gi ("2 x ...gi?"), nen chan lai. De trong ca hai thi hop le -
+# day la thong tin mo ta, khong bat buoc.
+def _validate_bed_config(bed_type: str | None, bed_count: int | None) -> None:
+    if bed_count is not None and not bed_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phai chon loai giuong truoc khi nhap so luong giuong",
+        )
+
+
 # Xu ly tao loai phong.
 def create_room_type(db: Session, current_user: User, payload: CreateRoomTypeRequest) -> dict:
     hotel = get_hotel_by_id(db, payload.hotel_id)
     validate_admin_hotel(hotel, current_user, require_approved=True)
+    _validate_bed_config(payload.bed_type, payload.bed_count)
     room_type = create_room_type_record(db, payload)
     return serialize_room_type(room_type)
 
@@ -198,6 +210,13 @@ def update_room_type(db: Session, current_user: User, room_type_id: int, payload
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Loai phong nay da co {current_rooms} phong vat ly, khong the giam total_rooms xuong thap hon",
             )
+
+    # Kiem tra tren gia tri SAU khi cap nhat (field khong gui thi giu gia tri
+    # cu), de vi du chi xoa bed_type ma con bed_count cung bi chan.
+    _validate_bed_config(
+        update_data.get("bed_type", room_type.bed_type),
+        update_data.get("bed_count", room_type.bed_count),
+    )
 
     for field, value in update_data.items():
         setattr(room_type, field, value)
@@ -546,6 +565,7 @@ def get_room_availability(
             base_price=_average_effective_price(room_type),
             max_guests=room_type.max_guests,
             bed_type=room_type.bed_type,
+            bed_count=room_type.bed_count,
             area_sqm=float(room_type.area_sqm) if room_type.area_sqm is not None else None,
             total_rooms=room_type.total_rooms,
             available_rooms=available_rooms,

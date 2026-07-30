@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { BedDouble, Check, Maximize2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatMoney } from "@/lib/utils/format";
+import { formatBedConfig, formatMoney } from "@/lib/utils/format";
 import { RoomTypeDetailDialog } from "@/components/shared/RoomTypeDetailDialog";
 import type { RoomTypeAvailability } from "@/types/models";
 
@@ -164,9 +164,9 @@ function RoomSummary({ room, onOpenDetail }: { room: RoomTypeAvailability; onOpe
         {room.name}
       </button>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {room.bed_type && (
+        {formatBedConfig(room.bed_type, room.bed_count) && (
           <span className="flex items-center gap-1.5">
-            <BedDouble className="size-3.5" /> {room.bed_type}
+            <BedDouble className="size-3.5" /> {formatBedConfig(room.bed_type, room.bed_count)}
           </span>
         )}
         {room.area_sqm && (

@@ -62,10 +62,10 @@ hotel1_images AS (
         ((SELECT id FROM hotel1), 'https://picsum.photos/1200/700?hotel1=2', false, 2)
 ),
 hotel1_room_types AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES
-        ((SELECT id FROM hotel1), 'Standard', 'Phong tieu chuan huong pho', 800000, 2, 24, 'Queen', 3, true),
-        ((SELECT id FROM hotel1), 'Deluxe', 'Phong cao cap view bien', 1400000, 3, 32, 'King', 2, true)
+        ((SELECT id FROM hotel1), 'Standard', 'Phong tieu chuan huong pho', 800000, 2, 24, 'Queen', 1, 3, true),
+        ((SELECT id FROM hotel1), 'Deluxe', 'Phong cao cap view bien', 1400000, 3, 32, 'King', 2, 2, true)
     RETURNING id, name
 ),
 hotel1_standard AS (SELECT id FROM hotel1_room_types WHERE name = 'Standard'),
@@ -170,10 +170,10 @@ hotel2_images AS (
         ((SELECT id FROM hotel2), 'https://picsum.photos/1200/700?hotel2=2', false, 2)
 ),
 hotel2_room_types AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES
-        ((SELECT id FROM hotel2), 'Standard', 'Phong tieu chuan pho co', 900000, 2, 22, 'Queen', 3, true),
-        ((SELECT id FROM hotel2), 'Suite', 'Phong suite rong rai', 2200000, 4, 45, 'King', 2, true)
+        ((SELECT id FROM hotel2), 'Standard', 'Phong tieu chuan pho co', 900000, 2, 22, 'Queen', 1, 3, true),
+        ((SELECT id FROM hotel2), 'Suite', 'Phong suite rong rai', 2200000, 4, 45, 'King', 2, 2, true)
     RETURNING id, name
 ),
 hotel2_standard AS (SELECT id FROM hotel2_room_types WHERE name = 'Standard'),
@@ -307,7 +307,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h3=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Ocean View Deluxe',
@@ -316,6 +316,7 @@ new_room_type AS (
         3,
         38,
         'King',
+        2,
         3,
         true
     )
@@ -405,7 +406,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h4=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Standard',
@@ -414,6 +415,7 @@ new_room_type AS (
         2,
         20,
         'Queen',
+        1,
         3,
         true
     )
@@ -502,7 +504,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h5=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Standard',
@@ -511,6 +513,7 @@ new_room_type AS (
         2,
         18,
         'Queen',
+        1,
         3,
         true
     )
@@ -599,7 +602,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h6=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Lake View Deluxe',
@@ -608,6 +611,7 @@ new_room_type AS (
         3,
         30,
         'King',
+        2,
         3,
         true
     )
@@ -697,7 +701,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h7=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Executive',
@@ -706,6 +710,7 @@ new_room_type AS (
         3,
         32,
         'King',
+        2,
         3,
         true
     )
@@ -795,7 +800,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h8=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Sky Suite',
@@ -804,6 +809,7 @@ new_room_type AS (
         4,
         48,
         'King',
+        2,
         3,
         true
     )
@@ -893,7 +899,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h9=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Dormitory',
@@ -901,7 +907,8 @@ new_room_type AS (
         350000,
         2,
         14,
-        'Twin',
+        'Single',
+        2,
         3,
         true
     )
@@ -967,7 +974,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h10=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Pine View Deluxe',
@@ -976,6 +983,7 @@ new_room_type AS (
         3,
         34,
         'King',
+        2,
         3,
         true
     )
@@ -1065,7 +1073,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h11=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Standard',
@@ -1074,6 +1082,7 @@ new_room_type AS (
         2,
         22,
         'Queen',
+        1,
         3,
         true
     )
@@ -1140,7 +1149,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h12=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Garden Bungalow',
@@ -1149,6 +1158,7 @@ new_room_type AS (
         2,
         16,
         'Queen',
+        1,
         2,
         true
     )
@@ -1236,7 +1246,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h13=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Ocean Suite',
@@ -1245,6 +1255,7 @@ new_room_type AS (
         4,
         46,
         'King',
+        2,
         3,
         true
     )
@@ -1334,7 +1345,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h14=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Deluxe',
@@ -1343,6 +1354,7 @@ new_room_type AS (
         3,
         30,
         'King',
+        2,
         3,
         true
     )
@@ -1410,7 +1422,7 @@ new_images AS (
         ((SELECT id FROM new_hotel), 'https://picsum.photos/1200/700?h15=2', false, 2)
 ),
 new_room_type AS (
-    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, total_rooms, is_active)
+    INSERT INTO room_types (hotel_id, name, description, base_price, max_guests, area_sqm, bed_type, bed_count, total_rooms, is_active)
     VALUES (
         (SELECT id FROM new_hotel),
         'Standard',
@@ -1418,7 +1430,8 @@ new_room_type AS (
         380000,
         2,
         16,
-        'Twin',
+        'Single',
+        2,
         3,
         true
     )

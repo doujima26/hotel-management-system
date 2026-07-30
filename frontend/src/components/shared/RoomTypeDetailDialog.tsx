@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BedDouble, Building2, Check, ChevronLeft, ChevronRight, Maximize2, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatBedConfig } from "@/lib/utils/format";
 import type { RoomTypeAvailability } from "@/types/models";
 
 interface RoomTypeDetailDialogProps {
@@ -103,9 +104,9 @@ export function RoomTypeDetailDialog({ room, open, onOpenChange }: RoomTypeDetai
                   <Maximize2 className="size-4 text-muted-foreground" /> {room.area_sqm} m²
                 </span>
               )}
-              {room.bed_type && (
+              {formatBedConfig(room.bed_type, room.bed_count) && (
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-sm">
-                  <BedDouble className="size-4 text-muted-foreground" /> {room.bed_type}
+                  <BedDouble className="size-4 text-muted-foreground" /> {formatBedConfig(room.bed_type, room.bed_count)}
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-sm">

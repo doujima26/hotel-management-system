@@ -56,6 +56,7 @@ export interface HotelSearchItem {
   primary_image_url: string | null;
   room_type_name: string | null;
   bed_type: string | null;
+  bed_count: number | null;
   room_amenities: string[];
   hotel_service_names: string[];
   promotion_name: string | null;
@@ -143,6 +144,7 @@ export interface RoomTypeAvailability {
   base_price: number;
   max_guests: number;
   bed_type: string | null;
+  bed_count: number | null;
   area_sqm: number | null;
   total_rooms: number;
   available_rooms: number;
@@ -452,6 +454,7 @@ export interface RoomType {
   base_price: number;
   max_guests: number;
   bed_type: string | null;
+  bed_count: number | null;
   area_sqm: number | null;
   total_rooms: number;
   is_active: boolean;

@@ -14,6 +14,7 @@ class CreateRoomTypeRequest(BaseModel):
     max_guests: int = Field(gt=0)
     area_sqm: float | None = Field(default=None, gt=0)
     bed_type: str | None = Field(default=None, max_length=100)
+    bed_count: int | None = Field(default=None, ge=1, le=10)
     total_rooms: int = Field(gt=0)
 
 
@@ -25,6 +26,7 @@ class UpdateRoomTypeRequest(BaseModel):
     max_guests: int | None = Field(default=None, gt=0)
     area_sqm: float | None = Field(default=None, gt=0)
     bed_type: str | None = Field(default=None, max_length=100)
+    bed_count: int | None = Field(default=None, ge=1, le=10)
     total_rooms: int | None = Field(default=None, gt=0)
     is_active: bool | None = None
 
@@ -108,6 +110,7 @@ class RoomTypeResponse(BaseModel):
     base_price: float
     max_guests: int
     bed_type: str | None = None
+    bed_count: int | None = None
     area_sqm: float | None = None
     total_rooms: int
     is_active: bool
@@ -194,6 +197,7 @@ class RoomTypeAvailabilityResponse(BaseModel):
     base_price: float
     max_guests: int
     bed_type: str | None = None
+    bed_count: int | None = None
     area_sqm: float | None = None
     total_rooms: int
     available_rooms: int

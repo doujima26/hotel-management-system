@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, Text, Time, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, SmallInteger, String, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -134,7 +134,10 @@ class RoomType(Base):
     base_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     max_guests: Mapped[int] = mapped_column(Integer, nullable=False)
     area_sqm: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    # bed_type chi la LOAI giuong (Single/Queen/King...), so luong tach rieng o
+    # bed_count de dien ta duoc "2 giuong King" cho phong nhieu khach.
     bed_type: Mapped[str | None] = mapped_column(String(100))
+    bed_count: Mapped[int | None] = mapped_column(SmallInteger)
     total_rooms: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

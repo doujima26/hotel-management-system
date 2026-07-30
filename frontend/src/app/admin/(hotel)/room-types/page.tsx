@@ -20,7 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatMoney } from "@/lib/utils/format";
+import { formatBedConfig, formatMoney } from "@/lib/utils/format";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomType } from "@/types/models";
@@ -31,13 +31,17 @@ import { EmptyState } from "@/components/shared/EmptyState";
 // khong bi lech chinh ta ("Queen"/"queen"/"giuong Queen") - gia tri nay hien
 // truc tiep tren trang dat phong cua khach. Luu tu tieng Anh cho khop du lieu
 // dang co trong DB.
+//
+// Chi la LOAI giuong, khong mang so luong: so luong nam o o rieng ben canh. Vi
+// vay khong con muc "Twin" (Twin = 2 giuong don) - no da duoc quy doi thanh
+// Single voi so luong 2.
 const BED_TYPE_OPTIONS = [
-  { value: "Single", label: "Single - 1 giường đơn" },
-  { value: "Twin", label: "Twin - 2 giường đơn" },
-  { value: "Double", label: "Double - 1 giường đôi" },
-  { value: "Queen", label: "Queen - 1 giường đôi lớn" },
-  { value: "King", label: "King - 1 giường đôi rất lớn" },
-  { value: "Bunk", label: "Bunk - giường tầng" },
+  { value: "Single", label: "Giường đơn" },
+  { value: "Double", label: "Giường đôi" },
+  { value: "Queen", label: "Giường Queen" },
+  { value: "King", label: "Giường King" },
+  { value: "Bunk", label: "Giường tầng" },
+  { value: "Sofa", label: "Giường sofa" },
 ];
 
 const NO_BED_TYPE = "__none__";
@@ -48,7 +52,53 @@ interface RoomTypeFormValues {
   max_guests: string;
   total_rooms: string;
   bed_type: string;
+  bed_count: string;
   area_sqm: string;
+}
+
+// Cap o "loai giuong + so luong". Gop thanh 1 component vi form tao va dialog
+// sua can y nguyen quy tac ghep doi: so luong khong co nghia khi chua chon loai
+// giuong nen bi khoa, va tu dat 1 ngay khi chon loai giuong.
+function BedConfigFields({
+  idPrefix,
+  bedType,
+  bedCount,
+  onBedTypeChange,
+  onBedCountChange,
+}: {
+  idPrefix: string;
+  bedType: string;
+  bedCount: string;
+  onBedTypeChange: (value: string) => void;
+  onBedCountChange: (value: string) => void;
+}) {
+  function handleBedTypeChange(value: string) {
+    onBedTypeChange(value);
+    if (!value) onBedCountChange("");
+    else if (!bedCount) onBedCountChange("1");
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`${idPrefix}_bed`}>Loại giường</Label>
+        <BedTypeSelect id={`${idPrefix}_bed`} value={bedType} onChange={handleBedTypeChange} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`${idPrefix}_bed_count`}>Số giường mỗi phòng</Label>
+        <Input
+          id={`${idPrefix}_bed_count`}
+          type="number"
+          min={1}
+          max={10}
+          value={bedCount}
+          onChange={(e) => onBedCountChange(e.target.value)}
+          disabled={!bedType}
+          placeholder={bedType ? "" : "Chọn loại giường trước"}
+        />
+      </div>
+    </>
+  );
 }
 
 // O chon loai giuong. Loai giuong la thong tin tuy chon nen luon co muc "chua
@@ -102,6 +152,7 @@ export default function AdminRoomTypesPage() {
   const [maxGuests, setMaxGuests] = useState("2");
   const [totalRooms, setTotalRooms] = useState("1");
   const [bedType, setBedType] = useState("");
+  const [bedCount, setBedCount] = useState("");
   const [areaSqm, setAreaSqm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -156,6 +207,7 @@ export default function AdminRoomTypesPage() {
         max_guests: Number(values.max_guests),
         total_rooms: Number(values.total_rooms),
         bed_type: values.bed_type || null,
+        bed_count: values.bed_type ? Number(values.bed_count || 1) : null,
         area_sqm: values.area_sqm ? Number(values.area_sqm) : null,
       });
       toast.success("Cập nhật loại phòng thành công");
@@ -180,7 +232,7 @@ export default function AdminRoomTypesPage() {
         base_price: Number(basePrice),
         max_guests: Number(maxGuests),
         total_rooms: Number(totalRooms),
-        ...(bedType ? { bed_type: bedType } : {}),
+        ...(bedType ? { bed_type: bedType, bed_count: Number(bedCount || 1) } : {}),
         ...(areaSqm ? { area_sqm: Number(areaSqm) } : {}),
       });
       toast.success("Tạo loại phòng thành công");
@@ -189,6 +241,7 @@ export default function AdminRoomTypesPage() {
       setMaxGuests("2");
       setTotalRooms("1");
       setBedType("");
+      setBedCount("");
       setAreaSqm("");
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
     } catch (err) {
@@ -246,12 +299,15 @@ export default function AdminRoomTypesPage() {
                   onChange={(e) => setTotalRooms(e.target.value)}
                 />
               </div>
+              <BedConfigFields
+                idPrefix="rt"
+                bedType={bedType}
+                bedCount={bedCount}
+                onBedTypeChange={setBedType}
+                onBedCountChange={setBedCount}
+              />
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_bed">Loại giường (không bắt buộc)</Label>
-                <BedTypeSelect id="rt_bed" value={bedType} onChange={setBedType} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="rt_area">Diện tích (m², không bắt buộc)</Label>
+                <Label htmlFor="rt_area">Diện tích (m²)</Label>
                 <Input
                   id="rt_area"
                   type="number"
@@ -263,7 +319,8 @@ export default function AdminRoomTypesPage() {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Loại giường và diện tích hiển thị cho khách ở trang đặt phòng, nên điền để khách dễ so sánh.
+              Loại giường, số giường và diện tích hiển thị cho khách ở trang đặt phòng (không bắt buộc, nhưng nên điền
+              để khách dễ so sánh - nhất là phòng nhiều khách cần rõ có mấy giường).
             </p>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <Button
@@ -302,10 +359,10 @@ export default function AdminRoomTypesPage() {
                 <span>
                   Tối đa {roomType.max_guests} khách/phòng - {roomType.total_rooms} phòng
                 </span>
-                {roomType.bed_type && (
+                {formatBedConfig(roomType.bed_type, roomType.bed_count) && (
                   <span className="flex items-center gap-1">
                     <BedDouble className="size-3.5" />
-                    {roomType.bed_type}
+                    {formatBedConfig(roomType.bed_type, roomType.bed_count)}
                   </span>
                 )}
                 {roomType.area_sqm != null && (
@@ -390,6 +447,7 @@ function EditRoomTypeDialog({
   const [maxGuests, setMaxGuests] = useState(String(roomType.max_guests));
   const [totalRooms, setTotalRooms] = useState(String(roomType.total_rooms));
   const [bedType, setBedType] = useState(roomType.bed_type ?? "");
+  const [bedCount, setBedCount] = useState(roomType.bed_count != null ? String(roomType.bed_count) : "");
   const [areaSqm, setAreaSqm] = useState(roomType.area_sqm != null ? String(roomType.area_sqm) : "");
 
   return (
@@ -419,14 +477,17 @@ function EditRoomTypeDialog({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_rt_bed">Loại giường</Label>
-              <BedTypeSelect id="edit_rt_bed" value={bedType} onChange={setBedType} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_rt_area">Diện tích (m²)</Label>
-              <Input id="edit_rt_area" type="number" min={1} value={areaSqm} onChange={(e) => setAreaSqm(e.target.value)} />
-            </div>
+            <BedConfigFields
+              idPrefix="edit_rt"
+              bedType={bedType}
+              bedCount={bedCount}
+              onBedTypeChange={setBedType}
+              onBedCountChange={setBedCount}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_rt_area">Diện tích (m²)</Label>
+            <Input id="edit_rt_area" type="number" min={1} value={areaSqm} onChange={(e) => setAreaSqm(e.target.value)} />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
@@ -442,6 +503,7 @@ function EditRoomTypeDialog({
                 max_guests: maxGuests,
                 total_rooms: totalRooms,
                 bed_type: bedType,
+                bed_count: bedCount,
                 area_sqm: areaSqm,
               })
             }

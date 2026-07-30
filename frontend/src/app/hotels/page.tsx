@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, Check, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatMoney, getRatingLabel } from "@/lib/utils/format";
+import { formatBedConfig, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
@@ -260,7 +260,11 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
                     {hotel.room_type_name && (
                       <div className="rounded-lg border bg-muted/30 p-2.5">
                         <p className="text-sm font-medium">{hotel.room_type_name}</p>
-                        {hotel.bed_type && <p className="text-xs text-muted-foreground">Giường {hotel.bed_type}</p>}
+                        {formatBedConfig(hotel.bed_type, hotel.bed_count) && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatBedConfig(hotel.bed_type, hotel.bed_count)}
+                          </p>
+                        )}
                         {highlights.length > 0 && (
                           <ul className="mt-1.5 flex flex-col gap-1">
                             {highlights.slice(0, 4).map((label) => (

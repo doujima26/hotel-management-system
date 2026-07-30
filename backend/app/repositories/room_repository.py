@@ -48,6 +48,7 @@ def create_room_type_record(db: Session, payload: CreateRoomTypeRequest) -> Room
         max_guests=payload.max_guests,
         area_sqm=payload.area_sqm,
         bed_type=payload.bed_type,
+        bed_count=payload.bed_count,
         total_rooms=payload.total_rooms,
         is_active=True,
     )

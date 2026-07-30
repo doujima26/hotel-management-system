@@ -125,7 +125,8 @@ CREATE TABLE room_types (
     base_price   DECIMAL(12, 2) NOT NULL CHECK (base_price > 0),
     max_guests   INTEGER NOT NULL CHECK (max_guests > 0),
     area_sqm     DECIMAL(6, 2),
-    bed_type     VARCHAR(100),
+    bed_type     VARCHAR(100),  -- Chỉ LOẠI giường (Single/Queen/King...), số lượng ở bed_count
+    bed_count    SMALLINT CHECK (bed_count > 0),
     total_rooms  INTEGER NOT NULL CHECK (total_rooms > 0),
     is_active    BOOLEAN NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
