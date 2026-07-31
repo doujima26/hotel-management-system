@@ -36,7 +36,7 @@ from app.schemas.bookings import (
     CancelBookingRequest,
     CreateBookingRequest,
 )
-from app.services.hotel_service import get_approved_admin_hotel, get_operational_hotel
+from app.services.hotel_service import get_operating_admin_hotel, get_operational_hotel
 
 # So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
 _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
@@ -341,7 +341,7 @@ def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingS
 # Xu ly Admin xac nhan hoa don: booking phai da thanh toan va dang cho xac nhan.
 # Sau khi xac nhan, he thong (mock) tu dong gui email thong bao cho khach.
 def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
         raise HTTPException(
@@ -440,7 +440,7 @@ def cancel_booking(db: Session, current_user: User, booking_id: int, payload: Ca
 # ca booking dang cho xac nhan lan da xac nhan. Rieng truong hop khach khong
 # den (no-show) dung mark_booking_no_show ben duoi, khong dung ham nay.
 def admin_cancel_booking(db: Session, current_user: User, booking_id: int, payload: CancelBookingRequest) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
         raise HTTPException(

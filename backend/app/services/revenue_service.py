@@ -13,7 +13,7 @@ from app.repositories.revenue_repository import (
     list_revenue_by_room_type,
 )
 from app.schemas.revenue import DailyRevenuePoint, HotelRevenueDashboardResponse, RevenueByRoomTypeItem
-from app.services.hotel_service import get_approved_admin_hotel
+from app.services.hotel_service import get_operating_admin_hotel
 
 # So ngay toi da cho 1 lan xem xu huong doanh thu theo ngay (tra ve 1 diem/ngay
 # nen qua dai se roi bieu do).
@@ -116,7 +116,7 @@ def _build_daily_revenue(payments: list[tuple], from_date: date, to_date: date) 
 # Xu ly Admin xem trang Doanh thu (kinh doanh/tai chinh) cua khach san minh -
 # doc lap hoan toan voi domain dashboard (khong dung chung service/repository).
 def get_hotel_revenue_dashboard(db: Session, current_user: User, from_date: date | None, to_date: date | None) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     from_date, to_date = _default_date_range(from_date, to_date)
     if to_date < from_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau")

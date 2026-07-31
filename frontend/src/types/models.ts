@@ -332,6 +332,8 @@ export interface AdminHotelListItem {
   revenue_30d: number;
   // null = ky do khong co don nao, khac han 0 (co don va khong don nao bi huy).
   cancel_rate_30d: number | null;
+  // So booking chua tra phong tai thoi diem hien tai.
+  outstanding_bookings: number;
 }
 
 // target_label la ten khach san / email nguoi dung GHI LAI TAI THOI DIEM hanh
@@ -407,6 +409,20 @@ export interface AdminHotelRoomType {
   is_active: boolean;
 }
 
+// is_active: nhan vien con lam viec hay da nghi.
+// account_active: tai khoan dang nhap con mo hay bi khoa.
+export interface AdminHotelStaff {
+  id: number;
+  user_id: number;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  position: string;
+  hired_at: string | null;
+  is_active: boolean;
+  account_active: boolean;
+}
+
 export interface AdminHotelDetail extends HotelPolicies {
   id: number;
   name: string;
@@ -426,6 +442,12 @@ export interface AdminHotelDetail extends HotelPolicies {
   amenities: string[];
   services: string[];
   room_types: AdminHotelRoomType[];
+  staff: AdminHotelStaff[];
+  bookings_30d: number;
+  revenue_30d: number;
+  // null khi ky do khong co don nao, khac voi 0.
+  cancel_rate_30d: number | null;
+  outstanding_bookings: number;
 }
 
 export interface ReviewHotelResult {

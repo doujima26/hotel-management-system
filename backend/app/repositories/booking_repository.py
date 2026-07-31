@@ -191,6 +191,27 @@ def list_bookings_by_user(db: Session, user_id: int) -> list[Booking]:
     return db.query(Booking).filter(Booking.user_id == user_id).order_by(Booking.created_at.desc()).all()
 
 
+# Cac trang thai booking duoc tinh la chua tra phong.
+_OUTSTANDING_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)
+
+
+# Dem so booking chua tra phong theo tung khach san.
+def count_outstanding_bookings_by_hotel_ids(db: Session, hotel_ids: list[int], today: date) -> dict[int, int]:
+    if not hotel_ids:
+        return {}
+    rows = (
+        db.query(Booking.hotel_id, func.count(Booking.id))
+        .filter(
+            Booking.hotel_id.in_(hotel_ids),
+            Booking.status.in_(_OUTSTANDING_STATUSES),
+            Booking.check_out_date >= today,
+        )
+        .group_by(Booking.hotel_id)
+        .all()
+    )
+    return {hotel_id: int(count) for hotel_id, count in rows}
+
+
 # Lay danh sach booking theo khach san, loc theo trang thai neu co, moi nhat truoc.
 def list_bookings_by_hotel(db: Session, hotel_id: int, status_filter: BookingStatus | None) -> list[Booking]:
     query = db.query(Booking).filter(Booking.hotel_id == hotel_id)

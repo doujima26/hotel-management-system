@@ -33,7 +33,7 @@ from app.schemas.staff import (
     StaffScheduleCalendarRow,
     StaffScheduleCalendarShift,
 )
-from app.services.hotel_service import get_approved_admin_hotel
+from app.services.hotel_service import get_approved_admin_hotel, get_operating_admin_hotel
 
 
 # Sinh mat khau tam thoi (mock) cho tai khoan nhan vien moi tao.
@@ -60,6 +60,7 @@ def _serialize_staff(staff: StaffMember, user: User) -> dict:
 # san minh. Mat khau tam duoc mock tra ve thang trong response, chua gui email
 # that (Gmail SMTP that se lam o Phase 8).
 def create_staff(db: Session, current_user: User, payload: CreateStaffRequest) -> dict:
+    # Doi trang thai da duyet: khach san tam dung khong duoc them tai khoan moi.
     hotel = get_approved_admin_hotel(db, current_user)
 
     existing_user = get_user_by_email(db, payload.email)
@@ -95,14 +96,14 @@ def create_staff(db: Session, current_user: User, payload: CreateStaffRequest) -
 
 # Xu ly lay danh sach nhan vien cua khach san Admin dang quan ly.
 def list_staff(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     rows = list_staff_with_user_by_hotel(db, hotel.id)
     return [_serialize_staff(staff, user) for staff, user in rows]
 
 
 # Xu ly Admin cap nhat chuc vu/trang thai lam viec/ngay vao lam cua nhan vien.
 def update_staff(db: Session, current_user: User, staff_id: int, payload: UpdateStaffRequest) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     staff = get_staff_member_by_id(db, staff_id)
     if not staff:
         raise HTTPException(
@@ -131,7 +132,7 @@ def _serialize_schedule(schedule: StaffSchedule) -> dict:
 
 # Kiem tra nhan vien ton tai va thuoc khach san cua Admin hien tai.
 def _get_owned_staff_member(db: Session, current_user: User, staff_id: int) -> StaffMember:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     staff = get_staff_member_by_id(db, staff_id)
     if not staff:
         raise HTTPException(
@@ -148,7 +149,7 @@ def _get_owned_staff_member(db: Session, current_user: User, staff_id: int) -> S
 
 # Kiem tra ca lam viec ton tai va thuoc nhan vien cua khach san Admin hien tai.
 def _get_owned_schedule(db: Session, current_user: User, schedule_id: int) -> StaffSchedule:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     schedule = get_staff_schedule_by_id(db, schedule_id)
     if not schedule:
         raise HTTPException(
@@ -255,7 +256,7 @@ def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date
             detail=f"Chi xem toi da {_MAX_SCHEDULE_CALENDAR_DAYS} ngay moi lan",
         )
 
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     staff_rows = list_staff_with_user_by_hotel(db, hotel.id)
     schedules = list_schedules_with_staff_by_hotel(db, hotel.id, from_date, to_date)
 

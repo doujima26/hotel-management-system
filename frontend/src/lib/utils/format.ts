@@ -19,6 +19,11 @@ export function formatMoney(amount: number): string {
   return currencyFormatter.format(amount);
 }
 
+// Doi ty le dang 0-1 sang chuoi phan tram.
+export function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
 export function formatDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
   return dateFormatter.format(date);

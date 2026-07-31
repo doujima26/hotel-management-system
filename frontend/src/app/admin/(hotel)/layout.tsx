@@ -91,7 +91,8 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
   const { data: pendingBookings } = useQuery({
     queryKey: ["hotel-bookings", "pending"],
     queryFn: () => bookingsApi.listForHotel("pending"),
-    enabled: hotel?.status === "approved",
+    // Chi dem khi khach san con van hanh (da duyet hoac dang tam dung).
+    enabled: hotel?.status === "approved" || hotel?.status === "suspended",
   });
 
   useEffect(() => {
@@ -149,7 +150,11 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
         </p>
       )}
       {hotel.status === "suspended" && (
-        <p className="mt-1 text-sm text-destructive">Khách sạn đang bị tạm dừng hoạt động bởi quản trị viên.</p>
+        <p className="mt-1 text-sm text-destructive">
+          Khách sạn đang bị tạm dừng bởi quản trị viên
+          {hotel.rejection_reason ? `: ${hotel.rejection_reason}` : "."} Bạn vẫn phục vụ được các đơn đã đặt, nhưng
+          khách sạn không nhận đơn mới và không sửa được phòng, giá, khuyến mãi.
+        </p>
       )}
     </div>
   );

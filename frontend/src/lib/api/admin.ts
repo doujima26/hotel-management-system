@@ -34,9 +34,10 @@ export interface ListActionLogsParams {
   [key: string]: string | number | boolean | undefined;
 }
 
+// reason dung chung cho ca tu choi lan tam dung.
 export interface ReviewHotelPayload {
   action: "approved" | "rejected" | "suspended";
-  rejection_reason?: string;
+  reason?: string;
 }
 
 export const adminApi = {

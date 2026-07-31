@@ -10,6 +10,7 @@ from app.repositories.admin_log_repository import (
     create_admin_action_log_record,
     list_admin_action_log_records,
 )
+from app.repositories.booking_repository import count_outstanding_bookings_by_hotel_ids
 from app.repositories.dashboard_repository import (
     count_bookings_and_cancelled_by_hotel_ids,
     get_revenue_by_hotel_ids,
@@ -31,6 +32,7 @@ from app.repositories.room_repository import (
     list_images_by_room_type_ids,
     list_room_type_records,
 )
+from app.repositories.staff_repository import list_staff_with_user_by_hotel
 from app.repositories.user_repository import get_user_by_id, list_user_records
 from app.schemas.admin import (
     AdminActionLogItem,
@@ -40,6 +42,7 @@ from app.schemas.admin import (
     AdminHotelListResponse,
     AdminHotelOwnerItem,
     AdminHotelRoomTypeItem,
+    AdminHotelStaffItem,
     AdminUserListResponse,
     CityCountItem,
     ReviewHotelRequest,
@@ -85,6 +88,7 @@ def list_hotels_for_admin(
     rooms_map = count_room_types_and_rooms_by_hotel_ids(db, hotel_ids)
     bookings_map = count_bookings_and_cancelled_by_hotel_ids(db, from_date, to_date, hotel_ids)
     revenue_map = get_revenue_by_hotel_ids(db, from_date, to_date, hotel_ids)
+    outstanding_map = count_outstanding_bookings_by_hotel_ids(db, hotel_ids, to_date)
 
     items = []
     for hotel in hotels:
@@ -110,6 +114,7 @@ def list_hotels_for_admin(
                 revenue_30d=revenue_map.get(hotel.id, 0.0),
                 # Khong co don nao thi ty le huy khong xac dinh, KHONG phai 0%.
                 cancel_rate_30d=round(cancelled_count / bookings_count, 4) if bookings_count else None,
+                outstanding_bookings=outstanding_map.get(hotel.id, 0),
             )
         )
 
@@ -150,6 +155,16 @@ def get_hotel_detail_for_admin(db: Session, hotel_id: int) -> dict:
     rooms_count_map = count_all_rooms_by_room_type_map(db, room_type_ids)
     images_map = list_images_by_room_type_ids(db, room_type_ids)
     amenities_map = list_amenities_by_room_type_ids(db, room_type_ids)
+
+    # Tinh chi so 30 ngay bang dung ham va khoang ngay cua danh sach khach san.
+    to_date = business_today()
+    from_date = to_date - timedelta(days=_HOTEL_STATS_DAYS - 1)
+    bookings_count, cancelled_count = count_bookings_and_cancelled_by_hotel_ids(
+        db, from_date, to_date, [hotel.id]
+    ).get(hotel.id, (0, 0))
+    revenue = get_revenue_by_hotel_ids(db, from_date, to_date, [hotel.id]).get(hotel.id, 0.0)
+    # Dem so booking khach san con phai phuc vu.
+    outstanding = count_outstanding_bookings_by_hotel_ids(db, [hotel.id], to_date).get(hotel.id, 0)
 
     return AdminHotelDetailResponse(
         id=hotel.id,
@@ -198,6 +213,25 @@ def get_hotel_detail_for_admin(db: Session, hotel_id: int) -> dict:
             )
             for room_type in room_types
         ],
+        staff=[
+            AdminHotelStaffItem(
+                id=staff.id,
+                user_id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone=user.phone,
+                position=staff.position,
+                hired_at=staff.hired_at,
+                is_active=staff.is_active,
+                account_active=user.is_active,
+            )
+            for staff, user in list_staff_with_user_by_hotel(db, hotel.id)
+        ],
+        bookings_30d=bookings_count,
+        revenue_30d=revenue,
+        # Khong co don nao thi ty le huy la None, khong phai 0.
+        cancel_rate_30d=round(cancelled_count / bookings_count, 4) if bookings_count else None,
+        outstanding_bookings=outstanding,
     ).model_dump(mode="json")
 
 
@@ -206,6 +240,14 @@ _REVIEW_ACTION_LOGS = {
     HotelStatus.APPROVED: AdminActionType.HOTEL_APPROVED,
     HotelStatus.REJECTED: AdminActionType.HOTEL_REJECTED,
     HotelStatus.SUSPENDED: AdminActionType.HOTEL_SUSPENDED,
+}
+
+# Cac chuyen trang thai hop le cua ho so khach san.
+_ALLOWED_TRANSITIONS = {
+    HotelStatus.PENDING: (HotelStatus.APPROVED, HotelStatus.REJECTED),
+    HotelStatus.APPROVED: (HotelStatus.SUSPENDED,),
+    HotelStatus.SUSPENDED: (HotelStatus.APPROVED,),
+    HotelStatus.REJECTED: (HotelStatus.APPROVED,),
 }
 
 
@@ -224,9 +266,26 @@ def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRe
         )
 
     new_status = HotelStatus(payload.action)
+    if new_status not in _ALLOWED_TRANSITIONS[hotel.status]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Khong the chuyen khach san tu trang thai '{hotel.status}' sang '{new_status}'",
+        )
+
+    reason = (payload.reason or "").strip()
+    # Bat buoc nhap ly do khi tam dung khach san.
+    if new_status == HotelStatus.SUSPENDED and not reason:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phai nhap ly do tam dung khach san",
+        )
+
     hotel.status = new_status
     if new_status == HotelStatus.REJECTED:
-        hotel.rejection_reason = payload.rejection_reason or "Khong du dieu kien phe duyet"
+        hotel.rejection_reason = reason or "Khong du dieu kien phe duyet"
+    elif new_status == HotelStatus.SUSPENDED:
+        # Luu ly do tam dung vao chung cot voi ly do tu choi.
+        hotel.rejection_reason = reason
     else:
         hotel.rejection_reason = None
 
@@ -238,7 +297,7 @@ def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRe
         target_id=hotel.id,
         # Chup lai ten hien tai: khach san doi ten ve sau khong lam sai nhat ky cu.
         target_label=hotel.name,
-        reason=payload.rejection_reason,
+        reason=reason or None,
     )
     hotel = save_hotel(db, hotel)
 

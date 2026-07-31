@@ -24,7 +24,7 @@ from app.schemas.reviews import (
     RoomTypeReviewBreakdownResponse,
     UpdateReviewRequest,
 )
-from app.services.hotel_service import get_approved_admin_hotel
+from app.services.hotel_service import get_operating_admin_hotel
 
 
 # Chuyen Review + User + Booking thanh du lieu tra ve. room_type_names duoc
@@ -109,7 +109,7 @@ def list_hotel_reviews(db: Session, hotel_id: int) -> list[dict]:
 # tren, hotel duoc server tu suy ra tu current_user (khong nhan hotel_id tu
 # client) giong quy uoc chung cua cac endpoint Admin khac.
 def list_hotel_reviews_for_admin(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     return _serialize_review_rows(db, list_reviews_with_user_and_booking_by_hotel(db, hotel.id))
 
 
@@ -124,7 +124,7 @@ _MEDIUM_RATING_FROM = 6
 # nao dang duoc danh gia cao nhat / thap nhat, va trong tung loai phong thi ty le
 # danh gia cao/trung binh/thap ra sao.
 def get_room_type_review_breakdown_for_admin(db: Session, current_user: User) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
 
     # Gom cac dong (loai phong, diem, so luot) thanh 1 dong cho moi loai phong.
     grouped: dict[int, dict] = {}

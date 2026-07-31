@@ -132,7 +132,33 @@ def get_approved_admin_hotel(db: Session, current_user: User) -> Hotel:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Admin chua dang ky khach san",
         )
+    if hotel.status == HotelStatus.SUSPENDED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san dang bi tam dung, khong thuc hien duoc thao tac nay",
+        )
     if hotel.status != HotelStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khach san chua duoc duyet de van hanh",
+        )
+    return hotel
+
+
+# Cac trang thai khach san con van hanh duoc. Khach san tam dung khong ban moi
+# nhung van phai phuc vu cac don da dat.
+_OPERATING_STATUSES = (HotelStatus.APPROVED, HotelStatus.SUSPENDED)
+
+
+# Lay khach san cua admin hien tai cho cac chuc nang phuc vu don da dat.
+def get_operating_admin_hotel(db: Session, current_user: User) -> Hotel:
+    hotel = get_hotel_by_owner(db, current_user.id)
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin chua dang ky khach san",
+        )
+    if hotel.status not in _OPERATING_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Khach san chua duoc duyet de van hanh",
@@ -157,9 +183,15 @@ def get_operational_hotel(db: Session, current_user: User) -> Hotel:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Khach san khong ton tai",
             )
+        # Ap dung cung dieu kien trang thai nhu voi chu khach san.
+        if hotel.status not in _OPERATING_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Khach san chua duoc duyet de van hanh",
+            )
         return hotel
 
-    return get_approved_admin_hotel(db, current_user)
+    return get_operating_admin_hotel(db, current_user)
 
 
 # Kiem tra khuyen mai co du lieu hop le.
@@ -276,7 +308,7 @@ def unassign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> 
 
 # Xu ly lay danh sach tien nghi chung da gan cho khach san cua admin hien tai.
 def list_hotel_amenities(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     amenities = list_hotel_amenity_records(db, hotel.id)
     return [AmenityResponse.from_amenity(item).model_dump(mode="json") for item in amenities]
 
@@ -297,7 +329,7 @@ def create_hotel_service(db: Session, current_user: User, payload: CreateHotelSe
 
 # Xu ly lay danh sach dich vu khach san.
 def list_hotel_services(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     services = list_hotel_service_records(db, hotel.id)
     return [serialize_hotel_service(item) for item in services]
 
@@ -367,7 +399,7 @@ def create_promotion(db: Session, current_user: User, payload: CreatePromotionRe
 
 # Xu ly lay danh sach khuyen mai.
 def list_promotions(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     promotions = list_promotion_records(db, hotel.id)
     return [serialize_promotion(item) for item in promotions]
 
@@ -732,7 +764,7 @@ def create_hotel_image(db: Session, current_user: User, payload: CreateHotelImag
 
 # Xu ly lay danh sach anh cua khach san admin.
 def list_hotel_images(db: Session, current_user: User) -> list[dict]:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     images = list_hotel_image_records(db, hotel.id)
     return [serialize_hotel_image(item) for item in images]
 

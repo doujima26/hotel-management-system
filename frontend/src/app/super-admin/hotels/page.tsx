@@ -19,10 +19,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { formatMoney } from "@/lib/utils/format";
+import { formatMoney, formatPercent } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/types/api";
 import { type HotelStatus } from "@/types/enums";
+import type { AdminHotelListItem } from "@/types/models";
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 
 // Hang the trang thai o dau trang: vua cho thay phan bo toan nen tang, vua la
@@ -44,10 +45,6 @@ const SORT_OPTIONS: { value: "newest" | "lowest_rated" | "highest_rated" | "name
 ];
 
 const ALL_CITIES = "__all__";
-
-function formatPercent(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
 
 // Boc Suspense vi ben trong dung useSearchParams - dung khuyen nghi cua Next
 // de phan con lai cua trang van duoc prerender.
@@ -81,8 +78,11 @@ function SuperAdminHotelsContent() {
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyHotelId, setBusyHotelId] = useState<number | null>(null);
-  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
+  // Hop thoai nhap ly do, dung chung cho tu choi va tam dung.
+  const [reasonTarget, setReasonTarget] = useState<{ hotel: AdminHotelListItem; action: "rejected" | "suspended" } | null>(
+    null,
+  );
+  const [reason, setReason] = useState("");
 
   // Cho go xong moi goi API - go tung chu ma goi ngay se ban hang loat request.
   useEffect(() => {
@@ -111,7 +111,7 @@ function SuperAdminHotelsContent() {
     setActionError(null);
     setBusyHotelId(hotelId);
     try {
-      await adminApi.reviewHotel(hotelId, { action, rejection_reason: reason });
+      await adminApi.reviewHotel(hotelId, { action, reason });
       toast.success("Cập nhật trạng thái khách sạn thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-hotels"] });
     } catch (err) {
@@ -121,15 +121,15 @@ function SuperAdminHotelsContent() {
     }
   }
 
-  function openRejectDialog(hotelId: number) {
-    setRejectReason("");
-    setRejectTarget(hotelId);
+  function openReasonDialog(hotel: AdminHotelListItem, action: "rejected" | "suspended") {
+    setReason("");
+    setReasonTarget({ hotel, action });
   }
 
-  async function confirmReject() {
-    if (rejectTarget === null) return;
-    await handleReview(rejectTarget, "rejected", rejectReason || undefined);
-    setRejectTarget(null);
+  async function confirmReasonAction() {
+    if (!reasonTarget) return;
+    await handleReview(reasonTarget.hotel.id, reasonTarget.action, reason.trim() || undefined);
+    setReasonTarget(null);
   }
 
   return (
@@ -246,7 +246,7 @@ function SuperAdminHotelsContent() {
                   cham may diem, 30 ngay qua co ban duoc gi khong. */}
               <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-2.5 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">Quy mô</p>
+                  <p className="text-xs text-muted-foreground">Quy mô phòng</p>
                   <p className={cn("font-medium", hotel.room_count === 0 && "text-warning-strong")}>
                     {hotel.room_type_count} loại · {hotel.room_count} phòng
                   </p>
@@ -292,7 +292,9 @@ function SuperAdminHotelsContent() {
                 </p>
               )}
               {hotel.rejection_reason && (
-                <p className="text-sm text-destructive">Lý do từ chối: {hotel.rejection_reason}</p>
+                <p className="text-sm text-destructive">
+                  {hotel.status === "suspended" ? "Lý do tạm dừng" : "Lý do từ chối"}: {hotel.rejection_reason}
+                </p>
               )}
               <div className="flex flex-wrap gap-2">
                 {/* Xem ho so day du truoc khi quyet dinh - duyet ma khong xem la
@@ -315,7 +317,7 @@ function SuperAdminHotelsContent() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => openRejectDialog(hotel.id)}
+                      onClick={() => openReasonDialog(hotel, "rejected")}
                       disabled={busyHotelId === hotel.id}
                     >
                       Từ chối
@@ -326,7 +328,7 @@ function SuperAdminHotelsContent() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleReview(hotel.id, "suspended")}
+                    onClick={() => openReasonDialog(hotel, "suspended")}
                     disabled={busyHotelId === hotel.id}
                   >
                     Tạm dừng
@@ -377,28 +379,51 @@ function SuperAdminHotelsContent() {
         </div>
       )}
 
-      <Dialog open={rejectTarget !== null} onOpenChange={(open) => !open && setRejectTarget(null)}>
+      <Dialog open={reasonTarget !== null} onOpenChange={(open) => !open && setReasonTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Từ chối khách sạn</DialogTitle>
-            <DialogDescription>Nhập lý do từ chối (sẽ hiển thị cho chủ khách sạn).</DialogDescription>
+            <DialogTitle>
+              {reasonTarget?.action === "suspended" ? "Tạm dừng khách sạn" : "Từ chối khách sạn"}
+            </DialogTitle>
+            <DialogDescription>
+              {reasonTarget?.action === "suspended"
+                ? `${reasonTarget.hotel.name} sẽ bị gỡ khỏi kết quả tìm kiếm và không nhận đơn mới. Đơn đã đặt vẫn được phục vụ bình thường.`
+                : "Nhập lý do từ chối (sẽ hiển thị cho chủ khách sạn)."}
+            </DialogDescription>
           </DialogHeader>
+
+          {/* Canh bao so don chua tra phong khi tam dung. */}
+          {reasonTarget?.action === "suspended" && reasonTarget.hotel.outstanding_bookings > 0 && (
+            <p className="rounded-lg bg-warning-subtle px-3 py-2 text-sm text-warning-strong">
+              Khách sạn còn <strong>{reasonTarget.hotel.outstanding_bookings} đơn chưa trả phòng</strong>. Khách đã đặt
+              vẫn đến nhận phòng theo lịch, khách sạn vẫn phải phục vụ họ.
+            </p>
+          )}
+
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reject_reason">Lý do</Label>
+            <Label htmlFor="review_reason">Lý do</Label>
             <textarea
-              id="reject_reason"
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
+              id="review_reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectTarget(null)}>
+            <Button variant="outline" onClick={() => setReasonTarget(null)}>
               Hủy
             </Button>
-            <Button variant="destructive" onClick={confirmReject} disabled={busyHotelId === rejectTarget}>
-              Xác nhận từ chối
+            <Button
+              variant="destructive"
+              onClick={confirmReasonAction}
+              // Tam dung bat buoc phai co ly do.
+              disabled={
+                busyHotelId === reasonTarget?.hotel.id ||
+                (reasonTarget?.action === "suspended" && !reason.trim())
+              }
+            >
+              {reasonTarget?.action === "suspended" ? "Xác nhận tạm dừng" : "Xác nhận từ chối"}
             </Button>
           </DialogFooter>
         </DialogContent>

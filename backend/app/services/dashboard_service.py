@@ -37,7 +37,7 @@ from app.schemas.dashboard import (
     TopHotelItem,
     TopServiceItem,
 )
-from app.services.hotel_service import get_approved_admin_hotel
+from app.services.hotel_service import get_operating_admin_hotel
 
 # So review gan day nhat hien tren khoi "Danh gia moi" cua Dashboard.
 _RECENT_REVIEWS_LIMIT = 5
@@ -94,7 +94,7 @@ def _build_hotel_dashboard(db: Session, hotel_id: int, from_date: date, to_date:
 
 # Xu ly Admin xem dashboard doanh thu/ty le lap day/dich vu cua khach san minh.
 def get_hotel_dashboard(db: Session, current_user: User, from_date: date | None, to_date: date | None) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     from_date, to_date = _default_date_range(from_date, to_date)
     if to_date < from_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau hoac bang ngay bat dau")
@@ -203,7 +203,7 @@ def _build_daily_trend(db: Session, hotel_id: int, today: date) -> list[DailyTre
 # thien ve tai chinh - da chuyen sang trang Doanh thu rieng, khong dung chung
 # logic voi ham nay).
 def get_hotel_operations_overview(db: Session, current_user: User) -> dict:
-    hotel = get_approved_admin_hotel(db, current_user)
+    hotel = get_operating_admin_hotel(db, current_user)
     today = business_today()
 
     pending_bookings = count_pending_bookings(db, hotel.id)

@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, Field
 
@@ -11,10 +11,11 @@ class SetUserActiveRequest(BaseModel):
     is_active: bool
 
 
-# Schema du lieu dau vao cho super admin duyet khach san.
+# Schema du lieu dau vao cho super admin duyet khach san, reason dung chung cho
+# ca tu choi lan tam dung.
 class ReviewHotelRequest(BaseModel):
     action: str = Field(pattern="^(approved|rejected|suspended)$")
-    rejection_reason: str | None = None
+    reason: str | None = None
 
 
 # Schema du lieu tra ve sau khi khoa mo tai khoan nguoi dung.
@@ -89,6 +90,8 @@ class AdminHotelListItem(BaseModel):
     bookings_30d: int
     revenue_30d: float
     cancel_rate_30d: float | None = None
+    # So booking chua tra phong tai thoi diem hien tai.
+    outstanding_bookings: int = 0
 
 
 # Schema danh sach khach san cho super admin duyet, kem phan trang.
@@ -126,6 +129,21 @@ class AdminHotelOwnerItem(BaseModel):
     is_active: bool
 
 
+# Schema 1 tai khoan nhan vien thuoc khach san.
+# is_active: nhan vien con lam viec hay da nghi.
+# account_active: tai khoan dang nhap con mo hay bi khoa.
+class AdminHotelStaffItem(BaseModel):
+    id: int
+    user_id: int
+    full_name: str
+    email: str
+    phone: str | None = None
+    position: str
+    hired_at: date | None = None
+    is_active: bool
+    account_active: bool
+
+
 # Schema 1 loai phong trong ho so tham dinh.
 #
 # total_rooms la so phong CHU KHACH SAN KHAI BAO, created_rooms la so phong vat
@@ -146,9 +164,8 @@ class AdminHotelRoomTypeItem(BaseModel):
     is_active: bool
 
 
-# Schema ho so day du cua 1 khach san cho Super Admin tham dinh truoc khi duyet.
-# Gom du thu can nhin de ra quyet dinh: chu so huu, anh, tien nghi, dich vu,
-# toan bo loai phong - thay vi chi ten va dia chi nhu danh sach rut gon.
+# Schema ho so day du cua 1 khach san cho Super Admin tham dinh: chu so huu,
+# nhan su, anh, tien nghi, dich vu, loai phong va chi so hoat dong 30 ngay.
 class AdminHotelDetailResponse(BaseModel):
     id: int
     name: str
@@ -174,3 +191,8 @@ class AdminHotelDetailResponse(BaseModel):
     amenities: list[str] = []
     services: list[str] = []
     room_types: list[AdminHotelRoomTypeItem] = []
+    staff: list[AdminHotelStaffItem] = []
+    bookings_30d: int = 0
+    revenue_30d: float = 0.0
+    cancel_rate_30d: float | None = None
+    outstanding_bookings: int = 0
