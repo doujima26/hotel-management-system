@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, PaymentStatus
+from app.core.enums import BookingStatus, HotelStatus, PaymentStatus
 from app.core.timeutils import day_range_to_instants
-from app.models.entities import Booking, BookingRoom, BookingService, HotelService, Payment, RoomType, User
+from app.models.entities import Booking, BookingRoom, BookingService, Hotel, HotelService, Payment, RoomType, User
 
 # Cac trang thai booking khong tinh vao doanh thu/ty le lap day.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
@@ -101,6 +101,56 @@ def count_bookings_created(db: Session, from_date: date, to_date: date, hotel_id
     if hotel_id is not None:
         query = query.filter(Booking.hotel_id == hotel_id)
     return int(query.scalar() or 0)
+
+
+# Thoi diem dang ky cua ho so khach san CHO DUYET lau nhat - dung de bao "ho so
+# cho lau nhat da X ngay", bien hang doi duyet thanh mot con so co suc thuc giuc.
+def get_oldest_pending_hotel_created_at(db: Session) -> datetime | None:
+    return (
+        db.query(func.min(Hotel.created_at))
+        .filter(Hotel.status == HotelStatus.PENDING)
+        .scalar()
+    )
+
+
+# Tong so phong (theo cong suat khai bao) cua cac khach san DANG HOAT DONG -
+# quy mo thuc su ban duoc cua nen tang, khong tinh khach san cho duyet/tam dung.
+def count_declared_rooms_of_approved_hotels(db: Session) -> int:
+    return int(
+        db.query(func.coalesce(func.sum(RoomType.total_rooms), 0))
+        .join(Hotel, Hotel.id == RoomType.hotel_id)
+        .filter(Hotel.status == HotelStatus.APPROVED)
+        .scalar()
+        or 0
+    )
+
+
+# Dem tai khoan theo tung vai tro - cho khoi quy mo nen tang.
+def count_users_by_role(db: Session) -> dict[str, int]:
+    rows = db.query(User.role, func.count(User.id)).group_by(User.role).all()
+    return {role.value: count for role, count in rows}
+
+
+# Top khach san theo doanh thu trong khoang ngay, kem so booking da tao trong
+# cung ky. Dung dung dinh nghia doanh thu cua get_revenue.
+def list_top_hotels_by_revenue(
+    db: Session, from_date: date, to_date: date, limit: int
+) -> list[tuple[int, str, float]]:
+    start, end = day_range_to_instants(from_date, to_date)
+    return (
+        db.query(Hotel.id, Hotel.name, func.coalesce(func.sum(Payment.amount), 0).label("revenue"))
+        .join(Booking, Booking.hotel_id == Hotel.id)
+        .join(Payment, Payment.booking_id == Booking.id)
+        .filter(
+            Payment.payment_status == PaymentStatus.COMPLETED,
+            Payment.paid_at >= start,
+            Payment.paid_at < end,
+        )
+        .group_by(Hotel.id, Hotel.name)
+        .order_by(func.sum(Payment.amount).desc())
+        .limit(limit)
+        .all()
+    )
 
 
 # Dem so tai khoan moi dang ky trong khoang ngay.

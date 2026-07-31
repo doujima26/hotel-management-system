@@ -334,10 +334,17 @@ export interface AdminHotelListItem {
   cancel_rate_30d: number | null;
 }
 
+export interface CityCountItem {
+  city: string;
+  count: number;
+}
+
 export interface AdminHotelListResult {
   items: AdminHotelListItem[];
   // So khach san o tung trang thai tren toan nen tang, khong phu thuoc bo loc.
   status_counts: Record<string, number>;
+  // Cac thanh pho THUC SU dang co khach san - dung de dung bo loc khu vuc.
+  cities: CityCountItem[];
   page: number;
   page_size: number;
   total: number;
@@ -433,6 +440,37 @@ export interface PlatformDashboard {
   total_bookings: number;
   new_users_count: number;
   hotel: HotelDashboard | null;
+}
+
+export interface PlatformTrendPoint {
+  date: string;
+  revenue: number;
+  bookings: number;
+}
+
+export interface TopHotelItem {
+  hotel_id: number;
+  name: string;
+  revenue: number;
+}
+
+// Anh chup nen tang hom nay - khac PlatformDashboard (bao cao theo khoang ngay).
+export interface PlatformOverview {
+  date: string;
+  total_hotels: number;
+  approved_hotels: number;
+  pending_hotels: number;
+  suspended_hotels: number;
+  rejected_hotels: number;
+  total_rooms: number;
+  users_by_role: Record<string, number>;
+  // null = khong con ho so nao cho duyet (khac 0 ngay = vua co ho so moi).
+  oldest_pending_days: number | null;
+  revenue_today: number;
+  bookings_today: number;
+  new_users_today: number;
+  daily_trend: PlatformTrendPoint[];
+  top_hotels: TopHotelItem[];
 }
 
 export interface RoomStatusOverview {

@@ -32,6 +32,12 @@ class ReviewHotelResponse(BaseModel):
     rejection_reason: str | None = None
 
 
+# Schema 1 thanh pho kem so khach san dang co - dung cho bo loc khu vuc.
+class CityCountItem(BaseModel):
+    city: str
+    count: int
+
+
 # Schema 1 dong trong danh sach khach san cua Super Admin: thong tin khach san
 # kem cac chi so suc khoe de nhin phat biet khach san dang the nao ma khong phai
 # mo tung ho so.
@@ -67,6 +73,8 @@ class AdminHotelListItem(BaseModel):
 class AdminHotelListResponse(BaseModel):
     items: list[AdminHotelListItem]
     status_counts: dict[str, int] = {}
+    # Cac thanh pho thuc su dang co khach san, dung de dung bo loc khu vuc.
+    cities: list[CityCountItem] = []
     page: int
     page_size: int
     total: int

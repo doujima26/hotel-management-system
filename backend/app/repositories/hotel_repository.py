@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import func, nullslast, or_
+from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelSortOption, HotelStatus
@@ -386,6 +386,7 @@ def list_hotel_records_for_admin(
     *,
     status_filter: HotelStatus | None,
     search: str | None = None,
+    city: str | None = None,
     sort: str = "newest",
     page: int,
     page_size: int,
@@ -393,9 +394,13 @@ def list_hotel_records_for_admin(
     query = db.query(Hotel)
     if status_filter:
         query = query.filter(Hotel.status == status_filter)
+    # Tim CHI theo ten khach san. Truoc day tim ca theo thanh pho nen tu khoa
+    # vua la ten vua la dia danh se tra ve ket qua tron lan; loc khu vuc gio
+    # tach han sang tham so city.
     if search:
-        pattern = f"%{search.strip()}%"
-        query = query.filter(or_(Hotel.name.ilike(pattern), Hotel.city.ilike(pattern)))
+        query = query.filter(Hotel.name.ilike(f"%{search.strip()}%"))
+    if city:
+        query = query.filter(Hotel.city == city)
 
     total = query.count()
 
@@ -413,6 +418,18 @@ def list_hotel_records_for_admin(
 
     hotels = query.offset((page - 1) * page_size).limit(page_size).all()
     return hotels, total
+
+
+# Cac thanh pho THUC SU dang co khach san, kem so luong. Dung de dung bo loc khu
+# vuc - lay tu du lieu that thay vi liet ke ca 63 tinh, tranh bay ra hang chuc
+# lua chon luon cho 0 ket qua.
+def count_hotels_by_city(db: Session) -> list[tuple[str, int]]:
+    return (
+        db.query(Hotel.city, func.count(Hotel.id))
+        .group_by(Hotel.city)
+        .order_by(func.count(Hotel.id).desc(), Hotel.city.asc())
+        .all()
+    )
 
 
 # Dem so khach san theo tung trang thai - dung cho hang the trang thai o dau

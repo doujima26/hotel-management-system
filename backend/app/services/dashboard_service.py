@@ -8,15 +8,19 @@ from app.models.entities import User
 from app.repositories.dashboard_repository import (
     count_arrivals_and_departures_today,
     count_bookings_created,
+    count_declared_rooms_of_approved_hotels,
     count_new_users,
     count_overdue_confirmed_bookings,
     count_pending_bookings,
+    count_users_by_role,
+    get_oldest_pending_hotel_created_at,
     get_revenue,
     get_top_services,
     get_total_room_capacity,
     list_active_booking_rooms_in_range,
+    list_top_hotels_by_revenue,
 )
-from app.repositories.hotel_repository import get_hotel_by_id
+from app.repositories.hotel_repository import count_hotels_by_status, get_hotel_by_id
 from app.repositories.review_repository import list_reviews_with_user_and_booking_by_hotel
 from app.repositories.room_repository import count_rooms_by_status, get_active_room_blocks_for_hotel
 from app.repositories.staff_repository import list_schedules_with_staff_by_hotel
@@ -25,9 +29,12 @@ from app.schemas.dashboard import (
     HotelDashboardResponse,
     HotelOperationsOverviewResponse,
     PlatformDashboardResponse,
+    PlatformOverviewResponse,
+    PlatformTrendPoint,
     RecentReviewItem,
     RoomStatusOverview,
     StaffShiftItem,
+    TopHotelItem,
     TopServiceItem,
 )
 from app.services.hotel_service import get_approved_admin_hotel
@@ -119,6 +126,62 @@ def get_platform_dashboard(db: Session, from_date: date | None, to_date: date | 
         total_bookings=total_bookings,
         new_users_count=new_users_count,
         hotel=hotel_data,
+    ).model_dump(mode="json")
+
+
+# So khach san hien trong bang xep hang doanh thu cua nen tang.
+_TOP_HOTELS_LIMIT = 5
+
+# So ngay lay doanh thu cho bang xep hang top khach san.
+_TOP_HOTELS_DAYS = 30
+
+
+# Xu ly Super Admin xem tong quan nen tang - anh chup "hom nay" (khac han
+# get_platform_dashboard tinh theo khoang ngay tuy chon).
+#
+# Gom 3 cau hoi cua nguoi van hanh nen tang: nen tang dang to co nao, hom nay co
+# gi can xu ly, va dang tang hay giam.
+def get_platform_overview(db: Session) -> dict:
+    today = business_today()
+    status_counts = count_hotels_by_status(db)
+
+    # Ho so cho duyet lau nhat da cho bao nhieu ngay - None khi khong con ho so
+    # nao cho, de giao dien khong hien "0 ngay" gay hieu nham la vua co ho so moi.
+    oldest_pending_at = get_oldest_pending_hotel_created_at(db)
+    oldest_pending_days = (today - oldest_pending_at.date()).days if oldest_pending_at else None
+
+    trend = []
+    for offset in range(_TREND_DAYS - 1, -1, -1):
+        day = today - timedelta(days=offset)
+        trend.append(
+            PlatformTrendPoint(
+                date=day,
+                revenue=get_revenue(db, day, day),
+                bookings=count_bookings_created(db, day, day),
+            )
+        )
+
+    top_from = today - timedelta(days=_TOP_HOTELS_DAYS - 1)
+    top_hotels = [
+        TopHotelItem(hotel_id=hotel_id, name=name, revenue=float(revenue))
+        for hotel_id, name, revenue in list_top_hotels_by_revenue(db, top_from, today, _TOP_HOTELS_LIMIT)
+    ]
+
+    return PlatformOverviewResponse(
+        date=today,
+        total_hotels=sum(status_counts.values()),
+        approved_hotels=status_counts.get("approved", 0),
+        pending_hotels=status_counts.get("pending", 0),
+        suspended_hotels=status_counts.get("suspended", 0),
+        rejected_hotels=status_counts.get("rejected", 0),
+        total_rooms=count_declared_rooms_of_approved_hotels(db),
+        users_by_role=count_users_by_role(db),
+        oldest_pending_days=oldest_pending_days,
+        revenue_today=get_revenue(db, today, today),
+        bookings_today=count_bookings_created(db, today, today),
+        new_users_today=count_new_users(db, today, today),
+        daily_trend=trend,
+        top_hotels=top_hotels,
     ).model_dump(mode="json")
 
 

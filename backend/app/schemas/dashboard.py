@@ -24,6 +24,45 @@ class HotelDashboardResponse(BaseModel):
 
 
 # Schema du lieu tra ve dashboard tong quan toan nen tang.
+# Schema 1 ngay tren bieu do xu huong toan nen tang. Khac DailyTrendPoint cua
+# Admin (do la doanh thu + ty le lap day cua 1 khach san): o cap nen tang khong
+# co "ty le lap day" chung co y nghia, nen dung so booking lam truc thu hai.
+class PlatformTrendPoint(BaseModel):
+    date: date
+    revenue: float
+    bookings: int
+
+
+# Schema 1 khach san trong bang xep hang doanh thu cua nen tang.
+class TopHotelItem(BaseModel):
+    hotel_id: int
+    name: str
+    revenue: float
+
+
+# Schema tong quan nen tang cho Super Admin - anh chup HOM NAY, khac
+# PlatformDashboardResponse (bao cao theo khoang ngay tuy chon).
+class PlatformOverviewResponse(BaseModel):
+    date: date
+    # Quy mo nen tang
+    total_hotels: int
+    approved_hotels: int
+    pending_hotels: int
+    suspended_hotels: int
+    rejected_hotels: int
+    total_rooms: int
+    users_by_role: dict[str, int]
+    # Hang doi can xu ly - None khi khong co ho so nao cho duyet.
+    oldest_pending_days: int | None = None
+    # Hom nay
+    revenue_today: float
+    bookings_today: int
+    new_users_today: int
+    # Xu huong va bang xep hang
+    daily_trend: list[PlatformTrendPoint] = []
+    top_hotels: list[TopHotelItem] = []
+
+
 class PlatformDashboardResponse(BaseModel):
     from_date: date
     to_date: date

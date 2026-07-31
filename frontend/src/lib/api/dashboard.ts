@@ -1,5 +1,10 @@
 import { apiFetch } from "./client";
-import type { HotelDashboard, HotelOperationsOverview, PlatformDashboard } from "@/types/models";
+import type {
+  HotelDashboard,
+  HotelOperationsOverview,
+  PlatformDashboard,
+  PlatformOverview,
+} from "@/types/models";
 
 export interface DashboardDateRangeParams {
   from_date?: string;
@@ -17,4 +22,6 @@ export const dashboardApi = {
   getPlatformDashboard: (params: PlatformDashboardParams) =>
     apiFetch<PlatformDashboard>("/dashboard/platform", { params, auth: true }),
   getHotelOperationsOverview: () => apiFetch<HotelOperationsOverview>("/dashboard/hotel/operations", { auth: true }),
+  // Anh chup nen tang hom nay - khac getPlatformDashboard (bao cao theo ky).
+  getPlatformOverview: () => apiFetch<PlatformOverview>("/dashboard/platform/overview", { auth: true }),
 };

@@ -11,6 +11,7 @@ import type { HotelStatus, UserRole } from "@/types/enums";
 export interface ListHotelsParams {
   status?: HotelStatus;
   search?: string;
+  city?: string;
   sort?: "newest" | "lowest_rated" | "highest_rated" | "name";
   page?: number;
   page_size?: number;

@@ -10,6 +10,7 @@ from app.repositories.dashboard_repository import (
     get_revenue_by_hotel_ids,
 )
 from app.repositories.hotel_repository import (
+    count_hotels_by_city,
     count_hotels_by_status,
     count_room_types_and_rooms_by_hotel_ids,
     get_hotel_by_id,
@@ -32,6 +33,7 @@ from app.schemas.admin import (
     AdminHotelOwnerItem,
     AdminHotelRoomTypeItem,
     AdminUserListResponse,
+    CityCountItem,
 )
 from app.schemas.auth import UserPublicResponse
 
@@ -50,6 +52,7 @@ def list_hotels_for_admin(
     *,
     status_filter: HotelStatus | None,
     search: str | None = None,
+    city: str | None = None,
     sort: str = "newest",
     page: int,
     page_size: int,
@@ -58,6 +61,7 @@ def list_hotels_for_admin(
         db,
         status_filter=status_filter,
         search=search,
+        city=city,
         sort=sort,
         page=page,
         page_size=page_size,
@@ -101,6 +105,7 @@ def list_hotels_for_admin(
     return AdminHotelListResponse(
         items=items,
         status_counts=count_hotels_by_status(db),
+        cities=[CityCountItem(city=city_name, count=count) for city_name, count in count_hotels_by_city(db)],
         page=page,
         page_size=page_size,
         total=total,

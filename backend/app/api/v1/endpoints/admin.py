@@ -28,6 +28,7 @@ def admin_ping():
 def list_hotels_endpoint(
     status_filter: HotelStatus | None = Query(default=None, alias="status"),
     search: str | None = Query(default=None, max_length=255),
+    city: str | None = Query(default=None, max_length=100),
     sort: str = Query(default="newest", pattern="^(newest|lowest_rated|highest_rated|name)$"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
@@ -38,6 +39,7 @@ def list_hotels_endpoint(
         db,
         status_filter=status_filter,
         search=search,
+        city=city,
         sort=sort,
         page=page,
         page_size=page_size,

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -42,18 +43,41 @@ const SORT_OPTIONS: { value: "newest" | "lowest_rated" | "highest_rated" | "name
   { value: "name", label: "Tên A-Z" },
 ];
 
+const ALL_CITIES = "__all__";
+
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+// Boc Suspense vi ben trong dung useSearchParams - dung khuyen nghi cua Next
+// de phan con lai cua trang van duoc prerender.
 export default function SuperAdminHotelsPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">Đang tải...</p>}>
+      <SuperAdminHotelsContent />
+    </Suspense>
+  );
+}
+
+function SuperAdminHotelsContent() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
   // Mac dinh "Tat ca": mo trang ra la thay toan canh nen tang. Truoc day mac
   // dinh loc "Cho duyet" nen khi khong con ho so nao cho, trang mo ra trong tron.
-  const [statusFilter, setStatusFilter] = useState<HotelStatus | "all">("all");
-  const [sort, setSort] = useState<"newest" | "lowest_rated" | "highest_rated" | "name">("newest");
+  // Chi mo san mot bo loc khi duoc dieu huong kem tham so (tu Tong quan), va chi
+  // nhan gia tri hop le de tham so bua khong bi gui thang len API.
+  const statusParam = searchParams.get("status");
+  const sortParam = searchParams.get("sort");
+  const [statusFilter, setStatusFilter] = useState<HotelStatus | "all">(
+    STATUS_TABS.some((tab) => tab.value === statusParam) ? (statusParam as HotelStatus | "all") : "all",
+  );
+  const [sort, setSort] = useState<"newest" | "lowest_rated" | "highest_rated" | "name">(
+    SORT_OPTIONS.some((opt) => opt.value === sortParam) ? (sortParam as "newest" | "lowest_rated" | "highest_rated" | "name") : "newest",
+  );
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyHotelId, setBusyHotelId] = useState<number | null>(null);
@@ -70,12 +94,13 @@ export default function SuperAdminHotelsPage() {
   }, [searchInput]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-hotels", statusFilter, sort, search, page],
+    queryKey: ["admin-hotels", statusFilter, sort, search, city, page],
     queryFn: () =>
       adminApi.listHotels({
         status: statusFilter === "all" ? undefined : statusFilter,
         sort,
         search: search || undefined,
+        city: city || undefined,
         page,
         page_size: 10,
       }),
@@ -151,9 +176,31 @@ export default function SuperAdminHotelsPage() {
         <Input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Tìm theo tên hoặc thành phố"
-          className="w-full sm:w-72"
+          placeholder="Tìm theo tên khách sạn"
+          className="w-full sm:w-64"
         />
+        {/* Bo loc khu vuc dung tu cac thanh pho THUC SU co khach san, khong
+            liet ke ca 63 tinh - tranh bay ra hang chuc lua chon luon cho 0 ket qua. */}
+        <Select
+          value={city || ALL_CITIES}
+          onValueChange={(v) => {
+            setCity(!v || v === ALL_CITIES ? "" : v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-52">
+            {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
+            <SelectValue>{(current) => (current === ALL_CITIES ? "Tất cả thành phố" : String(current))}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_CITIES}>Tất cả thành phố</SelectItem>
+            {data?.cities.map((item) => (
+              <SelectItem key={item.city} value={item.city}>
+                {item.city} ({item.count})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={sort} onValueChange={(v) => v && setSort(v as typeof sort)}>
           <SelectTrigger className="w-44">
             {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}

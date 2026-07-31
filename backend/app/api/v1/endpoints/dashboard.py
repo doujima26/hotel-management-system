@@ -12,6 +12,7 @@ from app.services.dashboard_service import (
     get_hotel_dashboard as get_hotel_dashboard_action,
     get_hotel_operations_overview as get_hotel_operations_overview_action,
     get_platform_dashboard as get_platform_dashboard_action,
+    get_platform_overview as get_platform_overview_action,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -37,6 +38,18 @@ def get_hotel_operations_overview(
 ):
     data = get_hotel_operations_overview_action(db, current_user)
     return ok(data, "Tong quan van hanh")
+
+
+# Super Admin xem tong quan nen tang hom nay (quy mo, hang doi duyet, xu huong).
+# Dat truoc "/platform" khong bat buoc vi duong dan khac han nhau, nhung de canh
+# nhau cho de doi chieu 2 goc nhin: anh chup hom nay va bao cao theo ky.
+@router.get("/platform/overview")
+def get_platform_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = get_platform_overview_action(db)
+    return ok(data, "Tong quan nen tang")
 
 
 # Super Admin xem dashboard tong quan toan nen tang, co the xem chi tiet 1 khach san.
