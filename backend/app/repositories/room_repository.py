@@ -72,6 +72,20 @@ def count_all_rooms_by_room_type(db: Session, room_type_id: int) -> int:
     return db.query(func.count(Room.id)).filter(Room.room_type_id == room_type_id).scalar() or 0
 
 
+# Dem phong vat ly cua NHIEU loai phong trong 1 truy van - dung khi cần so phong
+# thuc te cua ca khach san (tranh goi count_all_rooms_by_room_type theo vong lap).
+def count_all_rooms_by_room_type_map(db: Session, room_type_ids: list[int]) -> dict[int, int]:
+    if not room_type_ids:
+        return {}
+    rows = (
+        db.query(Room.room_type_id, func.count(Room.id))
+        .filter(Room.room_type_id.in_(room_type_ids))
+        .group_by(Room.room_type_id)
+        .all()
+    )
+    return {room_type_id: count for room_type_id, count in rows}
+
+
 # Dem so dong booking_rooms da tung dat loai phong nay - loai phong da tung
 # duoc dat thi khong the xoa cung (FK RESTRICT), du phong vat ly co the da bi xoa.
 def count_booking_rooms_by_room_type(db: Session, room_type_id: int) -> int:

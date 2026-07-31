@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import func, nullslast
+from sqlalchemy import func, nullslast, or_
 from sqlalchemy.orm import Session
 
 from app.core.enums import DiscountType, HotelSortOption, HotelStatus
@@ -385,21 +385,59 @@ def list_hotel_records_for_admin(
     db: Session,
     *,
     status_filter: HotelStatus | None,
+    search: str | None = None,
+    sort: str = "newest",
     page: int,
     page_size: int,
 ) -> tuple[list[Hotel], int]:
     query = db.query(Hotel)
     if status_filter:
         query = query.filter(Hotel.status == status_filter)
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.filter(or_(Hotel.name.ilike(pattern), Hotel.city.ilike(pattern)))
 
     total = query.count()
-    hotels = (
-        query.order_by(Hotel.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+
+    if sort == "lowest_rated":
+        # Khach san chua ai danh gia co avg_rating = 0; neu de nguyen chung se
+        # chiem het dau bang va day khach san THUC SU bi cham diem thap xuong
+        # duoi. Dua nhom chua co danh gia xuong cuoi truoc khi sap theo diem.
+        query = query.order_by(Hotel.total_reviews == 0, Hotel.avg_rating.asc(), Hotel.id.asc())
+    elif sort == "highest_rated":
+        query = query.order_by(Hotel.avg_rating.desc(), Hotel.total_reviews.desc(), Hotel.id.asc())
+    elif sort == "name":
+        query = query.order_by(Hotel.name.asc(), Hotel.id.asc())
+    else:
+        query = query.order_by(Hotel.created_at.desc(), Hotel.id.desc())
+
+    hotels = query.offset((page - 1) * page_size).limit(page_size).all()
+    return hotels, total
+
+
+# Dem so khach san theo tung trang thai - dung cho hang the trang thai o dau
+# trang, vua la tong quan vua la bo loc.
+def count_hotels_by_status(db: Session) -> dict[str, int]:
+    rows = db.query(Hotel.status, func.count(Hotel.id)).group_by(Hotel.status).all()
+    return {status.value: count for status, count in rows}
+
+
+# Dem so loai phong va tong so phong (theo cong suat khai bao) cua NHIEU khach
+# san trong 1 truy van - de danh sach khach san khong ban truy van theo tung dong.
+def count_room_types_and_rooms_by_hotel_ids(db: Session, hotel_ids: list[int]) -> dict[int, tuple[int, int]]:
+    if not hotel_ids:
+        return {}
+    rows = (
+        db.query(
+            RoomType.hotel_id,
+            func.count(RoomType.id),
+            func.coalesce(func.sum(RoomType.total_rooms), 0),
+        )
+        .filter(RoomType.hotel_id.in_(hotel_ids))
+        .group_by(RoomType.hotel_id)
         .all()
     )
-    return hotels, total
+    return {hotel_id: (int(type_count), int(room_count)) for hotel_id, type_count, room_count in rows}
 
 
 # Lay dich vu theo ten trong khach san.

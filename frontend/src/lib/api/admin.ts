@@ -1,9 +1,17 @@
 import { apiFetch } from "./client";
-import type { AdminHotelListResult, AdminUserListResult, ReviewHotelResult, SetUserActiveResult } from "@/types/models";
+import type {
+  AdminHotelDetail,
+  AdminHotelListResult,
+  AdminUserListResult,
+  ReviewHotelResult,
+  SetUserActiveResult,
+} from "@/types/models";
 import type { HotelStatus, UserRole } from "@/types/enums";
 
 export interface ListHotelsParams {
   status?: HotelStatus;
+  search?: string;
+  sort?: "newest" | "lowest_rated" | "highest_rated" | "name";
   page?: number;
   page_size?: number;
   [key: string]: string | number | boolean | undefined;
@@ -24,6 +32,8 @@ export interface ReviewHotelPayload {
 
 export const adminApi = {
   listHotels: (params: ListHotelsParams) => apiFetch<AdminHotelListResult>("/admin/hotels", { params, auth: true }),
+  // Ho so day du de tham dinh truoc khi duyet.
+  getHotelDetail: (hotelId: number) => apiFetch<AdminHotelDetail>(`/admin/hotels/${hotelId}`, { auth: true }),
   reviewHotel: (hotelId: number, payload: ReviewHotelPayload) =>
     apiFetch<ReviewHotelResult>(`/admin/hotels/${hotelId}/review`, { method: "PATCH", body: payload, auth: true }),
   listUsers: (params: ListUsersParams) => apiFetch<AdminUserListResult>("/admin/users", { params, auth: true }),

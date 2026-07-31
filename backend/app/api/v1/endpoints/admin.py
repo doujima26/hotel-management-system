@@ -7,7 +7,11 @@ from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import Hotel, User
 from app.schemas.admin import ReviewHotelRequest, ReviewHotelResponse, SetUserActiveRequest
-from app.services.admin_service import list_hotels_for_admin, list_users_for_admin
+from app.services.admin_service import (
+    get_hotel_detail_for_admin,
+    list_hotels_for_admin,
+    list_users_for_admin,
+)
 from app.services.auth_service import set_user_active
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -23,13 +27,33 @@ def admin_ping():
 @router.get("/hotels")
 def list_hotels_endpoint(
     status_filter: HotelStatus | None = Query(default=None, alias="status"),
+    search: str | None = Query(default=None, max_length=255),
+    sort: str = Query(default="newest", pattern="^(newest|lowest_rated|highest_rated|name)$"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = list_hotels_for_admin(db, status_filter=status_filter, page=page, page_size=page_size)
+    data = list_hotels_for_admin(
+        db,
+        status_filter=status_filter,
+        search=search,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
     return ok(data, "Danh sach khach san")
+
+
+# Super admin xem ho so day du cua 1 khach san de tham dinh truoc khi duyet.
+@router.get("/hotels/{hotel_id}")
+def get_hotel_detail_endpoint(
+    hotel_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = get_hotel_detail_for_admin(db, hotel_id)
+    return ok(data, "Chi tiet khach san")
 
 
 # Super admin xem danh sach nguoi dung, co the loc theo role/trang thai kich hoat.

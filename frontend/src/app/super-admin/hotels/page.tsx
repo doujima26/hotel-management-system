@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,38 +15,71 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/types/api";
 import { type HotelStatus } from "@/types/enums";
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 
-const FILTER_OPTIONS: { value: HotelStatus | "all"; label: string }[] = [
-  { value: "pending", label: "Chờ duyệt" },
-  { value: "approved", label: "Đã duyệt" },
-  { value: "rejected", label: "Từ chối" },
-  { value: "suspended", label: "Tạm dừng" },
+// Hang the trang thai o dau trang: vua cho thay phan bo toan nen tang, vua la
+// bo loc. Thay cho dropdown cu - dropdown giau mat so luong nen phai bam lan
+// luot tung muc moi biet nen tang dang co gi.
+const STATUS_TABS: { value: HotelStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "approved", label: "Đang hoạt động" },
+  { value: "suspended", label: "Tạm dừng" },
+  { value: "rejected", label: "Từ chối" },
 ];
+
+const SORT_OPTIONS: { value: "newest" | "lowest_rated" | "highest_rated" | "name"; label: string }[] = [
+  { value: "newest", label: "Mới đăng ký" },
+  { value: "lowest_rated", label: "Điểm thấp nhất" },
+  { value: "highest_rated", label: "Điểm cao nhất" },
+  { value: "name", label: "Tên A-Z" },
+];
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
 
 export default function SuperAdminHotelsPage() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<HotelStatus | "all">("pending");
+  // Mac dinh "Tat ca": mo trang ra la thay toan canh nen tang. Truoc day mac
+  // dinh loc "Cho duyet" nen khi khong con ho so nao cho, trang mo ra trong tron.
+  const [statusFilter, setStatusFilter] = useState<HotelStatus | "all">("all");
+  const [sort, setSort] = useState<"newest" | "lowest_rated" | "highest_rated" | "name">("newest");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyHotelId, setBusyHotelId] = useState<number | null>(null);
   const [rejectTarget, setRejectTarget] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  // Cho go xong moi goi API - go tung chu ma goi ngay se ban hang loat request.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-hotels", statusFilter, page],
+    queryKey: ["admin-hotels", statusFilter, sort, search, page],
     queryFn: () =>
       adminApi.listHotels({
         status: statusFilter === "all" ? undefined : statusFilter,
+        sort,
+        search: search || undefined,
         page,
         page_size: 10,
       }),
+    placeholderData: (previous) => previous,
   });
 
   async function handleReview(hotelId: number, action: "approved" | "rejected" | "suspended", reason?: string) {
@@ -75,23 +109,58 @@ export default function SuperAdminHotelsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Duyệt khách sạn</h2>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            setStatusFilter(v as HotelStatus | "all");
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-40">
+      <div>
+        <h2 className="text-lg font-semibold">Khách sạn trên nền tảng</h2>
+        <p className="text-sm text-muted-foreground">
+          Toàn bộ khách sạn, kèm chỉ số hoạt động 30 ngày gần nhất để thấy nơi nào cần chú ý.
+        </p>
+      </div>
+
+      {/* Hang the trang thai: so dem lay tren TOAN nen tang nen khong doi khi
+          dang loc - bam vao la loc, nhung van thay duoc buc tranh tong. */}
+      <div className="flex flex-wrap gap-2">
+        {STATUS_TABS.map((tab) => {
+          const count =
+            tab.value === "all"
+              ? Object.values(data?.status_counts ?? {}).reduce((sum, value) => sum + value, 0)
+              : (data?.status_counts?.[tab.value] ?? 0);
+          const active = statusFilter === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => {
+                setStatusFilter(tab.value);
+                setPage(1);
+              }}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                active ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary hover:text-primary",
+              )}
+            >
+              <span>{tab.label}</span>
+              <span className={cn("text-xs font-semibold tabular-nums", !active && "text-muted-foreground")}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Tìm theo tên hoặc thành phố"
+          className="w-full sm:w-72"
+        />
+        <Select value={sort} onValueChange={(v) => v && setSort(v as typeof sort)}>
+          <SelectTrigger className="w-44">
             {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
-            <SelectValue>
-              {(current) => FILTER_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
-            </SelectValue>
+            <SelectValue>{(current) => SORT_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {FILTER_OPTIONS.map((opt) => (
+            {SORT_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -113,7 +182,11 @@ export default function SuperAdminHotelsPage() {
           <Card key={hotel.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>{hotel.name}</CardTitle>
+                <CardTitle>
+                  <Link href={`/super-admin/hotels/${hotel.id}`} className="hover:text-primary hover:underline">
+                    {hotel.name}
+                  </Link>
+                </CardTitle>
                 <HotelStatusBadge status={hotel.status} />
               </div>
               <CardDescription>
@@ -121,16 +194,68 @@ export default function SuperAdminHotelsPage() {
                 {hotel.city}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground">
-                Chủ sở hữu: user #{hotel.owner_id}
-                {hotel.phone ? ` - ${hotel.phone}` : ""}
-                {hotel.email ? ` - ${hotel.email}` : ""}
-              </p>
+            <CardContent className="flex flex-col gap-3">
+              {/* Dai chi so: nhin phat biet khach san co hang de ban khong, khach
+                  cham may diem, 30 ngay qua co ban duoc gi khong. */}
+              <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-2.5 text-sm sm:grid-cols-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Quy mô</p>
+                  <p className={cn("font-medium", hotel.room_count === 0 && "text-warning-strong")}>
+                    {hotel.room_type_count} loại · {hotel.room_count} phòng
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Đánh giá</p>
+                  <p className="font-medium">
+                    {hotel.total_reviews > 0 ? (
+                      <>
+                        {hotel.avg_rating}/10{" "}
+                        <span className="text-xs text-muted-foreground">({hotel.total_reviews})</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Chưa có</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">30 ngày</p>
+                  <p className={cn("font-medium", hotel.bookings_30d === 0 && "text-warning-strong")}>
+                    {hotel.bookings_30d} đơn · {formatMoney(hotel.revenue_30d)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Tỷ lệ hủy</p>
+                  <p
+                    className={cn(
+                      "font-medium",
+                      hotel.cancel_rate_30d != null && hotel.cancel_rate_30d >= 0.3 && "text-danger-strong",
+                    )}
+                  >
+                    {/* Khong co don nao thi ty le huy khong xac dinh, khong phai 0%. */}
+                    {hotel.cancel_rate_30d != null ? formatPercent(hotel.cancel_rate_30d) : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {(hotel.phone || hotel.email) && (
+                <p className="text-sm text-muted-foreground">
+                  {hotel.phone ?? ""}
+                  {hotel.phone && hotel.email ? " - " : ""}
+                  {hotel.email ?? ""}
+                </p>
+              )}
               {hotel.rejection_reason && (
                 <p className="text-sm text-destructive">Lý do từ chối: {hotel.rejection_reason}</p>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {/* Xem ho so day du truoc khi quyet dinh - duyet ma khong xem la
+                    dong dau mu, nen nut nay dat truoc cac nut hanh dong. */}
+                <Link
+                  href={`/super-admin/hotels/${hotel.id}`}
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                >
+                  Xem hồ sơ
+                </Link>
                 {hotel.status === "pending" && (
                   <>
                     <Button
@@ -174,7 +299,7 @@ export default function SuperAdminHotelsPage() {
           </Card>
         ))}
         {data && data.items.length === 0 && (
-          <p className="text-center text-muted-foreground">Không có khách sạn nào ở trạng thái này.</p>
+          <p className="text-center text-muted-foreground">Không có khách sạn nào khớp bộ lọc.</p>
         )}
       </div>
 

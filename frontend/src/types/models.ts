@@ -311,8 +311,33 @@ export interface AdminHotel extends HotelPolicies {
   rejection_reason: string | null;
 }
 
+// 1 dong trong danh sach khach san cua Super Admin - khac AdminHotel (khach san
+// cua chinh Admin dang dang nhap): o day kem cac chi so suc khoe cua khach san.
+export interface AdminHotelListItem {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string | null;
+  email: string | null;
+  star_rating: number | null;
+  status: HotelStatus;
+  rejection_reason: string | null;
+  avg_rating: number;
+  total_reviews: number;
+  room_type_count: number;
+  room_count: number;
+  bookings_30d: number;
+  revenue_30d: number;
+  // null = ky do khong co don nao, khac han 0 (co don va khong don nao bi huy).
+  cancel_rate_30d: number | null;
+}
+
 export interface AdminHotelListResult {
-  items: AdminHotel[];
+  items: AdminHotelListItem[];
+  // So khach san o tung trang thai tren toan nen tang, khong phu thuoc bo loc.
+  status_counts: Record<string, number>;
   page: number;
   page_size: number;
   total: number;
@@ -325,6 +350,52 @@ export interface AdminUserListResult {
   page_size: number;
   total: number;
   total_pages: number;
+}
+
+export interface AdminHotelOwner {
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  is_active: boolean;
+}
+
+export interface AdminHotelRoomType {
+  id: number;
+  name: string;
+  base_price: number;
+  max_guests: number;
+  bed_type: string | null;
+  bed_count: number | null;
+  area_sqm: number | null;
+  // total_rooms la so phong chu khach san khai bao, created_rooms la so phong
+  // vat ly thuc su da tao - lech nhau nghia la chua nhap lieu xong.
+  total_rooms: number;
+  created_rooms: number;
+  image_count: number;
+  amenities: string[];
+  is_active: boolean;
+}
+
+export interface AdminHotelDetail extends HotelPolicies {
+  id: number;
+  name: string;
+  description: string | null;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string | null;
+  email: string | null;
+  star_rating: number | null;
+  status: HotelStatus;
+  rejection_reason: string | null;
+  avg_rating: number;
+  total_reviews: number;
+  owner: AdminHotelOwner;
+  images: string[];
+  amenities: string[];
+  services: string[];
+  room_types: AdminHotelRoomType[];
 }
 
 export interface ReviewHotelResult {

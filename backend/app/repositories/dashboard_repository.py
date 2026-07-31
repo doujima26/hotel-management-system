@@ -24,6 +24,55 @@ def get_revenue(db: Session, from_date: date, to_date: date, hotel_id: int | Non
     return float(query.scalar() or 0)
 
 
+# Doanh thu cua NHIEU khach san trong 1 truy van, tra ve map hotel_id -> tien.
+#
+# Dat canh get_revenue va dung y nguyen dieu kien cua no (payment completed +
+# moc thoi gian theo mui gio nghiep vu) de chi co MOT dinh nghia "doanh thu"
+# trong he thong - tach ra noi khac rat de tro thanh 2 con so lech nhau.
+def get_revenue_by_hotel_ids(db: Session, from_date: date, to_date: date, hotel_ids: list[int]) -> dict[int, float]:
+    if not hotel_ids:
+        return {}
+    start, end = day_range_to_instants(from_date, to_date)
+    rows = (
+        db.query(Booking.hotel_id, func.coalesce(func.sum(Payment.amount), 0))
+        .join(Payment, Payment.booking_id == Booking.id)
+        .filter(
+            Payment.payment_status == PaymentStatus.COMPLETED,
+            Payment.paid_at >= start,
+            Payment.paid_at < end,
+            Booking.hotel_id.in_(hotel_ids),
+        )
+        .group_by(Booking.hotel_id)
+        .all()
+    )
+    return {hotel_id: float(amount) for hotel_id, amount in rows}
+
+
+# Dem tong so booking va so booking bi huy cua NHIEU khach san, tinh theo ngay
+# TAO don. Dung chung mot mau so nen ty le huy tinh ra khong bi lech ky.
+def count_bookings_and_cancelled_by_hotel_ids(
+    db: Session, from_date: date, to_date: date, hotel_ids: list[int]
+) -> dict[int, tuple[int, int]]:
+    if not hotel_ids:
+        return {}
+    start, end = day_range_to_instants(from_date, to_date)
+    rows = (
+        db.query(
+            Booking.hotel_id,
+            func.count(Booking.id),
+            func.count(Booking.id).filter(Booking.status == BookingStatus.CANCELLED),
+        )
+        .filter(
+            Booking.created_at >= start,
+            Booking.created_at < end,
+            Booking.hotel_id.in_(hotel_ids),
+        )
+        .group_by(Booking.hotel_id)
+        .all()
+    )
+    return {hotel_id: (int(total), int(cancelled)) for hotel_id, total, cancelled in rows}
+
+
 # Tong so phong (theo cong suat room_types.total_rooms) cua 1 khach san.
 def get_total_room_capacity(db: Session, hotel_id: int) -> int:
     return int(db.query(func.coalesce(func.sum(RoomType.total_rooms), 0)).filter(RoomType.hotel_id == hotel_id).scalar() or 0)
