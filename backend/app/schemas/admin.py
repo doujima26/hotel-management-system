@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import datetime, time
 
 from pydantic import BaseModel, Field
 
@@ -30,6 +30,32 @@ class ReviewHotelResponse(BaseModel):
     id: int
     status: HotelStatus
     rejection_reason: str | None = None
+
+
+# Schema 1 dong nhat ky hanh dong quan tri.
+#
+# target_label la ten khach san / email nguoi dung GHI LAI TAI THOI DIEM hanh
+# dong, khong phai ten hien tai - nhat ky kiem toan phai phan anh dung luc do.
+class AdminActionLogItem(BaseModel):
+    id: int
+    actor_id: int
+    actor_name: str
+    actor_email: str
+    action: str
+    target_type: str
+    target_id: int
+    target_label: str | None = None
+    reason: str | None = None
+    created_at: datetime
+
+
+# Schema danh sach nhat ky hanh dong quan tri, kem phan trang.
+class AdminActionLogListResponse(BaseModel):
+    items: list[AdminActionLogItem]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
 
 
 # Schema 1 thanh pho kem so khach san dang co - dung cho bo loc khu vuc.

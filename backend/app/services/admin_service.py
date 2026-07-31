@@ -3,8 +3,13 @@ from datetime import timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.enums import HotelStatus, UserRole
+from app.core.enums import AdminActionTarget, AdminActionType, HotelStatus, UserRole
 from app.core.timeutils import business_today
+from app.models.entities import User
+from app.repositories.admin_log_repository import (
+    create_admin_action_log_record,
+    list_admin_action_log_records,
+)
 from app.repositories.dashboard_repository import (
     count_bookings_and_cancelled_by_hotel_ids,
     get_revenue_by_hotel_ids,
@@ -17,6 +22,7 @@ from app.repositories.hotel_repository import (
     list_hotel_image_records,
     list_hotel_records_for_admin,
     list_hotel_service_records,
+    save_hotel,
 )
 from app.repositories.room_repository import (
     count_all_rooms_by_room_type_map,
@@ -27,6 +33,8 @@ from app.repositories.room_repository import (
 )
 from app.repositories.user_repository import get_user_by_id, list_user_records
 from app.schemas.admin import (
+    AdminActionLogItem,
+    AdminActionLogListResponse,
     AdminHotelDetailResponse,
     AdminHotelListItem,
     AdminHotelListResponse,
@@ -34,8 +42,12 @@ from app.schemas.admin import (
     AdminHotelRoomTypeItem,
     AdminUserListResponse,
     CityCountItem,
+    ReviewHotelRequest,
+    ReviewHotelResponse,
+    SetUserActiveRequest,
 )
 from app.schemas.auth import UserPublicResponse
+from app.services.auth_service import set_user_active
 
 
 # So ngay lay chi so hoat dong cho danh sach khach san.
@@ -186,6 +198,103 @@ def get_hotel_detail_for_admin(db: Session, hotel_id: int) -> dict:
             )
             for room_type in room_types
         ],
+    ).model_dump(mode="json")
+
+
+# Anh xa hanh dong duyet sang loai su kien ghi vao nhat ky.
+_REVIEW_ACTION_LOGS = {
+    HotelStatus.APPROVED: AdminActionType.HOTEL_APPROVED,
+    HotelStatus.REJECTED: AdminActionType.HOTEL_REJECTED,
+    HotelStatus.SUSPENDED: AdminActionType.HOTEL_SUSPENDED,
+}
+
+
+# Xu ly Super Admin duyet / tu choi / tam dung khach san, co ghi nhat ky.
+#
+# Truoc day phan nay nam thang trong endpoint va truy van DB truc tiep - dua ve
+# service cho dung phan tang, va de ban ghi nhat ky nam cung mot giao dich voi
+# thay doi trang thai (khong the co truong hop doi trang thai xong nhung mat
+# nhat ky, hoac nguoc lai).
+def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRequest) -> dict:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khach san khong ton tai",
+        )
+
+    new_status = HotelStatus(payload.action)
+    hotel.status = new_status
+    if new_status == HotelStatus.REJECTED:
+        hotel.rejection_reason = payload.rejection_reason or "Khong du dieu kien phe duyet"
+    else:
+        hotel.rejection_reason = None
+
+    create_admin_action_log_record(
+        db,
+        actor_id=actor.id,
+        action=_REVIEW_ACTION_LOGS[new_status],
+        target_type=AdminActionTarget.HOTEL,
+        target_id=hotel.id,
+        # Chup lai ten hien tai: khach san doi ten ve sau khong lam sai nhat ky cu.
+        target_label=hotel.name,
+        reason=payload.rejection_reason,
+    )
+    hotel = save_hotel(db, hotel)
+
+    return ReviewHotelResponse(
+        id=hotel.id,
+        status=hotel.status,
+        rejection_reason=hotel.rejection_reason,
+    ).model_dump(mode="json")
+
+
+# Xu ly Super Admin khoa/mo tai khoan, co ghi nhat ky.
+def set_user_active_for_admin(db: Session, actor: User, user_id: int, payload: SetUserActiveRequest) -> dict:
+    target = get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nguoi dung khong ton tai",
+        )
+
+    create_admin_action_log_record(
+        db,
+        actor_id=actor.id,
+        action=AdminActionType.USER_UNLOCKED if payload.is_active else AdminActionType.USER_LOCKED,
+        target_type=AdminActionTarget.USER,
+        target_id=target.id,
+        target_label=target.email,
+        reason=None,
+    )
+    return set_user_active(db, user_id, payload)
+
+
+# Xu ly Super Admin xem nhat ky hanh dong quan tri.
+def list_admin_action_logs(db: Session, *, target_type: str | None, page: int, page_size: int) -> dict:
+    rows, total = list_admin_action_log_records(db, target_type=target_type, page=page, page_size=page_size)
+    items = [
+        AdminActionLogItem(
+            id=log.id,
+            actor_id=actor.id,
+            actor_name=actor.full_name,
+            actor_email=actor.email,
+            action=log.action,
+            target_type=log.target_type,
+            target_id=log.target_id,
+            target_label=log.target_label,
+            reason=log.reason,
+            created_at=log.created_at,
+        )
+        for log, actor in rows
+    ]
+    total_pages = (total + page_size - 1) // page_size if total else 0
+    return AdminActionLogListResponse(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=total_pages,
     ).model_dump(mode="json")
 
 

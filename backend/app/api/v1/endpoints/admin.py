@@ -1,18 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
 from app.core.enums import HotelStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
-from app.models.entities import Hotel, User
-from app.schemas.admin import ReviewHotelRequest, ReviewHotelResponse, SetUserActiveRequest
+from app.models.entities import User
+from app.schemas.admin import ReviewHotelRequest, SetUserActiveRequest
 from app.services.admin_service import (
     get_hotel_detail_for_admin,
+    list_admin_action_logs,
     list_hotels_for_admin,
     list_users_for_admin,
+    review_hotel,
+    set_user_active_for_admin,
 )
-from app.services.auth_service import set_user_active
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -84,9 +86,9 @@ def set_user_active_endpoint(
     user_id: int,
     payload: SetUserActiveRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = set_user_active(db, user_id, payload)
+    data = set_user_active_for_admin(db, current_user, user_id, payload)
     return ok(data, "Cap nhat trang thai tai khoan thanh cong")
 
 
@@ -96,28 +98,20 @@ def review_hotel_endpoint(
     hotel_id: int,
     payload: ReviewHotelRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = review_hotel(db, current_user, hotel_id, payload)
+    return ok(data, "Cap nhat trang thai duyet khach san thanh cong")
+
+
+# Super admin xem nhat ky hanh dong quan tri.
+@router.get("/action-logs")
+def list_admin_action_logs_endpoint(
+    target_type: str | None = Query(default=None, pattern="^(hotel|user)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=50),
+    db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
-    if not hotel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai",
-        )
-
-    hotel.status = HotelStatus(payload.action)
-    if payload.action == "rejected":
-        hotel.rejection_reason = payload.rejection_reason or "Khong du dieu kien phe duyet"
-    else:
-        hotel.rejection_reason = None
-
-    db.add(hotel)
-    db.commit()
-    db.refresh(hotel)
-
-    data = ReviewHotelResponse(
-        id=hotel.id,
-        status=hotel.status,
-        rejection_reason=hotel.rejection_reason,
-    ).model_dump(mode="json")
-    return ok(data, "Cap nhat trang thai duyet khach san thanh cong")
+    data = list_admin_action_logs(db, target_type=target_type, page=page, page_size=page_size)
+    return ok(data, "Nhat ky hanh dong quan tri")

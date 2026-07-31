@@ -41,7 +41,7 @@ CREATE TYPE check_type AS ENUM ('check_in', 'check_out');
 CREATE TYPE amenity_scope AS ENUM ('hotel', 'room');
 
 -- ============================================================
--- PHẦN 2: BẢNG DỮ LIỆU (24 bảng)
+-- PHẦN 2: BẢNG DỮ LIỆU (25 bảng)
 -- ============================================================
 
 -- -------------------------------------------------------
@@ -484,6 +484,25 @@ CREATE TABLE booking_room_units (
 
 COMMENT ON TABLE booking_room_units IS 'Moi dong = 1 suat phong trong booking_rooms.quantity; room_id duoc gan luc check-in. Rollback: DROP TABLE booking_room_units;';
 
+-- -------------------------------------------------------
+-- 23. admin_action_logs - Nhật ký hành động quản trị của Super Admin
+-- target_label lưu SNAPSHOT tên/email tại thời điểm hành động: join ra tên lúc
+-- hiển thị sẽ khiến nhật ký cũ hiện tên mới khi đối tượng đổi tên.
+-- target_id không đặt khóa ngoại vì trỏ tới bảng khác nhau tùy target_type.
+-- -------------------------------------------------------
+CREATE TABLE admin_action_logs (
+    id           BIGSERIAL PRIMARY KEY,
+    actor_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    action       VARCHAR(50) NOT NULL,
+    target_type  VARCHAR(20) NOT NULL,
+    target_id    BIGINT NOT NULL,
+    target_label VARCHAR(255),
+    reason       TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE admin_action_logs IS 'Nhat ky duyet/tu choi/tam dung khach san va khoa/mo tai khoan. Rollback: DROP TABLE admin_action_logs;';
+
 
 
 -- ============================================================
@@ -503,6 +522,10 @@ CREATE INDEX idx_bookings_user ON bookings(user_id);
 -- Phòng
 CREATE INDEX idx_rooms_status ON rooms(status);
 CREATE INDEX idx_rooms_room_type ON rooms(room_type_id);
+
+-- Nhật ký quản trị: luôn xem mới nhất trước, và lọc theo đối tượng bị tác động
+CREATE INDEX idx_admin_action_logs_created ON admin_action_logs(created_at DESC);
+CREATE INDEX idx_admin_action_logs_target ON admin_action_logs(target_type, target_id);
 
 -- Loại phòng theo giá
 CREATE INDEX idx_room_types_hotel_price ON room_types(hotel_id, base_price);

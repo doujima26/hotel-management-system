@@ -17,6 +17,10 @@ const NAV_GROUPS: SidebarGroup[] = [
     label: "Dữ liệu dùng chung",
     items: [{ href: "/super-admin/amenities", label: "Danh mục tiện nghi" }],
   },
+  {
+    label: "Nhật ký quản trị",
+    items: [{ href: "/super-admin/action-logs", label: "Nhật ký quản trị" }],
+  },
 ];
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {

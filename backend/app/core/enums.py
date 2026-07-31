@@ -84,3 +84,20 @@ class HotelSortOption(StrEnum):
     RATING_DESC = 'rating_desc'
     STAR_DESC = 'star_desc'
     STAR_ASC = 'star_asc'
+
+
+# Cac hanh dong quan tri duoc ghi vao nhat ky kiem toan. Luu dang chuoi trong DB
+# (VARCHAR) chu khong dung enum cua Postgres - them hanh dong moi chi can sua
+# Python, khong phai chay migration doi kieu enum.
+class AdminActionType(StrEnum):
+    HOTEL_APPROVED = 'hotel_approved'
+    HOTEL_REJECTED = 'hotel_rejected'
+    HOTEL_SUSPENDED = 'hotel_suspended'
+    USER_LOCKED = 'user_locked'
+    USER_UNLOCKED = 'user_unlocked'
+
+
+# Loai doi tuong bi tac dong trong nhat ky kiem toan.
+class AdminActionTarget(StrEnum):
+    HOTEL = 'hotel'
+    USER = 'user'

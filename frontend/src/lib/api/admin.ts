@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  AdminActionLogListResult,
   AdminHotelDetail,
   AdminHotelListResult,
   AdminUserListResult,
@@ -26,6 +27,13 @@ export interface ListUsersParams {
   [key: string]: string | number | boolean | undefined;
 }
 
+export interface ListActionLogsParams {
+  target_type?: "hotel" | "user";
+  page?: number;
+  page_size?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
 export interface ReviewHotelPayload {
   action: "approved" | "rejected" | "suspended";
   rejection_reason?: string;
@@ -38,6 +46,9 @@ export const adminApi = {
   reviewHotel: (hotelId: number, payload: ReviewHotelPayload) =>
     apiFetch<ReviewHotelResult>(`/admin/hotels/${hotelId}/review`, { method: "PATCH", body: payload, auth: true }),
   listUsers: (params: ListUsersParams) => apiFetch<AdminUserListResult>("/admin/users", { params, auth: true }),
+  // Nhat ky hanh dong quan tri (duyet/tu choi/tam dung khach san, khoa tai khoan).
+  listActionLogs: (params: ListActionLogsParams) =>
+    apiFetch<AdminActionLogListResult>("/admin/action-logs", { params, auth: true }),
   setUserActive: (userId: number, isActive: boolean) =>
     apiFetch<SetUserActiveResult>(`/admin/users/${userId}/active`, {
       method: "PATCH",

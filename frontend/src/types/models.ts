@@ -334,6 +334,29 @@ export interface AdminHotelListItem {
   cancel_rate_30d: number | null;
 }
 
+// target_label la ten khach san / email nguoi dung GHI LAI TAI THOI DIEM hanh
+// dong, khong phai ten hien tai.
+export interface AdminActionLogItem {
+  id: number;
+  actor_id: number;
+  actor_name: string;
+  actor_email: string;
+  action: string;
+  target_type: string;
+  target_id: number;
+  target_label: string | null;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface AdminActionLogListResult {
+  items: AdminActionLogItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
 export interface CityCountItem {
   city: string;
   count: number;

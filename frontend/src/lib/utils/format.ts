@@ -24,6 +24,13 @@ export function formatDate(value: string | Date): string {
   return dateFormatter.format(date);
 }
 
+// Ngay kem gio phut - dung cho nhat ky, noi ma "hanh dong luc nao" moi la thong
+// tin chinh nen chi ngay thoi la khong du.
+export function formatDateTime(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return `${dateFormatter.format(date)} ${date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 // Chi hien thang/nam - dung cho danh gia cong khai, du de khach biet lan luu tru
 // gan day den dau ma khong tiet lo ngay o cu the cua nguoi danh gia.
 export function formatMonthYear(value: string | Date): string {

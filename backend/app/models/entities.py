@@ -513,3 +513,22 @@ class Favorite(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+# Model bang admin_action_logs - nhat ky hanh dong quan tri cua Super Admin.
+#
+# target_label la SNAPSHOT ten khach san / email nguoi dung tai thoi diem hanh
+# dong: join ra ten luc hien thi se khien nhat ky cu hien ten moi khi doi tuong
+# doi ten. target_id khong dat khoa ngoai vi tro toi bang khac nhau tuy
+# target_type (hotels hoac users).
+class AdminActionLog(Base):
+    __tablename__ = "admin_action_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    actor_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    target_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    target_label: Mapped[str | None] = mapped_column(String(255))
+    reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
