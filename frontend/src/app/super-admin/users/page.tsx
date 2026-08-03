@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Building2, Lock } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/types/api";
@@ -37,20 +41,35 @@ export default function SuperAdminUsersPage() {
   const queryClient = useQueryClient();
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyUserId, setBusyUserId] = useState<number | null>(null);
 
+  // Cho go xong moi goi API.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-users", roleFilter, activeFilter, page],
+    queryKey: ["admin-users", roleFilter, activeFilter, search, page],
     queryFn: () =>
       adminApi.listUsers({
         role: roleFilter === "all" ? undefined : roleFilter,
         is_active: activeFilter === "all" ? undefined : activeFilter === "active",
+        search: search || undefined,
         page,
         page_size: 10,
       }),
+    placeholderData: (previous) => previous,
   });
+
+  const roleCounts = data?.role_counts ?? {};
 
   async function handleToggleActive(userId: number, nextActive: boolean) {
     setActionError(null);
@@ -70,7 +89,13 @@ export default function SuperAdminUsersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Quản lý người dùng</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên hoặc email"
+            className="w-full sm:w-60"
+          />
           <Select
             value={roleFilter}
             onValueChange={(v) => {
@@ -78,7 +103,7 @@ export default function SuperAdminUsersPage() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-44">
               {/* Phai tu format: mac dinh SelectValue hien gia tri tho. */}
               <SelectValue>
                 {(current) => ROLE_OPTIONS.find((opt) => opt.value === current)?.label ?? ""}
@@ -87,7 +112,9 @@ export default function SuperAdminUsersPage() {
             <SelectContent>
               {ROLE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
+                  {/* So dem tren toan he thong, khong doi theo bo loc dang chon. */}
                   {opt.label}
+                  {opt.value !== "all" && ` (${roleCounts[opt.value] ?? 0})`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -128,7 +155,7 @@ export default function SuperAdminUsersPage() {
         {data?.items.map((user) => (
           <Card key={user.id}>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>{user.full_name}</CardTitle>
                 <div className="flex gap-2">
                   <Badge variant="outline">{ROLE_LABELS[user.role]}</Badge>
@@ -138,18 +165,59 @@ export default function SuperAdminUsersPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {user.email} {user.is_verified ? "" : "- chưa xác thực"}
-              </span>
-              <Button
-                size="sm"
-                variant={user.is_active ? "destructive" : "default"}
-                onClick={() => handleToggleActive(user.id, !user.is_active)}
-                disabled={busyUserId === user.id}
-              >
-                {user.is_active ? "Khóa" : "Mở khóa"}
-              </Button>
+            <CardContent className="flex flex-wrap items-end justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-muted-foreground">
+                  {user.email}
+                  {user.is_verified ? "" : " - chưa xác thực"}
+                  {user.phone ? ` · ${user.phone}` : ""}
+                </span>
+                {/* Admin gan voi khach san so huu, nhan vien gan voi noi lam viec. */}
+                {user.hotel && (
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {user.role === "admin" ? "Chủ khách sạn" : "Nhân viên tại"}
+                    </span>
+                    <Link href={`/super-admin/hotels/${user.hotel.hotel_id}`} className="text-primary hover:underline">
+                      {user.hotel.hotel_name}
+                    </Link>
+                    <HotelStatusBadge status={user.hotel.hotel_status} />
+                    {user.hotel.position && <span className="text-muted-foreground">· {user.hotel.position}</span>}
+                    {user.hotel.is_working === false && (
+                      <span className="text-muted-foreground">· đã nghỉ việc</span>
+                    )}
+                  </span>
+                )}
+                {!user.hotel && user.role === "admin" && (
+                  <span className="text-warning-strong">Chưa đăng ký khách sạn nào</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href={`/super-admin/users/${user.id}`}
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                >
+                  Xem hồ sơ
+                </Link>
+                {/* Tai khoan Super Admin khong khoa duoc: khoa het la mat quyen
+                    quan tri nen tang va khong khoi phuc duoc tu trong ung dung. */}
+                {user.role === "super_admin" ? (
+                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Lock className="size-3.5" />
+                    Không thể khóa
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={user.is_active ? "destructive" : "default"}
+                    onClick={() => handleToggleActive(user.id, !user.is_active)}
+                    disabled={busyUserId === user.id}
+                  >
+                    {user.is_active ? "Khóa" : "Mở khóa"}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

@@ -24,6 +24,18 @@ def get_revenue(db: Session, from_date: date, to_date: date, hotel_id: int | Non
     return float(query.scalar() or 0)
 
 
+# Tong tien 1 khach da thanh toan thanh cong, khong gioi han khoang ngay.
+# Dung dieu kien payment completed giong get_revenue de cung mot dinh nghia tien thu.
+def get_total_paid_by_user(db: Session, user_id: int) -> float:
+    amount = (
+        db.query(func.coalesce(func.sum(Payment.amount), 0))
+        .join(Booking, Booking.id == Payment.booking_id)
+        .filter(Payment.payment_status == PaymentStatus.COMPLETED, Booking.user_id == user_id)
+        .scalar()
+    )
+    return float(amount or 0)
+
+
 # Doanh thu cua NHIEU khach san trong 1 truy van, tra ve map hotel_id -> tien.
 #
 # Dat canh get_revenue va dung y nguyen dieu kien cua no (payment completed +

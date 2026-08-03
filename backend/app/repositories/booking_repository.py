@@ -186,6 +186,20 @@ def list_room_type_names_by_booking_ids(db: Session, booking_ids: list[int]) -> 
     return grouped
 
 
+# Dem so booking va so booking bi huy cua 1 nguoi dung, kem ngay nhan phong gan nhat.
+def get_booking_stats_by_user(db: Session, user_id: int) -> tuple[int, int, date | None]:
+    total, cancelled, last_check_in = (
+        db.query(
+            func.count(Booking.id),
+            func.count(Booking.id).filter(Booking.status == BookingStatus.CANCELLED),
+            func.max(Booking.check_in_date),
+        )
+        .filter(Booking.user_id == user_id)
+        .one()
+    )
+    return int(total), int(cancelled), last_check_in
+
+
 # Lay danh sach booking cua nguoi dung, moi nhat truoc.
 def list_bookings_by_user(db: Session, user_id: int) -> list[Booking]:
     return db.query(Booking).filter(Booking.user_id == user_id).order_by(Booking.created_at.desc()).all()

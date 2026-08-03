@@ -74,6 +74,11 @@ def count_reviews_without_room_type(db: Session, hotel_id: int) -> int:
     )
 
 
+# Dem so danh gia 1 nguoi dung da viet.
+def count_reviews_by_user(db: Session, user_id: int) -> int:
+    return int(db.query(func.count(Review.id)).filter(Review.user_id == user_id).scalar() or 0)
+
+
 # Lay danh gia theo id.
 def get_review_by_id(db: Session, review_id: int) -> Review | None:
     return db.query(Review).filter(Review.id == review_id).first()

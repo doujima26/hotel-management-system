@@ -3,7 +3,7 @@ from datetime import date, time
 from sqlalchemy.orm import Session
 
 from app.core.enums import ShiftType
-from app.models.entities import StaffMember, StaffSchedule, User
+from app.models.entities import Hotel, StaffMember, StaffSchedule, User
 
 
 # Lay nhan vien theo id.
@@ -14,6 +14,19 @@ def get_staff_member_by_id(db: Session, staff_id: int) -> StaffMember | None:
 # Lay nhan vien theo user_id (1 tai khoan Staff chi gan voi dung 1 khach san).
 def get_staff_member_by_user_id(db: Session, user_id: int) -> StaffMember | None:
     return db.query(StaffMember).filter(StaffMember.user_id == user_id).first()
+
+
+# Lay noi lam viec cua NHIEU tai khoan nhan vien, tra ve map user_id -> (nhan vien, khach san).
+def list_staff_with_hotel_by_user_ids(db: Session, user_ids: list[int]) -> dict[int, tuple[StaffMember, Hotel]]:
+    if not user_ids:
+        return {}
+    rows = (
+        db.query(StaffMember, Hotel)
+        .join(Hotel, Hotel.id == StaffMember.hotel_id)
+        .filter(StaffMember.user_id.in_(user_ids))
+        .all()
+    )
+    return {staff.user_id: (staff, hotel) for staff, hotel in rows}
 
 
 # Lay danh sach nhan vien kem thong tin User theo khach san.

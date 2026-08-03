@@ -5,22 +5,28 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import AdminActionTarget, AdminActionType, HotelStatus, UserRole
 from app.core.timeutils import business_today
-from app.models.entities import User
+from app.models.entities import AdminActionLog, Hotel, StaffMember, User
 from app.repositories.admin_log_repository import (
     create_admin_action_log_record,
     list_admin_action_log_records,
 )
-from app.repositories.booking_repository import count_outstanding_bookings_by_hotel_ids
+from app.repositories.booking_repository import (
+    count_outstanding_bookings_by_hotel_ids,
+    get_booking_stats_by_user,
+)
 from app.repositories.dashboard_repository import (
     count_bookings_and_cancelled_by_hotel_ids,
     get_revenue_by_hotel_ids,
+    get_total_paid_by_user,
 )
 from app.repositories.hotel_repository import (
     count_hotels_by_city,
     count_hotels_by_status,
     count_room_types_and_rooms_by_hotel_ids,
     get_hotel_by_id,
+    get_hotel_by_owner,
     list_hotel_image_records,
+    list_hotels_by_owner_ids,
     list_hotel_records_for_admin,
     list_hotel_service_records,
     save_hotel,
@@ -32,8 +38,12 @@ from app.repositories.room_repository import (
     list_images_by_room_type_ids,
     list_room_type_records,
 )
-from app.repositories.staff_repository import list_staff_with_user_by_hotel
-from app.repositories.user_repository import get_user_by_id, list_user_records
+from app.repositories.review_repository import count_reviews_by_user
+from app.repositories.staff_repository import (
+    list_staff_with_hotel_by_user_ids,
+    list_staff_with_user_by_hotel,
+)
+from app.repositories.user_repository import count_users_by_role, get_user_by_id, list_user_records
 from app.schemas.admin import (
     AdminActionLogItem,
     AdminActionLogListResponse,
@@ -43,13 +53,16 @@ from app.schemas.admin import (
     AdminHotelOwnerItem,
     AdminHotelRoomTypeItem,
     AdminHotelStaffItem,
+    AdminUserActivity,
+    AdminUserDetailResponse,
+    AdminUserHotelLink,
+    AdminUserListItem,
     AdminUserListResponse,
     CityCountItem,
     ReviewHotelRequest,
     ReviewHotelResponse,
     SetUserActiveRequest,
 )
-from app.schemas.auth import UserPublicResponse
 from app.services.auth_service import set_user_active
 
 
@@ -309,12 +322,22 @@ def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRe
 
 
 # Xu ly Super Admin khoa/mo tai khoan, co ghi nhat ky.
+#
+# Tai khoan Super Admin khong khoa duoc qua ung dung: he thong khong co duong
+# tao tai khoan Super Admin moi, nen khoa het la mat quyen quan tri nen tang va
+# chi khoi phuc duoc bang thao tac truc tiep tren database. Chan o day nen thao
+# tac bi tu choi cung khong de lai dong nhat ky nao.
 def set_user_active_for_admin(db: Session, actor: User, user_id: int, payload: SetUserActiveRequest) -> dict:
     target = get_user_by_id(db, user_id)
     if not target:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Nguoi dung khong ton tai",
+        )
+    if target.role == UserRole.SUPER_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Khong the khoa hoac mo khoa tai khoan Super Admin",
         )
 
     create_admin_action_log_record(
@@ -329,24 +352,30 @@ def set_user_active_for_admin(db: Session, actor: User, user_id: int, payload: S
     return set_user_active(db, user_id, payload)
 
 
+# So dong nhat ky hien trong ho so 1 tai khoan.
+_USER_LOG_LIMIT = 20
+
+
+# Chuyen 1 dong nhat ky kem nguoi thuc hien thanh du lieu tra ve.
+def _serialize_action_log(log: AdminActionLog, actor: User) -> AdminActionLogItem:
+    return AdminActionLogItem(
+        id=log.id,
+        actor_id=actor.id,
+        actor_name=actor.full_name,
+        actor_email=actor.email,
+        action=log.action,
+        target_type=log.target_type,
+        target_id=log.target_id,
+        target_label=log.target_label,
+        reason=log.reason,
+        created_at=log.created_at,
+    )
+
+
 # Xu ly Super Admin xem nhat ky hanh dong quan tri.
 def list_admin_action_logs(db: Session, *, target_type: str | None, page: int, page_size: int) -> dict:
     rows, total = list_admin_action_log_records(db, target_type=target_type, page=page, page_size=page_size)
-    items = [
-        AdminActionLogItem(
-            id=log.id,
-            actor_id=actor.id,
-            actor_name=actor.full_name,
-            actor_email=actor.email,
-            action=log.action,
-            target_type=log.target_type,
-            target_id=log.target_id,
-            target_label=log.target_label,
-            reason=log.reason,
-            created_at=log.created_at,
-        )
-        for log, actor in rows
-    ]
+    items = [_serialize_action_log(log, actor) for log, actor in rows]
     total_pages = (total + page_size - 1) // page_size if total else 0
     return AdminActionLogListResponse(
         items=items,
@@ -357,12 +386,30 @@ def list_admin_action_logs(db: Session, *, target_type: str | None, page: int, p
     ).model_dump(mode="json")
 
 
-# Xu ly lay danh sach nguoi dung cho super admin quan ly, loc theo role/is_active.
+# Dung thong tin noi cong tac tu khach san so huu hoac tu ban ghi nhan vien.
+def _build_hotel_link(hotel: Hotel | None, staff: StaffMember | None) -> AdminUserHotelLink | None:
+    if not hotel:
+        return None
+    return AdminUserHotelLink(
+        hotel_id=hotel.id,
+        hotel_name=hotel.name,
+        hotel_status=hotel.status,
+        city=hotel.city,
+        position=staff.position if staff else None,
+        hired_at=staff.hired_at if staff else None,
+        is_working=staff.is_active if staff else None,
+    )
+
+
+# Xu ly lay danh sach nguoi dung cho super admin quan ly, loc theo role/is_active/tu khoa.
+#
+# Noi cong tac lay theo lo cho ca trang (2 truy van) thay vi hoi tung nguoi mot.
 def list_users_for_admin(
     db: Session,
     *,
     role_filter: UserRole | None,
     is_active_filter: bool | None,
+    search: str | None = None,
     page: int,
     page_size: int,
 ) -> dict:
@@ -370,15 +417,88 @@ def list_users_for_admin(
         db,
         role_filter=role_filter,
         is_active_filter=is_active_filter,
+        search=search,
         page=page,
         page_size=page_size,
     )
-    items = [UserPublicResponse.model_validate(user) for user in users]
+
+    owner_ids = [user.id for user in users if user.role == UserRole.ADMIN]
+    staff_user_ids = [user.id for user in users if user.role == UserRole.STAFF]
+    owned_map = list_hotels_by_owner_ids(db, owner_ids)
+    staff_map = list_staff_with_hotel_by_user_ids(db, staff_user_ids)
+
+    items = []
+    for user in users:
+        staff, hotel = staff_map.get(user.id, (None, None))
+        items.append(
+            AdminUserListItem(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                phone=user.phone,
+                avatar_url=user.avatar_url,
+                role=user.role,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+                created_at=user.created_at,
+                hotel=_build_hotel_link(owned_map.get(user.id) or hotel, staff),
+            )
+        )
+
     total_pages = (total + page_size - 1) // page_size if total else 0
     return AdminUserListResponse(
         items=items,
+        role_counts=count_users_by_role(db),
         page=page,
         page_size=page_size,
         total=total,
         total_pages=total_pages,
+    ).model_dump(mode="json")
+
+
+# Xu ly Super Admin xem ho so day du cua 1 tai khoan.
+def get_user_detail_for_admin(db: Session, user_id: int) -> dict:
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nguoi dung khong ton tai",
+        )
+
+    staff, staff_hotel = (None, None)
+    owned_hotel = None
+    if user.role == UserRole.ADMIN:
+        owned_hotel = get_hotel_by_owner(db, user.id)
+    elif user.role == UserRole.STAFF:
+        staff, staff_hotel = list_staff_with_hotel_by_user_ids(db, [user.id]).get(user.id, (None, None))
+
+    total_bookings, cancelled_bookings, last_check_in = get_booking_stats_by_user(db, user.id)
+    logs, _ = list_admin_action_log_records(
+        db,
+        target_type=AdminActionTarget.USER,
+        target_id=user.id,
+        page=1,
+        page_size=_USER_LOG_LIMIT,
+    )
+
+    return AdminUserDetailResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        phone=user.phone,
+        avatar_url=user.avatar_url,
+        role=user.role,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        hotel=_build_hotel_link(owned_hotel or staff_hotel, staff),
+        activity=AdminUserActivity(
+            total_bookings=total_bookings,
+            cancelled_bookings=cancelled_bookings,
+            total_paid=get_total_paid_by_user(db, user.id),
+            total_reviews=count_reviews_by_user(db, user.id),
+            last_check_in_date=last_check_in,
+        ),
+        action_logs=[_serialize_action_log(log, actor) for log, actor in logs],
     ).model_dump(mode="json")

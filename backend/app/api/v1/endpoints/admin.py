@@ -9,6 +9,7 @@ from app.models.entities import User
 from app.schemas.admin import ReviewHotelRequest, SetUserActiveRequest
 from app.services.admin_service import (
     get_hotel_detail_for_admin,
+    get_user_detail_for_admin,
     list_admin_action_logs,
     list_hotels_for_admin,
     list_users_for_admin,
@@ -65,6 +66,7 @@ def get_hotel_detail_endpoint(
 def list_users_endpoint(
     role_filter: UserRole | None = Query(default=None, alias="role"),
     is_active: bool | None = Query(default=None),
+    search: str | None = Query(default=None, max_length=255),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -74,10 +76,22 @@ def list_users_endpoint(
         db,
         role_filter=role_filter,
         is_active_filter=is_active,
+        search=search,
         page=page,
         page_size=page_size,
     )
     return ok(data, "Danh sach nguoi dung")
+
+
+# Super admin xem ho so day du cua 1 tai khoan.
+@router.get("/users/{user_id}")
+def get_user_detail_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = get_user_detail_for_admin(db, user_id)
+    return ok(data, "Chi tiet nguoi dung")
 
 
 # Super admin khoa hoac mo tai khoan nguoi dung.

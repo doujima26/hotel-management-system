@@ -2,8 +2,7 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, Field
 
-from app.core.enums import HotelStatus, PaymentMethod
-from app.schemas.auth import UserPublicResponse
+from app.core.enums import HotelStatus, PaymentMethod, UserRole
 
 
 # Schema du lieu dau vao cho khoa mo tai khoan nguoi dung.
@@ -110,13 +109,68 @@ class AdminHotelListResponse(BaseModel):
     total_pages: int
 
 
+# Schema noi cong tac cua 1 tai khoan.
+# role admin la khach san so huu, role staff la khach san dang lam viec.
+class AdminUserHotelLink(BaseModel):
+    hotel_id: int
+    hotel_name: str
+    hotel_status: HotelStatus
+    city: str
+    # Chi co voi tai khoan nhan vien.
+    position: str | None = None
+    hired_at: date | None = None
+    is_working: bool | None = None
+
+
+# Schema 1 dong trong danh sach nguoi dung cua Super Admin.
+class AdminUserListItem(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    phone: str | None = None
+    avatar_url: str | None = None
+    role: UserRole
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    hotel: AdminUserHotelLink | None = None
+
+
 # Schema danh sach nguoi dung cho super admin quan ly, kem phan trang.
 class AdminUserListResponse(BaseModel):
-    items: list[UserPublicResponse]
+    items: list[AdminUserListItem]
+    role_counts: dict[str, int] = {}
     page: int
     page_size: int
     total: int
     total_pages: int
+
+
+# Schema so lieu hoat dong cua tai khoan khach hang.
+class AdminUserActivity(BaseModel):
+    total_bookings: int
+    cancelled_bookings: int
+    total_paid: float
+    total_reviews: int
+    last_check_in_date: date | None = None
+
+
+# Schema ho so day du cua 1 tai khoan cho Super Admin.
+class AdminUserDetailResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    phone: str | None = None
+    avatar_url: str | None = None
+    role: UserRole
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    updated_at: datetime
+    hotel: AdminUserHotelLink | None = None
+    activity: AdminUserActivity
+    # Cac lan tai khoan nay bi khoa hoac mo khoa.
+    action_logs: list[AdminActionLogItem] = []
 
 
 # Schema chu so huu khach san - hien ten that thay vi chi co owner_id, de Super

@@ -29,6 +29,14 @@ def get_hotel_by_owner(db: Session, owner_id: int) -> Hotel | None:
     return db.query(Hotel).filter(Hotel.owner_id == owner_id).first()
 
 
+# Lay khach san cua NHIEU chu so huu, tra ve map owner_id -> khach san.
+def list_hotels_by_owner_ids(db: Session, owner_ids: list[int]) -> dict[int, Hotel]:
+    if not owner_ids:
+        return {}
+    rows = db.query(Hotel).filter(Hotel.owner_id.in_(owner_ids)).all()
+    return {hotel.owner_id: hotel for hotel in rows}
+
+
 # Lay khach san theo id.
 def get_hotel_by_id(db: Session, hotel_id: int) -> Hotel | None:
     return db.query(Hotel).filter(Hotel.id == hotel_id).first()

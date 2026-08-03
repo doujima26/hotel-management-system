@@ -1,3 +1,4 @@
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.enums import UserRole
@@ -41,12 +42,14 @@ def create_user(
     return user
 
 
-# Lay danh sach nguoi dung cho super admin quan ly, loc theo role/is_active (khong loc neu None).
+# Lay danh sach nguoi dung cho super admin quan ly, loc theo role/is_active/tu khoa
+# (khong loc neu None). Tu khoa tim theo ten hoac email.
 def list_user_records(
     db: Session,
     *,
     role_filter: UserRole | None,
     is_active_filter: bool | None,
+    search: str | None = None,
     page: int,
     page_size: int,
 ) -> tuple[list[User], int]:
@@ -55,6 +58,9 @@ def list_user_records(
         query = query.filter(User.role == role_filter)
     if is_active_filter is not None:
         query = query.filter(User.is_active == is_active_filter)
+    if search:
+        keyword = f"%{search.strip()}%"
+        query = query.filter(or_(User.full_name.ilike(keyword), User.email.ilike(keyword)))
 
     total = query.count()
     users = (
@@ -64,6 +70,12 @@ def list_user_records(
         .all()
     )
     return users, total
+
+
+# Dem so tai khoan theo tung vai tro tren toan he thong.
+def count_users_by_role(db: Session) -> dict[str, int]:
+    rows = db.query(User.role, func.count(User.id)).group_by(User.role).all()
+    return {str(role): int(count) for role, count in rows}
 
 
 # Luu thay doi thong tin nguoi dung.

@@ -37,12 +37,15 @@ def list_admin_action_log_records(
     db: Session,
     *,
     target_type: str | None,
+    target_id: int | None = None,
     page: int,
     page_size: int,
 ) -> tuple[list[tuple[AdminActionLog, User]], int]:
     query = db.query(AdminActionLog, User).join(User, User.id == AdminActionLog.actor_id)
     if target_type:
         query = query.filter(AdminActionLog.target_type == target_type)
+    if target_id is not None:
+        query = query.filter(AdminActionLog.target_id == target_id)
 
     total = query.count()
     rows = (

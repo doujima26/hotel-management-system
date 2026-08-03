@@ -376,12 +376,46 @@ export interface AdminHotelListResult {
   total_pages: number;
 }
 
+// Noi cong tac cua 1 tai khoan: khach san so huu (admin) hoac noi lam viec (staff).
+// position/hired_at/is_working chi co voi tai khoan nhan vien.
+export interface AdminUserHotelLink {
+  hotel_id: number;
+  hotel_name: string;
+  hotel_status: HotelStatus;
+  city: string;
+  position: string | null;
+  hired_at: string | null;
+  is_working: boolean | null;
+}
+
+export interface AdminUserListItem extends User {
+  created_at: string;
+  hotel: AdminUserHotelLink | null;
+}
+
 export interface AdminUserListResult {
-  items: User[];
+  items: AdminUserListItem[];
+  role_counts: Record<string, number>;
   page: number;
   page_size: number;
   total: number;
   total_pages: number;
+}
+
+export interface AdminUserActivity {
+  total_bookings: number;
+  cancelled_bookings: number;
+  total_paid: number;
+  total_reviews: number;
+  last_check_in_date: string | null;
+}
+
+export interface AdminUserDetail extends User {
+  created_at: string;
+  updated_at: string;
+  hotel: AdminUserHotelLink | null;
+  activity: AdminUserActivity;
+  action_logs: AdminActionLogItem[];
 }
 
 export interface AdminHotelOwner {

@@ -3,6 +3,7 @@ import type {
   AdminActionLogListResult,
   AdminHotelDetail,
   AdminHotelListResult,
+  AdminUserDetail,
   AdminUserListResult,
   ReviewHotelResult,
   SetUserActiveResult,
@@ -22,6 +23,7 @@ export interface ListHotelsParams {
 export interface ListUsersParams {
   role?: UserRole;
   is_active?: boolean;
+  search?: string;
   page?: number;
   page_size?: number;
   [key: string]: string | number | boolean | undefined;
@@ -47,6 +49,8 @@ export const adminApi = {
   reviewHotel: (hotelId: number, payload: ReviewHotelPayload) =>
     apiFetch<ReviewHotelResult>(`/admin/hotels/${hotelId}/review`, { method: "PATCH", body: payload, auth: true }),
   listUsers: (params: ListUsersParams) => apiFetch<AdminUserListResult>("/admin/users", { params, auth: true }),
+  // Ho so day du kem noi cong tac va lich su khoa/mo tai khoan.
+  getUserDetail: (userId: number) => apiFetch<AdminUserDetail>(`/admin/users/${userId}`, { auth: true }),
   // Nhat ky hanh dong quan tri (duyet/tu choi/tam dung khach san, khoa tai khoan).
   listActionLogs: (params: ListActionLogsParams) =>
     apiFetch<AdminActionLogListResult>("/admin/action-logs", { params, auth: true }),
