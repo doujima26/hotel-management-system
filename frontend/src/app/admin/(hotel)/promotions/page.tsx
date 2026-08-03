@@ -22,7 +22,7 @@ import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import type { DiscountType } from "@/types/enums";
 import type { Promotion } from "@/types/models";
-import { useAdminHotel } from "../layout";
+import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
@@ -32,7 +32,7 @@ const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
 
 export default function AdminPromotionsPage() {
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const approved = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
@@ -134,7 +134,7 @@ export default function AdminPromotionsPage() {
           <CardDescription>
             {approved
               ? "Áp dụng trên tổng giá trị booking của khách sạn."
-              : "Khách sạn cần được duyệt trước khi tạo khuyến mãi."}
+              : listingLockMessage(hotel.status, "tạo khuyến mãi")}
           </CardDescription>
         </CardHeader>
         {approved && (

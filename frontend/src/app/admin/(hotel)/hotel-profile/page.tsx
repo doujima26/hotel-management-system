@@ -15,7 +15,7 @@ import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
-import { useAdminHotel } from "../layout";
+import { canEditListing, useAdminHotel } from "../layout";
 
 const PAYMENT_METHODS: PaymentMethod[] = ["momo", "zalopay", "credit_card", "bank_transfer"];
 
@@ -187,7 +187,7 @@ export default function AdminHotelProfilePage() {
 
       <HotelPolicySection />
 
-      <HotelImagesSection approved={hotel.status === "approved"} />
+      <HotelImagesSection approved={canEditListing(hotel.status)} />
     </div>
   );
 }

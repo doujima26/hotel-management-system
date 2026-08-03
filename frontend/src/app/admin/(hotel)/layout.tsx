@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/shared/RequireAuth";
-import { AppSidebarShell, type SidebarGroup } from "@/components/shared/AppSidebarShell";
+import { AppSidebarShell, type SidebarGroup, type SidebarItem } from "@/components/shared/AppSidebarShell";
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import { hotelsApi } from "@/lib/api/hotels";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
+import type { HotelStatus } from "@/types/enums";
 import type { AdminHotel } from "@/types/models";
 
 const AdminHotelContext = createContext<AdminHotel | null>(null);
@@ -22,46 +23,76 @@ export function useAdminHotel(): AdminHotel {
   return hotel;
 }
 
+// Khach san con van hanh duoc: xem so lieu, phuc vu don da dat, xep ca.
+// Khach san tam dung van thuoc nhom nay.
+export function canOperate(status: HotelStatus): boolean {
+  return status === "approved" || status === "suspended";
+}
+
+// Khach san duoc sua noi dung rao ban: loai phong, gia, khuyen mai, dich vu, anh.
+export function canEditListing(status: HotelStatus): boolean {
+  return status === "approved";
+}
+
+// Cau giai thich vi sao khong sua duoc, phan biet chua duyet voi dang tam dung.
+export function listingLockMessage(status: HotelStatus, action: string): string {
+  return status === "suspended"
+    ? `Khách sạn đang bị tạm dừng nên không ${action} được.`
+    : `Khách sạn cần được duyệt trước khi ${action}.`;
+}
+
 // Gom theo nhom cong viec thay vi de phang. Thu tu nhom di theo tan suat dung:
 // viec lam hang ngay (van hanh) len tren, phan thiet lap mot lan (co so luu tru,
 // nhan su) xuong duoi.
-function buildNavGroups(pendingBookings: number): SidebarGroup[] {
+//
+// Khach san chua duyet va khach san tam dung khac nhau: chua duyet thi chua co
+// don nao nen moi muc deu chua dung duoc, con tam dung thi van xem va van hanh
+// binh thuong nen khong khoa muc nao.
+function buildNavGroups(pendingBookings: number, status: HotelStatus): SidebarGroup[] {
+  const locked = status === "pending" || status === "rejected";
+  const lock = (item: SidebarItem): SidebarItem =>
+    locked
+      ? { ...item, disabled: true, disabledHint: "Khách sạn cần được duyệt trước khi dùng mục này" }
+      : item;
+
   return [
     // Trang mo dau ngay lam viec - dat rieng dau menu, khong thuoc nhom nao.
-    { items: [{ href: "/admin/dashboard", label: "Tổng quan" }] },
+    { items: [lock({ href: "/admin/dashboard", label: "Tổng quan" })] },
     {
       label: "Vận hành",
       items: [
-        { href: "/admin/bookings", label: "Đơn đặt phòng", badgeCount: pendingBookings },
-        { href: "/admin/rooms", label: "Sơ đồ phòng" },
-        { href: "/admin/room-blocks", label: "Khóa lịch phòng" },
+        lock({ href: "/admin/bookings", label: "Đơn đặt phòng", badgeCount: pendingBookings }),
+        lock({ href: "/admin/rooms", label: "Sơ đồ phòng" }),
+        lock({ href: "/admin/room-blocks", label: "Khóa lịch phòng" }),
       ],
     },
     {
       label: "Kinh doanh",
       items: [
-        { href: "/admin/revenue", label: "Doanh thu" },
+        lock({ href: "/admin/revenue", label: "Doanh thu" }),
         // "Lich trong phong" chu khong phai "Lich phong": phan biet ro voi
         // "Khoa lich phong" ben Van hanh - 2 ten cu gan trung nhau nen de nham.
-        { href: "/admin/calendar", label: "Lịch trống phòng" },
-        { href: "/admin/promotions", label: "Khuyến mãi" },
-        { href: "/admin/reviews", label: "Đánh giá" },
+        lock({ href: "/admin/calendar", label: "Lịch trống phòng" }),
+        lock({ href: "/admin/promotions", label: "Khuyến mãi" }),
+        lock({ href: "/admin/reviews", label: "Đánh giá" }),
       ],
     },
     {
       label: "Cơ sở lưu trú",
       items: [
+        // Muc duy nhat khong khoa: chua duyet thi van phai sua duoc ho so de
+        // bo sung thong tin roi gui duyet lai.
         { href: "/admin/hotel-profile", label: "Hồ sơ khách sạn" },
-        { href: "/admin/room-types", label: "Loại phòng" },
-        { href: "/admin/amenities", label: "Tiện nghi" },
-        { href: "/admin/services", label: "Dịch vụ" },
+        lock({ href: "/admin/room-types", label: "Loại phòng" }),
+        lock({ href: "/admin/amenities", label: "Tiện nghi" }),
+        lock({ href: "/admin/services", label: "Dịch vụ" }),
       ],
     },
     {
       label: "Nhân sự",
       items: [
-        { href: "/admin/staff", label: "Nhân viên" },
-        { href: "/admin/staff/schedule", label: "Lịch làm việc" },
+        lock({ href: "/admin/staff", label: "Nhân viên" }),
+        lock({ href: "/admin/staff/schedule", label: "Lịch làm việc" }),
       ],
     },
   ];
@@ -92,7 +123,7 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
     queryKey: ["hotel-bookings", "pending"],
     queryFn: () => bookingsApi.listForHotel("pending"),
     // Chi dem khi khach san con van hanh (da duyet hoac dang tam dung).
-    enabled: hotel?.status === "approved" || hotel?.status === "suspended",
+    enabled: hotel ? canOperate(hotel.status) : false,
   });
 
   useEffect(() => {
@@ -101,7 +132,11 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
       router.replace("/admin/onboarding");
     }
     if (hotel && pathname === "/admin/onboarding") {
-      router.replace("/admin/dashboard");
+      // Khach san chua duyet chua co so lieu nao de xem, dua ve ho so de bo sung
+      // thong tin thay vi dua vao trang tong quan rong.
+      const landing =
+        hotel.status === "pending" || hotel.status === "rejected" ? "/admin/hotel-profile" : "/admin/dashboard";
+      router.replace(landing);
     }
   }, [isLoading, noHotelYet, hotel, pathname, router]);
 
@@ -152,8 +187,8 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
       {hotel.status === "suspended" && (
         <p className="mt-1 text-sm text-destructive">
           Khách sạn đang bị tạm dừng bởi quản trị viên
-          {hotel.rejection_reason ? `: ${hotel.rejection_reason}` : "."} Bạn vẫn phục vụ được các đơn đã đặt, nhưng
-          khách sạn không nhận đơn mới và không sửa được phòng, giá, khuyến mãi.
+          {hotel.rejection_reason ? ` với lý do: ${hotel.rejection_reason}.` : "."} Bạn vẫn xem được mọi thông tin và
+          phục vụ các đơn đã đặt, nhưng khách sạn không nhận đơn mới và không sửa được phòng, giá, khuyến mãi.
         </p>
       )}
     </div>
@@ -163,7 +198,7 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
     <AdminHotelContext.Provider value={hotel}>
       <AppSidebarShell
         title="Quản lý khách sạn"
-        items={buildNavGroups(pendingBookings?.length ?? 0)}
+        items={buildNavGroups(pendingBookings?.length ?? 0, hotel.status)}
         header={statusBanner}
       >
         {children}

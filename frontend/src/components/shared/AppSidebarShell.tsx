@@ -13,6 +13,10 @@ export interface SidebarItem {
   label: string;
   // So luong can chu y (vd booking cho xu ly) - hien badge do canh muc.
   badgeCount?: number;
+  // Muc chua dung duoc: hien mo va khong bam vao duoc.
+  disabled?: boolean;
+  // Ly do khong bam duoc, hien khi ro chuot len muc.
+  disabledHint?: string;
 }
 
 // Nhom cac muc theo chuc nang (co tieu de nhom). Neu truyen mang phang thi
@@ -117,6 +121,19 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
 // 1 muc trong sidebar, kem badge so luong can chu y neu co.
 function SidebarLink({ item, activeHref }: { item: SidebarItem; activeHref: string | null }) {
   const active = item.href === activeHref;
+
+  if (item.disabled) {
+    return (
+      <span
+        title={item.disabledHint}
+        aria-disabled="true"
+        className="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap text-sidebar-foreground/35"
+      >
+        {item.label}
+      </span>
+    );
+  }
+
   return (
     <Link
       href={item.href}

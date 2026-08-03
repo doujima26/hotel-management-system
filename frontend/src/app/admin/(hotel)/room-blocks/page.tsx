@@ -13,14 +13,15 @@ import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { useAdminHotel } from "../layout";
+import { canEditListing, canOperate, useAdminHotel } from "../layout";
 
 // Cua so mac dinh xem danh sach khoa lich dang co hieu luc/sap toi.
 const LIST_WINDOW_DAYS = 180;
 
 export default function AdminRoomBlocksPage() {
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const canView = canOperate(hotel.status);
+  const canEdit = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>("");
@@ -37,7 +38,7 @@ export default function AdminRoomBlocksPage() {
   const { data: rooms } = useQuery({
     queryKey: ["room-status-board"],
     queryFn: () => roomsApi.statusBoard(),
-    enabled: approved,
+    enabled: canView,
   });
 
   const {
@@ -47,7 +48,7 @@ export default function AdminRoomBlocksPage() {
   } = useQuery({
     queryKey: ["room-blocks", fromDate, toDate],
     queryFn: () => roomsApi.listRoomBlocks({ from_date: fromDate, to_date: toDate }),
-    enabled: approved,
+    enabled: canView,
   });
 
   async function handleCreate() {
@@ -91,7 +92,7 @@ export default function AdminRoomBlocksPage() {
     return room ? `${room.room_number} (${room.room_type_name})` : `Phòng #${roomId}`;
   }
 
-  if (!approved) {
+  if (!canView) {
     return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi khóa lịch phòng.</p>;
   }
 
@@ -138,7 +139,16 @@ export default function AdminRoomBlocksPage() {
             </div>
           </div>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <Button onClick={handleCreate} disabled={submitting || !selectedRoomId || !startDate || !endDate} className="self-start">
+          {!canEdit && (
+            <p className="text-sm text-warning-strong">
+              Khách sạn đang bị tạm dừng nên không tạo khóa lịch mới được. Các khóa lịch đang có vẫn hiển thị bên dưới.
+            </p>
+          )}
+          <Button
+            onClick={handleCreate}
+            disabled={!canEdit || submitting || !selectedRoomId || !startDate || !endDate}
+            className="self-start"
+          >
             {submitting ? "Đang tạo..." : "Tạo khóa lịch"}
           </Button>
         </CardContent>
@@ -165,7 +175,7 @@ export default function AdminRoomBlocksPage() {
                 variant="outline"
                 className="text-destructive hover:text-destructive"
                 onClick={() => handleDelete(block.id)}
-                disabled={deleteBusyId === block.id}
+                disabled={!canEdit || deleteBusyId === block.id}
               >
                 Hủy khóa
               </Button>

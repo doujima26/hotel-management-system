@@ -2023,4 +2023,28 @@ SELECT
     8,
     'Sach se, nhan vien than thien';
 
+-- Gan loai phong cho cac booking seed.
+-- Gia chup lai lay theo base_price cua loai phong, so dem lay tu ngay nhan/tra phong.
+INSERT INTO booking_rooms (booking_id, room_type_id, quantity, price_per_night, num_nights, subtotal)
+SELECT
+    b.id,
+    rt.id,
+    1,
+    rt.base_price,
+    b.check_out_date - b.check_in_date,
+    rt.base_price * (b.check_out_date - b.check_in_date)
+FROM bookings b
+JOIN LATERAL (
+    SELECT id, base_price FROM room_types WHERE hotel_id = b.hotel_id ORDER BY id LIMIT 1
+) rt ON true
+WHERE b.booking_code LIKE 'BK-SEED-%';
+
+-- Dong bo tong tien cua booking seed theo dong booking_rooms vua tao.
+UPDATE bookings b
+SET total_room_price = br.subtotal,
+    total_amount = br.subtotal
+FROM booking_rooms br
+WHERE br.booking_id = b.id
+  AND b.booking_code LIKE 'BK-SEED-%';
+
 COMMIT;

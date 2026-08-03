@@ -12,7 +12,7 @@ import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { Amenity } from "@/types/models";
-import { useAdminHotel } from "../layout";
+import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 
 // Nhan tieng Viet cho cac category co san trong danh muc. Category do Super
 // Admin tu them (khong co trong bang nay) se hien nguyen van.
@@ -79,7 +79,7 @@ function AmenityToggleCard({
 
 export default function AdminAmenitiesPage() {
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const approved = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [hotelAmenityError, setHotelAmenityError] = useState<string | null>(null);
@@ -185,7 +185,7 @@ export default function AdminAmenitiesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Tiện nghi</CardTitle>
-          <CardDescription>Khách sạn cần được duyệt trước khi chọn tiện nghi.</CardDescription>
+          <CardDescription>{listingLockMessage(hotel.status, "chọn tiện nghi")}</CardDescription>
         </CardHeader>
       </Card>
     );

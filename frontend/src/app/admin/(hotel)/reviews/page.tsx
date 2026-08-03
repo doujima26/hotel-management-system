@@ -11,7 +11,7 @@ import { formatDate, getRatingLabel } from "@/lib/utils/format";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
 import type { RoomTypeReviewBreakdown, RoomTypeReviewBreakdownItem } from "@/types/models";
-import { useAdminHotel } from "../layout";
+import { canOperate, useAdminHotel } from "../layout";
 
 // Tinh so dem luu tru tu 2 moc ngay (chuoi YYYY-MM-DD) de hien kem khoang ngay.
 function countNights(checkIn: string, checkOut: string): number {
@@ -151,18 +151,18 @@ function RoomTypeRatingRanking({ data }: { data: RoomTypeReviewBreakdown }) {
 
 export default function AdminReviewsPage() {
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const canView = canOperate(hotel.status);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["hotel-reviews"],
     queryFn: () => reviewsApi.listForOwnHotel(),
-    enabled: approved,
+    enabled: canView,
   });
 
   const breakdown = useQuery({
     queryKey: ["hotel-review-room-type-breakdown"],
     queryFn: () => reviewsApi.roomTypeBreakdownForOwnHotel(),
-    enabled: approved,
+    enabled: canView,
   });
 
   const [sort, setSort] = useState<ReviewSort>("newest");
@@ -180,7 +180,7 @@ export default function AdminReviewsPage() {
     );
   }, [data, sort]);
 
-  if (!approved) {
+  if (!canView) {
     return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi xem đánh giá.</p>;
   }
 

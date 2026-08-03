@@ -20,12 +20,12 @@ import { formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import type { HotelServiceItem } from "@/types/models";
-import { useAdminHotel } from "../layout";
+import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 export default function AdminServicesPage() {
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const approved = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
@@ -128,7 +128,7 @@ export default function AdminServicesPage() {
           <CardDescription>
             {approved
               ? "Ví dụ: đưa đón sân bay, giặt ủi, ăn sáng..."
-              : "Khách sạn cần được duyệt trước khi tạo dịch vụ."}
+              : listingLockMessage(hotel.status, "tạo dịch vụ")}
           </CardDescription>
         </CardHeader>
         {approved && (

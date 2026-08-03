@@ -1,12 +1,12 @@
 "use client";
 
 import { RoomStatusBoard } from "@/components/shared/RoomStatusBoard";
-import { useAdminHotel } from "../layout";
+import { canOperate, useAdminHotel } from "../layout";
 
 export default function AdminRoomsPage() {
   const hotel = useAdminHotel();
 
-  if (hotel.status !== "approved") {
+  if (!canOperate(hotel.status)) {
     return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi xem sơ đồ phòng.</p>;
   }
 

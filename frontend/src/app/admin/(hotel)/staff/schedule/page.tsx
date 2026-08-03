@@ -25,7 +25,7 @@ import { ApiError } from "@/types/api";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import type { ShiftType } from "@/types/enums";
 import type { StaffScheduleCalendarShift } from "@/types/models";
-import { useAdminHotel } from "../../layout";
+import { canOperate, useAdminHotel } from "../../layout";
 
 // Xem theo tuan (backend gioi han toi da 31 ngay).
 const WINDOW_DAYS = 7;
@@ -143,10 +143,10 @@ export default function AdminStaffSchedulePage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["staff-schedule-calendar", startDate, endDate],
     queryFn: () => staffApi.scheduleCalendar({ from_date: startDate, to_date: endDate }),
-    enabled: hotel.status === "approved",
+    enabled: canOperate(hotel.status),
   });
 
-  if (hotel.status !== "approved") {
+  if (!canOperate(hotel.status)) {
     return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi xếp lịch nhân viên.</p>;
   }
 

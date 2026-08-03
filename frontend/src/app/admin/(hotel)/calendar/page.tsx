@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
-import { useAdminHotel } from "../layout";
+import { canOperate, useAdminHotel } from "../layout";
 
 // So ngay hien thi 1 lan tren lich (backend gioi han toi da 62 ngay).
 const WINDOW_DAYS = 14;
@@ -25,10 +25,10 @@ export default function AdminCalendarPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["room-calendar", startDate, endDate],
     queryFn: () => roomsApi.calendar({ from_date: startDate, to_date: endDate }),
-    enabled: hotel.status === "approved",
+    enabled: canOperate(hotel.status),
   });
 
-  if (hotel.status !== "approved") {
+  if (!canOperate(hotel.status)) {
     return (
       <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi xem lịch phòng.</p>
     );

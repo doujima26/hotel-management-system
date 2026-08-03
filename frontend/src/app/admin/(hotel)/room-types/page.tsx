@@ -24,7 +24,7 @@ import { formatBedConfig, formatMoney } from "@/lib/utils/format";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomType } from "@/types/models";
-import { useAdminHotel } from "../layout";
+import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 // Cac loai giuong chuan. Dung danh sach co san thay vi o chu tu do de du lieu
@@ -145,7 +145,7 @@ function BedTypeSelect({
 export default function AdminRoomTypesPage() {
   const hotel = useAdminHotel();
   const queryClient = useQueryClient();
-  const approved = hotel.status === "approved";
+  const approved = canEditListing(hotel.status);
 
   const [name, setName] = useState("");
   const [basePrice, setBasePrice] = useState("");
@@ -259,7 +259,7 @@ export default function AdminRoomTypesPage() {
           <CardDescription>
             {approved
               ? "Có thể sửa, tắt hoặc xóa loại phòng sau khi tạo (chỉ xóa được khi chưa có phòng vật lý/booking nào)."
-              : "Khách sạn cần được duyệt trước khi tạo loại phòng."}
+              : listingLockMessage(hotel.status, "tạo loại phòng")}
           </CardDescription>
         </CardHeader>
         {approved && (

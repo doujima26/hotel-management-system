@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { RoomItem } from "@/types/models";
-import { useAdminHotel } from "../../../layout";
+import { canEditListing, listingLockMessage, useAdminHotel } from "../../../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 interface RoomsPageProps {
@@ -32,7 +32,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
   const { roomTypeId } = use(params);
   const id = Number(roomTypeId);
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const approved = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [roomNumber, setRoomNumber] = useState("");
@@ -135,7 +135,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
               ? roomList
                 ? `Đã tạo ${roomList.current_rooms}/${roomList.max_rooms} phòng (còn lại ${roomList.remaining_rooms})`
                 : ""
-              : "Khách sạn cần được duyệt trước khi thêm phòng vật lý."}
+              : listingLockMessage(hotel.status, "thêm phòng vật lý")}
           </CardDescription>
         </CardHeader>
         {approved && (

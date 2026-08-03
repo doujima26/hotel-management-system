@@ -17,7 +17,7 @@ import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
 import type { DiscountType } from "@/types/enums";
 import type { RoomTypeRateDay } from "@/types/models";
-import { useAdminHotel } from "../../../layout";
+import { canEditListing, canOperate, useAdminHotel } from "../../../layout";
 
 type GridCell =
   | { kind: "header"; label: string }
@@ -39,7 +39,8 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
   const { roomTypeId } = use(params);
   const id = Number(roomTypeId);
   const hotel = useAdminHotel();
-  const approved = hotel.status === "approved";
+  const canView = canOperate(hotel.status);
+  const canEdit = canEditListing(hotel.status);
   const queryClient = useQueryClient();
 
   const [monthAnchor, setMonthAnchor] = useState(firstDayOfMonthString(todayDateString()));
@@ -63,7 +64,7 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
   const { data, isLoading, error } = useQuery({
     queryKey,
     queryFn: () => roomsApi.getRateCalendar(id, { from_date: startDate, to_date: endDate }),
-    enabled: approved,
+    enabled: canView,
   });
 
   async function refresh() {
@@ -129,7 +130,7 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
     }
   }
 
-  if (!approved) {
+  if (!canView) {
     return <p className="text-muted-foreground">Khách sạn cần được duyệt trước khi quản lý giá theo ngày.</p>;
   }
 
@@ -185,7 +186,7 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
           {seasonalError && <p className="text-sm text-destructive">{seasonalError}</p>}
           <Button
             onClick={applySeasonal}
-            disabled={seasonalSubmitting || !seasonalFrom || !seasonalTo || !adjustmentValue}
+            disabled={!canEdit || seasonalSubmitting || !seasonalFrom || !seasonalTo || !adjustmentValue}
             className="self-start"
           >
             {seasonalSubmitting ? "Đang áp dụng..." : "Áp giá theo mùa"}
@@ -291,6 +292,7 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
                           <>
                             <button
                               type="button"
+                              disabled={!canEdit}
                               onClick={() => startEdit(day.date, day.effective_price)}
                               className="truncate text-left text-sm font-semibold hover:underline sm:text-base"
                             >
@@ -299,6 +301,7 @@ export default function AdminRoomTypeRatesPage({ params }: RatesPageProps) {
                             {day.override_price !== null ? (
                               <button
                                 type="button"
+                                disabled={!canEdit}
                                 onClick={() => clearOverride(day.date)}
                                 className="text-left text-xs text-destructive hover:underline"
                               >
