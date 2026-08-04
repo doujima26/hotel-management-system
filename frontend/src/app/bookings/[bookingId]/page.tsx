@@ -9,14 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { MapPin, MessageSquareText, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDate, formatMoney, getRatingLabel } from "@/lib/utils/format";
+import { formatDate, formatDateTime, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
 import { reviewsApi } from "@/lib/api/reviews";
 import { ApiError } from "@/types/api";
-
+import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { Review } from "@/types/models";
-import { BookingStatusBadge } from "@/components/shared/StatusBadge";
+import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
 const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -148,6 +149,8 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
     );
   }
 
+  const nights = booking.rooms[0]?.num_nights ?? 0;
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-8">
       <Link href="/bookings" className="text-sm text-muted-foreground hover:text-foreground">
@@ -156,49 +159,120 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Booking {booking.booking_code}</CardTitle>
-            <BookingStatusBadge status={booking.status} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>{booking.hotel_name}</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <BookingStatusBadge status={booking.status} />
+              {booking.payment_status && <PaymentStatusBadge status={booking.payment_status} />}
+            </div>
           </div>
-          <CardDescription>
-            {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)} - {booking.num_guests} khách
-          </CardDescription>
+          <CardDescription>Mã đơn {booking.booking_code}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-4">
+          {/* Dia chi va so dien thoai khach san de khach con den va lien lac duoc. */}
+          <div className="flex flex-col gap-1.5 text-sm">
+            <span className="flex items-start gap-2">
+              <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+              {booking.hotel_address}, {booking.hotel_city}
+            </span>
+            {booking.hotel_phone && (
+              <span className="flex items-center gap-2">
+                <Phone className="size-3.5 shrink-0 text-muted-foreground" />
+                <a href={`tel:${booking.hotel_phone}`} className="text-primary hover:underline">
+                  {booking.hotel_phone}
+                </a>
+              </span>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Nhận phòng</p>
+              <p className="font-medium">{formatDate(booking.check_in_date)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Trả phòng</p>
+              <p className="font-medium">{formatDate(booking.check_out_date)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Số đêm</p>
+              <p className="font-medium">{nights}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Số khách</p>
+              <p className="font-medium">{booking.num_guests}</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-2 text-sm">
             {booking.rooms.map((room) => (
-              <div key={room.id} className="flex items-center justify-between text-sm">
+              <div key={room.id} className="flex items-start justify-between gap-2">
                 <span>
-                  Loại phòng #{room.room_type_id} x{room.quantity} ({room.num_nights} đêm)
+                  {room.room_type_name} x{room.quantity}
+                  <span className="block text-xs text-muted-foreground">
+                    {formatMoney(room.price_per_night)}/đêm · {room.num_nights} đêm
+                  </span>
                 </span>
-                <span>{formatMoney(room.subtotal)}</span>
+                <span className="font-medium">{formatMoney(room.subtotal)}</span>
+              </div>
+            ))}
+            {booking.services.map((service) => (
+              <div key={service.service_id} className="flex items-start justify-between gap-2">
+                <span>
+                  {service.name} x{service.quantity}
+                  <span className="block text-xs text-muted-foreground">{formatMoney(service.unit_price)}/lần</span>
+                </span>
+                <span className="font-medium">{formatMoney(service.subtotal)}</span>
               </div>
             ))}
           </div>
+
           <Separator />
+
           <div className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tiền phòng</span>
               <span>{formatMoney(booking.total_room_price)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tiền dịch vụ</span>
-              <span>{formatMoney(booking.total_service_price)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Giảm giá</span>
-              <span>-{formatMoney(booking.discount_amount)}</span>
-            </div>
-            <div className="flex justify-between font-semibold">
+            {/* Chi hien cac dong thuc su phat sinh, khong bay ra dong 0 d. */}
+            {booking.total_service_price > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tiền dịch vụ</span>
+                <span>{formatMoney(booking.total_service_price)}</span>
+              </div>
+            )}
+            {booking.discount_amount > 0 && (
+              <div className="flex justify-between text-success-strong">
+                <span>Giảm giá</span>
+                <span>-{formatMoney(booking.discount_amount)}</span>
+              </div>
+            )}
+            <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
               <span>Tổng cộng</span>
               <span>{formatMoney(booking.total_amount)}</span>
             </div>
+            {booking.payment_method && (
+              <p className="text-xs text-muted-foreground">
+                Thanh toán qua {PAYMENT_METHOD_LABELS[booking.payment_method]}
+              </p>
+            )}
           </div>
+
           {booking.special_requests && (
-            <p className="text-sm text-muted-foreground">Yêu cầu: {booking.special_requests}</p>
+            <p className="flex items-start gap-2 text-sm text-muted-foreground">
+              <MessageSquareText className="mt-0.5 size-3.5 shrink-0" />
+              Yêu cầu của bạn: {booking.special_requests}
+            </p>
           )}
           {booking.cancellation_reason && (
-            <p className="text-sm text-destructive">Lý do hủy: {booking.cancellation_reason}</p>
+            <p className="text-sm text-destructive">
+              Lý do hủy: {booking.cancellation_reason}
+              {booking.cancelled_at ? ` (${formatDate(booking.cancelled_at)})` : ""}
+            </p>
           )}
         </CardContent>
       </Card>
@@ -207,16 +281,56 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Hóa đơn {invoiceQuery.data.invoice_number}</CardTitle>
-            <CardDescription>Xuất ngày {formatDate(invoiceQuery.data.issued_at)}</CardDescription>
+            <CardDescription>Xuất ngày {formatDateTime(invoiceQuery.data.issued_at)}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <p className="text-sm">Tổng tiền đã thanh toán: {formatMoney(invoiceQuery.data.total_amount)}</p>
-            <p className="text-sm text-muted-foreground">
-              Người mua: {invoiceQuery.data.buyer_name} ({invoiceQuery.data.buyer_email})
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Đơn vị cung cấp: {invoiceQuery.data.seller_name} - {invoiceQuery.data.seller_address}
-            </p>
+          <CardContent className="flex flex-col gap-4 text-sm">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-0.5">
+                <p className="text-xs font-medium text-muted-foreground">Người mua</p>
+                <p className="font-medium">{invoiceQuery.data.buyer_name}</p>
+                <p className="text-muted-foreground">{invoiceQuery.data.buyer_email}</p>
+                {invoiceQuery.data.buyer_phone && (
+                  <p className="text-muted-foreground">{invoiceQuery.data.buyer_phone}</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-xs font-medium text-muted-foreground">Đơn vị cung cấp</p>
+                <p className="font-medium">{invoiceQuery.data.seller_name}</p>
+                <p className="text-muted-foreground">{invoiceQuery.data.seller_address}</p>
+                {invoiceQuery.data.seller_phone && (
+                  <p className="text-muted-foreground">{invoiceQuery.data.seller_phone}</p>
+                )}
+                {invoiceQuery.data.seller_email && (
+                  <p className="text-muted-foreground">{invoiceQuery.data.seller_email}</p>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Lap lai day du cac dong tien tren hoa don, khong chi mot con so tong. */}
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tiền phòng</span>
+                <span>{formatMoney(invoiceQuery.data.total_room_price)}</span>
+              </div>
+              {invoiceQuery.data.total_service_price > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tiền dịch vụ</span>
+                  <span>{formatMoney(invoiceQuery.data.total_service_price)}</span>
+                </div>
+              )}
+              {invoiceQuery.data.discount_amount > 0 && (
+                <div className="flex justify-between text-success-strong">
+                  <span>Giảm giá</span>
+                  <span>-{formatMoney(invoiceQuery.data.discount_amount)}</span>
+                </div>
+              )}
+              <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
+                <span>Tổng tiền đã thanh toán</span>
+                <span>{formatMoney(invoiceQuery.data.total_amount)}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

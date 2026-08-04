@@ -230,6 +230,10 @@ export interface Booking {
   id: number;
   booking_code: string;
   hotel_id: number;
+  hotel_name: string;
+  hotel_address: string;
+  hotel_city: string;
+  hotel_phone: string | null;
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;

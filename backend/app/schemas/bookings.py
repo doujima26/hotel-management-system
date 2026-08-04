@@ -61,6 +61,10 @@ class BookingResponse(BaseModel):
     id: int
     booking_code: str
     hotel_id: int
+    hotel_name: str
+    hotel_address: str
+    hotel_city: str
+    hotel_phone: str | None = None
     customer_name: str
     customer_email: str
     customer_phone: str | None = None

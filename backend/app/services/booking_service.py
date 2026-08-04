@@ -63,6 +63,7 @@ def serialize_booking(
 ) -> dict:
     customer = get_user_by_id(db, booking.user_id)
     payment = get_payment_by_booking_id(db, booking.id)
+    hotel = get_hotel_by_id(db, booking.hotel_id)
 
     room_responses = []
     for room in rooms:
@@ -83,6 +84,10 @@ def serialize_booking(
         id=booking.id,
         booking_code=booking.booking_code,
         hotel_id=booking.hotel_id,
+        hotel_name=hotel.name if hotel else "",
+        hotel_address=hotel.address if hotel else "",
+        hotel_city=hotel.city if hotel else "",
+        hotel_phone=hotel.phone if hotel else None,
         customer_name=customer.full_name if customer else "",
         customer_email=customer.email if customer else "",
         customer_phone=customer.phone if customer else None,
