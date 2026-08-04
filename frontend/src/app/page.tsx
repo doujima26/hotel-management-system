@@ -18,10 +18,12 @@ const TRENDING_DESTINATIONS = [
 ];
 
 export default async function Home() {
-  const [trendingDealsResult, topRatedHotelsResult] = await Promise.allSettled([
+  const [seasonalDealsResult, trendingDealsResult, topRatedHotelsResult] = await Promise.allSettled([
+    hotelsApi.listSeasonalDeals(15),
     hotelsApi.listTrendingDeals(15),
     hotelsApi.listTopRatedHotels(15),
   ]);
+  const seasonalDeals: HotelHighlight[] = seasonalDealsResult.status === "fulfilled" ? seasonalDealsResult.value : [];
   const trendingDeals: HotelHighlight[] = trendingDealsResult.status === "fulfilled" ? trendingDealsResult.value : [];
   const topRatedHotels: HotelHighlight[] = topRatedHotelsResult.status === "fulfilled" ? topRatedHotelsResult.value : [];
 
@@ -74,6 +76,16 @@ export default async function Home() {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto w-full max-w-6xl px-4 pb-16">
+          <HotelHighlightScroller
+            title="Ưu đãi mùa & lễ hội"
+            subtitle="Giá phòng đã giảm sẵn theo mùa, không cần mã khuyến mãi"
+            items={seasonalDeals}
+          />
         </div>
       </section>
 

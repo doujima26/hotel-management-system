@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, PricingRecurrence
-from app.models.entities import PricingRule
+from app.core.enums import DiscountType, HotelStatus, PricingRecurrence
+from app.models.entities import Hotel, PricingRule
 from app.schemas.rooms import CreatePricingRuleRequest
 
 
@@ -38,6 +38,20 @@ def list_active_pricing_rules_by_hotel_ids(db: Session, hotel_ids: list[int]) ->
     for rule in rows:
         grouped.setdefault(rule.hotel_id, []).append(rule)
     return grouped
+
+
+# Lay quy tac GIAM GIA dang bat cua moi khach san da duyet - dung cho trang chu
+# gioi thieu uu dai theo mua. Quy tac phu thu (gia tri duong) bi loai.
+def list_active_discount_rules_for_approved_hotels(db: Session) -> list[PricingRule]:
+    return _ordered(
+        db.query(PricingRule)
+        .join(Hotel, Hotel.id == PricingRule.hotel_id)
+        .filter(
+            Hotel.status == HotelStatus.APPROVED,
+            PricingRule.is_active.is_(True),
+            PricingRule.adjustment_value < 0,
+        )
+    ).all()
 
 
 # Lay toan bo quy tac gia cua khach san ke ca dang tat - dung cho man quan ly.

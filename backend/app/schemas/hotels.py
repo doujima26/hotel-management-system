@@ -236,6 +236,10 @@ class HotelHighlightResponse(BaseModel):
     from_price: float | None = None
     discounted_price: float | None = None
     discount_percent: float | None = None
+    # Ten uu dai dang lam nen muc giam (ten quy tac gia hoac ten khuyen mai).
+    deal_label: str | None = None
+    # Ngay uu dai bat dau neu chua toi; de trong nghia la dang ap dung.
+    deal_starts_on: date | None = None
 
 
 # Schema mot tien nghi khach san (kem nhom) cho trang chi tiet.

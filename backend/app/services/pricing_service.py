@@ -56,6 +56,18 @@ def rule_matches_date(rule: PricingRule, day: date) -> bool:
     return rule.start_date <= day <= rule.end_date
 
 
+# Tim ngay dau tien trong khoang ma quy tac bat dau co hieu luc. Tra ve None
+# neu quy tac khong cham ngay nao trong khoang - dung de biet 1 quy tac dang ap
+# hay con bao lau nua moi toi.
+def first_matching_date(rule: PricingRule, from_date: date, to_date: date) -> date | None:
+    current = from_date
+    while current <= to_date:
+        if rule_matches_date(rule, current):
+            return current
+        current += timedelta(days=1)
+    return None
+
+
 # Tinh gia sau khi ap muc dieu chinh len gia goc. adjustment_value mang dau:
 # am la giam gia, duong la phu thu.
 def apply_adjustment(base_price: float, adjustment_type: DiscountType, adjustment_value: float) -> float:

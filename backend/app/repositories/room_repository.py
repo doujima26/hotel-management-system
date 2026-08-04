@@ -103,6 +103,19 @@ def list_room_type_records(db: Session, hotel_id: int) -> list[RoomType]:
     return db.query(RoomType).filter(RoomType.hotel_id == hotel_id).all()
 
 
+# Lay gia goc cua nhieu loai phong trong 1 luot, tra ve dict {id: gia} - dung
+# cho quy tac gia chi ap 1 loai phong de biet muc gia doi chieu.
+def get_base_prices_by_room_type_ids(db: Session, room_type_ids: list[int]) -> dict[int, float]:
+    if not room_type_ids:
+        return {}
+    rows = (
+        db.query(RoomType.id, RoomType.base_price)
+        .filter(RoomType.id.in_(room_type_ids), RoomType.is_active.is_(True))
+        .all()
+    )
+    return {room_type_id: float(price) for room_type_id, price in rows}
+
+
 # Lay loai phong theo id.
 def get_room_type_by_id(db: Session, room_type_id: int) -> RoomType | None:
     return db.query(RoomType).filter(RoomType.id == room_type_id).first()

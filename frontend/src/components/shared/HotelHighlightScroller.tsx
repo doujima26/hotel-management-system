@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatMoney } from "@/lib/utils/format";
+import { formatDate, formatMoney } from "@/lib/utils/format";
 import type { HotelHighlight } from "@/types/models";
 
 interface HotelHighlightScrollerProps {
@@ -99,6 +99,12 @@ export function HotelHighlightScroller({ title, subtitle, items }: HotelHighligh
                 )}
               </div>
               <div className="flex flex-col gap-1 p-3">
+                {hotel.deal_label && (
+                  <p className="truncate text-xs font-semibold text-primary">
+                    {hotel.deal_label}
+                    {hotel.deal_starts_on && ` · từ ${formatDate(hotel.deal_starts_on)}`}
+                  </p>
+                )}
                 <p className="truncate font-semibold">{hotel.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{hotel.city}</p>
                 {hotel.total_reviews > 0 && (

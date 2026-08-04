@@ -34,6 +34,7 @@ from app.services.hotel_service import (
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
     list_top_rated_hotels as list_top_rated_hotels_action,
+    list_seasonal_deals as list_seasonal_deals_action,
     list_trending_deals as list_trending_deals_action,
     list_public_hotel_services as list_public_hotel_services_action,
     list_valid_promotions_for_hotel as list_valid_promotions_for_hotel_action,
@@ -125,6 +126,17 @@ def list_trending_deals_endpoint(
 ):
     data = list_trending_deals_action(db, limit=limit)
     return ok(data, "Danh sach khach san dang uu dai")
+
+
+# Khach xem danh sach khach san dang hoac sap giam gia theo mua va ngay le,
+# dung cho trang chu - cong khai, khong can dang nhap.
+@router.get("/highlights/seasonal-deals")
+def list_seasonal_deals_endpoint(
+    limit: int = Query(default=15, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    data = list_seasonal_deals_action(db, limit=limit)
+    return ok(data, "Danh sach uu dai theo mua va ngay le")
 
 
 # Khach xem danh sach khach san duoc yeu thich nhat (diem/so luot danh gia cao

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -38,9 +38,13 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
-from app.repositories.pricing_repository import list_active_pricing_rules_by_hotel_ids
+from app.repositories.pricing_repository import (
+    list_active_discount_rules_for_approved_hotels,
+    list_active_pricing_rules_by_hotel_ids,
+)
 from app.repositories.room_repository import (
     create_hotel_amenity_link,
+    get_base_prices_by_room_type_ids,
     delete_hotel_amenity_link,
     get_amenity_by_id,
     get_hotel_amenity_link,
@@ -71,7 +75,7 @@ from app.schemas.hotels import (
     UpdatePromotionRequest,
 )
 from app.schemas.rooms import AmenityResponse, HotelAmenityLinkResponse
-from app.services.pricing_service import resolve_stay_total
+from app.services.pricing_service import apply_adjustment, first_matching_date, resolve_stay_total
 
 
 # Chuyen khach san thanh du lieu tra ve.
@@ -501,6 +505,88 @@ def list_trending_deals(db: Session, limit: int = 15) -> list[dict]:
                 from_price=reference_price,
                 discounted_price=reference_price - discount_amount,
                 discount_percent=round(discount_percent, 1),
+            )
+        )
+    return [item.model_dump(mode="json") for item in items]
+
+
+# So ngay nhin truoc khi tim uu dai theo mua. Khach thuong len ke hoach truoc
+# hang thang nen mua he hay ngay le sap toi moi la thu dang gioi thieu, chi lay
+# uu dai dang ap dung se bo lo phan lon nhu cau.
+_SEASONAL_DEAL_LOOKAHEAD_DAYS = 60
+
+
+# Xu ly cong khai lay danh sach khach san dang hoac sap co giam gia theo mua va
+# ngay le cho trang chu. Khac list_trending_deals o cho nguon giam gia la quy
+# tac gia (giam thang vao gia phong) chu khong phai ma khuyen mai.
+def list_seasonal_deals(db: Session, limit: int = 15) -> list[dict]:
+    rules = list_active_discount_rules_for_approved_hotels(db)
+    if not rules:
+        return []
+
+    today = date.today()
+    last_day = today + timedelta(days=_SEASONAL_DEAL_LOOKAHEAD_DAYS)
+
+    hotel_ids = list({rule.hotel_id for rule in rules})
+    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+    hotels_by_id = get_hotels_by_ids(db, hotel_ids)
+    # Quy tac chi ap 1 loai phong thi doi chieu voi gia goc cua chinh loai do,
+    # khong lay gia re nhat khach san vi muc giam khong ap cho phong do.
+    scoped_prices = get_base_prices_by_room_type_ids(
+        db, [rule.room_type_id for rule in rules if rule.room_type_id is not None]
+    )
+
+    best_by_hotel: dict[int, tuple[float, float, float, str, date | None]] = {}
+    for rule in rules:
+        starts_on = first_matching_date(rule, today, last_day)
+        if starts_on is None:
+            continue
+
+        reference_price = (
+            scoped_prices.get(rule.room_type_id) if rule.room_type_id is not None else min_prices.get(rule.hotel_id)
+        )
+        if not reference_price:
+            continue
+
+        discounted_price = apply_adjustment(reference_price, rule.adjustment_type, float(rule.adjustment_value))
+        if discounted_price <= 0 or discounted_price >= reference_price:
+            continue
+
+        discount_percent = (reference_price - discounted_price) / reference_price * 100
+        current_best = best_by_hotel.get(rule.hotel_id)
+        if current_best is None or discount_percent > current_best[0]:
+            best_by_hotel[rule.hotel_id] = (
+                discount_percent,
+                reference_price,
+                discounted_price,
+                rule.name,
+                None if starts_on <= today else starts_on,
+            )
+
+    # Uu dai dang ap dung xep truoc, sau do toi muc giam sau hon.
+    ranked = sorted(
+        best_by_hotel.items(),
+        key=lambda item: (item[1][4] is not None, -item[1][0]),
+    )[:limit]
+
+    items = []
+    for hotel_id, (discount_percent, reference_price, discounted_price, label, starts_on) in ranked:
+        hotel = hotels_by_id[hotel_id]
+        items.append(
+            HotelHighlightResponse(
+                id=hotel.id,
+                name=hotel.name,
+                city=hotel.city,
+                star_rating=hotel.star_rating,
+                avg_rating=float(hotel.avg_rating),
+                total_reviews=hotel.total_reviews,
+                primary_image_url=image_urls.get(hotel_id),
+                from_price=reference_price,
+                discounted_price=discounted_price,
+                discount_percent=round(discount_percent, 1),
+                deal_label=label,
+                deal_starts_on=starts_on,
             )
         )
     return [item.model_dump(mode="json") for item in items]

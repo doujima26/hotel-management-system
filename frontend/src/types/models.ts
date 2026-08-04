@@ -80,6 +80,8 @@ export interface HotelHighlight {
   from_price: number | null;
   discounted_price: number | null;
   discount_percent: number | null;
+  deal_label: string | null;
+  deal_starts_on: string | null;
 }
 
 export interface HotelSearchResult {

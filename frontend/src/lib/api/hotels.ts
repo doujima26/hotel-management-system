@@ -109,6 +109,8 @@ export const hotelsApi = {
   getDetail: (hotelId: number) => serverFetch<HotelDetail>(`/hotels/${hotelId}`),
   listTrendingDeals: (limit?: number) =>
     serverFetch<HotelHighlight[]>("/hotels/highlights/deals", { params: { limit } }),
+  listSeasonalDeals: (limit?: number) =>
+    serverFetch<HotelHighlight[]>("/hotels/highlights/seasonal-deals", { params: { limit } }),
   listTopRatedHotels: (limit?: number) =>
     serverFetch<HotelHighlight[]>("/hotels/highlights/top-rated", { params: { limit } }),
 
