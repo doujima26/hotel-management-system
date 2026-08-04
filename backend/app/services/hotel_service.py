@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import AmenityScope, DiscountType, HotelSortOption, HotelStatus, UserRole
 from app.models.entities import Amenity, Hotel, HotelImage, HotelService, Promotion, User
-from app.repositories.booking_repository import count_bookings_by_promotion_id
+from app.repositories.booking_repository import count_bookings_by_promotion_id, list_booked_hotels_by_user
 from app.repositories.hotel_repository import (
     count_booking_services_by_service,
     create_hotel_image_record,
@@ -624,6 +624,53 @@ def list_seasonal_deals(db: Session, limit: int = 15) -> list[dict]:
                 discount_percent=round(discount_percent, 1),
                 deal_label=label,
                 deal_starts_on=starts_on,
+            )
+        )
+    return [item.model_dump(mode="json") for item in items]
+
+
+# Xu ly lay danh sach khach san khach da tung dat de goi y dat lai nhanh. Khach
+# san da bi tam dung hoac tu choi bi loai vi khong dat lai duoc nua.
+def list_recently_booked_hotels(db: Session, current_user: User, limit: int = 15) -> list[dict]:
+    rows = list_booked_hotels_by_user(db, current_user.id)
+    if not rows:
+        return []
+
+    hotels_by_id = get_hotels_by_ids(db, [hotel_id for hotel_id, _last_booked_on in rows])
+    con_dat_duoc = [
+        (hotel_id, last_booked_on)
+        for hotel_id, last_booked_on in rows
+        if hotels_by_id.get(hotel_id) and hotels_by_id[hotel_id].status == HotelStatus.APPROVED
+    ][:limit]
+    if not con_dat_duoc:
+        return []
+
+    hotel_ids = [hotel_id for hotel_id, _last_booked_on in con_dat_duoc]
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
+    deals = get_seasonal_deals_for_hotels(db, hotel_ids)
+
+    items = []
+    for hotel_id, last_booked_on in con_dat_duoc:
+        hotel = hotels_by_id[hotel_id]
+        deal = deals.get(hotel_id)
+        # Khi co uu dai thi lay chinh muc gia ma uu dai duoc tinh tren do lam
+        # gia goc, de gia gach ngang va phan tram giam luon khop nhau.
+        items.append(
+            HotelHighlightResponse(
+                id=hotel.id,
+                name=hotel.name,
+                city=hotel.city,
+                star_rating=hotel.star_rating,
+                avg_rating=float(hotel.avg_rating),
+                total_reviews=hotel.total_reviews,
+                primary_image_url=image_urls.get(hotel_id),
+                from_price=deal.reference_price if deal else min_prices.get(hotel_id),
+                discounted_price=deal.discounted_price if deal else None,
+                discount_percent=round(deal.discount_percent, 1) if deal else None,
+                deal_label=deal.label if deal else None,
+                deal_starts_on=deal.starts_on if deal else None,
+                last_booked_on=last_booked_on,
             )
         )
     return [item.model_dump(mode="json") for item in items]

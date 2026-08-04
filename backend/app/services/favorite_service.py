@@ -41,7 +41,9 @@ def _serialize_favorite(
         avg_rating=float(hotel.avg_rating),
         total_reviews=hotel.total_reviews,
         primary_image_url=image_url,
-        from_price=from_price,
+        # Co uu dai thi lay chinh muc gia ma uu dai duoc tinh tren do, de gia
+        # hien thi va phan tram giam luon noi ve cung mot loai phong.
+        from_price=deal.reference_price if deal else from_price,
         is_bookable=hotel.status == HotelStatus.APPROVED,
         deal_label=deal.label if deal else None,
         deal_discount_percent=round(deal.discount_percent, 1) if deal else None,

@@ -79,6 +79,23 @@ def booked_quantity_subquery(db: Session, check_in: date, check_out: date):
     )
 
 
+# Lay cac khach san 1 khach da tung dat kem ngay nhan phong gan nhat, moi khach
+# san 1 dong, sap theo lan dat gan nhat. Bo don da huy va khong den vi khong
+# phai tin hieu khach muon quay lai.
+def list_booked_hotels_by_user(db: Session, user_id: int) -> list[tuple[int, date]]:
+    lan_gan_nhat = func.max(Booking.check_in_date)
+    return (
+        db.query(Booking.hotel_id, lan_gan_nhat)
+        .filter(
+            Booking.user_id == user_id,
+            Booking.status.notin_((BookingStatus.CANCELLED, BookingStatus.NO_SHOW)),
+        )
+        .group_by(Booking.hotel_id)
+        .order_by(lan_gan_nhat.desc())
+        .all()
+    )
+
+
 # Lay tong so phong da dat cua 1 loai phong trong khoang ngay.
 def get_booked_quantity_for_room_type(db: Session, room_type_id: int, check_in: date, check_out: date) -> int:
     subquery = booked_quantity_subquery(db, check_in, check_out)

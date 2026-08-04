@@ -111,6 +111,9 @@ export const hotelsApi = {
     serverFetch<HotelHighlight[]>("/hotels/highlights/deals", { params: { limit } }),
   listSeasonalDeals: (limit?: number) =>
     serverFetch<HotelHighlight[]>("/hotels/highlights/seasonal-deals", { params: { limit } }),
+  // Can dang nhap nen goi tu Client Component qua apiFetch, khong dung serverFetch.
+  listRecentlyBookedHotels: (limit?: number) =>
+    apiFetch<HotelHighlight[]>("/hotels/highlights/recently-booked", { params: { limit }, auth: true }),
   listTopRatedHotels: (limit?: number) =>
     serverFetch<HotelHighlight[]>("/hotels/highlights/top-rated", { params: { limit } }),
 

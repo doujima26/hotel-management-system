@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { HomeSearchForm } from "@/components/shared/HomeSearchForm";
 import { HotelHighlightScroller } from "@/components/shared/HotelHighlightScroller";
+import { RecentlyBookedSection } from "@/components/shared/RecentlyBookedSection";
 import { hotelsApi } from "@/lib/api/hotels";
 import type { HotelHighlight } from "@/types/models";
 
@@ -46,7 +47,11 @@ export default async function Home() {
         <HomeSearchForm />
       </div>
 
-      <section className="mt-16 sm:mt-20">
+      <div className="mt-16 sm:mt-20">
+        <RecentlyBookedSection />
+      </div>
+
+      <section>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-16">
           <div>
             <h2 className="text-xl font-extrabold sm:text-2xl">Điểm đến đang thịnh hành</h2>

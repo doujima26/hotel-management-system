@@ -34,6 +34,7 @@ from app.services.hotel_service import (
     list_hotel_services as list_hotel_services_action,
     list_promotions as list_promotions_service_action,
     list_top_rated_hotels as list_top_rated_hotels_action,
+    list_recently_booked_hotels as list_recently_booked_hotels_action,
     list_seasonal_deals as list_seasonal_deals_action,
     list_trending_deals as list_trending_deals_action,
     list_public_hotel_services as list_public_hotel_services_action,
@@ -137,6 +138,17 @@ def list_seasonal_deals_endpoint(
 ):
     data = list_seasonal_deals_action(db, limit=limit)
     return ok(data, "Danh sach uu dai theo mua va ngay le")
+
+
+# Khach xem cac khach san minh da tung dat de dat lai nhanh, dung cho trang chu.
+@router.get("/highlights/recently-booked")
+def list_recently_booked_hotels_endpoint(
+    limit: int = Query(default=15, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = list_recently_booked_hotels_action(db, current_user, limit=limit)
+    return ok(data, "Danh sach khach san da tung dat")
 
 
 # Khach xem danh sach khach san duoc yeu thich nhat (diem/so luot danh gia cao

@@ -240,6 +240,8 @@ class HotelHighlightResponse(BaseModel):
     deal_label: str | None = None
     # Ngay uu dai bat dau neu chua toi; de trong nghia la dang ap dung.
     deal_starts_on: date | None = None
+    # Ngay nhan phong cua lan dat gan nhat, chi dung o muc goi y dat lai.
+    last_booked_on: date | None = None
 
 
 # Schema mot tien nghi khach san (kem nhom) cho trang chi tiet.

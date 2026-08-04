@@ -106,7 +106,10 @@ export function HotelHighlightScroller({ title, subtitle, items }: HotelHighligh
                   </p>
                 )}
                 <p className="truncate font-semibold">{hotel.name}</p>
-                <p className="truncate text-xs text-muted-foreground">{hotel.city}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {hotel.city}
+                  {hotel.last_booked_on && ` · đã ở ${formatDate(hotel.last_booked_on)}`}
+                </p>
                 {hotel.total_reviews > 0 && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {/* Diem thang 10 de trong the diem, khong dung icon ngoi sao -

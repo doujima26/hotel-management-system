@@ -82,6 +82,7 @@ export interface HotelHighlight {
   discount_percent: number | null;
   deal_label: string | null;
   deal_starts_on: string | null;
+  last_booked_on: string | null;
 }
 
 export interface HotelSearchResult {
