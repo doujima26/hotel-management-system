@@ -18,6 +18,15 @@ export function addDaysToDateString(date: string, days: number): string {
   return `${y}-${m}-${d}`;
 }
 
+// Ngay thu Hai cua tuan chua 1 ngay bat ky, dang YYYY-MM-DD.
+export function startOfWeekString(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const result = new Date(year, month - 1, day);
+  // getDay() tra 0 cho Chu nhat nen quy ve 7 de tuan bat dau tu thu Hai.
+  const weekday = result.getDay() === 0 ? 7 : result.getDay();
+  return addDaysToDateString(date, 1 - weekday);
+}
+
 // Ngay dau tien cua thang chua 1 ngay bat ky, dang YYYY-MM-DD.
 export function firstDayOfMonthString(date: string): string {
   const [year, month] = date.split("-").map(Number);

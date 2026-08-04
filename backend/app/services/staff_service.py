@@ -33,7 +33,11 @@ from app.schemas.staff import (
     StaffScheduleCalendarRow,
     StaffScheduleCalendarShift,
 )
-from app.services.hotel_service import get_approved_admin_hotel, get_operating_admin_hotel
+from app.services.hotel_service import (
+    get_approved_admin_hotel,
+    get_operating_admin_hotel,
+    get_operational_hotel,
+)
 
 
 # Sinh mat khau tam thoi (mock) cho tai khoan nhan vien moi tao.
@@ -243,6 +247,9 @@ _MAX_SCHEDULE_CALENDAR_DAYS = 31
 # Xu ly dung khung lich ca lam viec cua ca khach san: truc ngay x nhan vien.
 # Nhan vien chua co ca nao trong khoang van hien (hang rong) de Admin thay ai
 # dang chua duoc xep lich.
+#
+# Staff cung xem duoc khung lich nay de biet ai truc cung ca va giao ca cho ai,
+# nhung khong sua duoc: cac ham them/sua/xoa ca van doi vai tro Admin.
 def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date, to_date: date) -> dict:
     if to_date < from_date:
         raise HTTPException(
@@ -256,7 +263,8 @@ def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date
             detail=f"Chi xem toi da {_MAX_SCHEDULE_CALENDAR_DAYS} ngay moi lan",
         )
 
-    hotel = get_operating_admin_hotel(db, current_user)
+    hotel = get_operational_hotel(db, current_user)
+    viewer = get_staff_member_by_user_id(db, current_user.id)
     staff_rows = list_staff_with_user_by_hotel(db, hotel.id)
     schedules = list_schedules_with_staff_by_hotel(db, hotel.id, from_date, to_date)
 
@@ -288,5 +296,6 @@ def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date
         from_date=from_date,
         to_date=to_date,
         dates=[from_date + timedelta(days=offset) for offset in range(num_days)],
+        viewer_staff_id=viewer.id if viewer else None,
         items=items,
     ).model_dump(mode="json")

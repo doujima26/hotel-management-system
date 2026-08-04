@@ -90,8 +90,10 @@ class StaffScheduleCalendarRow(BaseModel):
 
 
 # Schema khung lich ca lam viec: truc ngay (cot) x nhan vien (hang).
+# viewer_staff_id la id nhan vien cua nguoi dang xem, null neu nguoi xem la Admin.
 class StaffScheduleCalendarResponse(BaseModel):
     from_date: date
     to_date: date
     dates: list[date]
+    viewer_staff_id: int | None = None
     items: list[StaffScheduleCalendarRow]

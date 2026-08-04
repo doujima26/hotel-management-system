@@ -95,14 +95,14 @@ def list_my_schedules(
     return ok(data, "Lich lam viec cua toi")
 
 
-# Admin xem khung lich ca lam viec cua ca khach san theo khoang ngay.
+# Admin va Staff xem khung lich ca lam viec cua ca khach san theo khoang ngay.
 # Dat truoc route "/schedules/{schedule_id}" de khong bi nuot duong dan.
 @router.get("/schedules/calendar")
 def staff_schedule_calendar(
     from_date: date = Query(...),
     to_date: date = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
 ):
     data = get_staff_schedule_calendar_action(db, current_user, from_date, to_date)
     return ok(data, "Khung lich ca lam viec")

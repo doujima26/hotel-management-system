@@ -754,6 +754,8 @@ export interface StaffScheduleCalendar {
   from_date: string;
   to_date: string;
   dates: string[];
+  // Id nhan vien cua nguoi dang xem, null khi nguoi xem la Admin.
+  viewer_staff_id: number | null;
   items: StaffScheduleCalendarRow[];
 }
 
