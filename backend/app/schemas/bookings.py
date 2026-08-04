@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.enums import BookingStatus, PaymentMethod, PaymentStatus
+from app.schemas.payments import InvoiceResponse, PaymentResponse
 
 
 # Schema 1 dong yeu cau dat phong theo loai phong va so luong.
@@ -27,6 +28,12 @@ class CreateBookingRequest(BaseModel):
     services: list[BookingServiceItem] = []
     special_requests: str | None = None
     promotion_id: int | None = Field(default=None, gt=0)
+
+
+# Schema du lieu dau vao cho tao booking va thanh toan trong cung 1 giao dich.
+# Ke thua CreateBookingRequest va chi them phuong thuc thanh toan.
+class CheckoutRequest(CreateBookingRequest):
+    payment_method: PaymentMethod
 
 
 # Schema du lieu dau vao cho huy booking.
@@ -86,3 +93,11 @@ class BookingResponse(BaseModel):
     cancelled_at: datetime | None = None
     rooms: list[BookingRoomResponse]
     services: list[BookingServiceResponse] = []
+
+
+# Schema du lieu tra ve cua luong dat phong gop 1 giao dich: du ca don, thanh
+# toan va hoa don de man hinh hoan tat hien duoc ngay, khong phai goi them.
+class CheckoutResponse(BaseModel):
+    booking: BookingResponse
+    payment: PaymentResponse
+    invoice: InvoiceResponse

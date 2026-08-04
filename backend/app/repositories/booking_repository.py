@@ -31,6 +31,17 @@ def unpaid_hold_cutoff() -> datetime:
     return datetime.now(timezone.utc) - timedelta(minutes=UNPAID_HOLD_MINUTES)
 
 
+# Kiem tra 1 don da het han giu cho chua. Dat canh dieu kien SQL ben duoi vi ca
+# hai cung dien dat mot luat, sua mot ben ma quen ben kia se lam ton kho lech
+# voi thong tin hien cho nguoi dung.
+def is_hold_expired(booking: Booking, payment: Payment | None) -> bool:
+    if booking.status != BookingStatus.PENDING:
+        return False
+    if payment and payment.payment_status == PaymentStatus.COMPLETED:
+        return False
+    return booking.created_at < unpaid_hold_cutoff()
+
+
 # Dieu kien 1 booking con chiem giu phong: chua o trang thai nha phong, va neu
 # dang cho thanh toan thi phai con trong han giu cho hoac da thanh toan xong.
 def _still_holding_rooms():

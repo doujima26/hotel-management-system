@@ -5,12 +5,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus
-from app.models.entities import User
+from app.core.enums import BookingStatus, PaymentMethod
+from app.models.entities import Booking, Invoice, Payment, User
 from app.repositories.booking_repository import (
     UNPAID_HOLD_MINUTES,
     get_booking_by_id,
     get_booking_by_id_for_update,
+    is_hold_expired,
 )
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import (
@@ -21,7 +22,6 @@ from app.repositories.payment_repository import (
     get_payment_by_id,
 )
 from app.schemas.payments import InvoiceResponse, PayBookingRequest, PayBookingResponse, PaymentResponse
-from app.services.booking_service import is_hold_expired
 
 
 # Sinh ma hoa don dang INV-YYYYMMDD-xxxxxx.
@@ -38,6 +38,49 @@ def _generate_transaction_id() -> str:
 
 # Xu ly thanh toan mock cho 1 booking, tao kem hoa don. Booking van giu PENDING
 # cho den khi Admin xac nhan hoa don (booking_service.confirm_booking).
+# Ghi thanh toan va phat hanh hoa don cho 1 booking trong session hien tai
+# nhung KHONG commit - de nguoi goi quyet dinh chot giao dich luc nao. Dung
+# chung cho thanh toan don le va cho luong dat phong gop 1 giao dich.
+def build_payment_with_invoice(
+    db: Session, booking: Booking, buyer: User, payment_method: PaymentMethod
+) -> tuple[Payment, Invoice]:
+    hotel = get_hotel_by_id(db, booking.hotel_id)
+    seller_address = hotel.address
+    if hotel.district:
+        seller_address = f"{seller_address}, {hotel.district}"
+    seller_address = f"{seller_address}, {hotel.city}"
+
+    payment = create_payment_record(
+        db,
+        booking_id=booking.id,
+        amount=float(booking.total_amount),
+        payment_method=payment_method,
+        transaction_id=_generate_transaction_id(),
+    )
+
+    invoice = create_invoice_record(
+        db,
+        invoice_number=_generate_invoice_number(),
+        booking_id=booking.id,
+        payment_id=payment.id,
+        user_id=booking.user_id,
+        hotel_id=booking.hotel_id,
+        buyer_name=buyer.full_name,
+        buyer_email=buyer.email,
+        buyer_phone=buyer.phone,
+        seller_name=hotel.name,
+        seller_address=seller_address,
+        seller_phone=hotel.phone,
+        seller_email=hotel.email,
+        total_room_price=float(booking.total_room_price),
+        total_service_price=float(booking.total_service_price),
+        discount_amount=float(booking.discount_amount),
+        total_amount=float(booking.total_amount),
+    )
+
+    return payment, invoice
+
+
 def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> dict:
     booking = get_booking_by_id_for_update(db, payload.booking_id)
     if not booking:
@@ -70,41 +113,8 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
             detail=f"Don da qua han giu cho {UNPAID_HOLD_MINUTES} phut, vui long dat lai",
         )
 
-    hotel = get_hotel_by_id(db, booking.hotel_id)
-    seller_address = hotel.address
-    if hotel.district:
-        seller_address = f"{seller_address}, {hotel.district}"
-    seller_address = f"{seller_address}, {hotel.city}"
-
     try:
-        payment = create_payment_record(
-            db,
-            booking_id=booking.id,
-            amount=float(booking.total_amount),
-            payment_method=payload.payment_method,
-            transaction_id=_generate_transaction_id(),
-        )
-
-        invoice = create_invoice_record(
-            db,
-            invoice_number=_generate_invoice_number(),
-            booking_id=booking.id,
-            payment_id=payment.id,
-            user_id=booking.user_id,
-            hotel_id=booking.hotel_id,
-            buyer_name=current_user.full_name,
-            buyer_email=current_user.email,
-            buyer_phone=current_user.phone,
-            seller_name=hotel.name,
-            seller_address=seller_address,
-            seller_phone=hotel.phone,
-            seller_email=hotel.email,
-            total_room_price=float(booking.total_room_price),
-            total_service_price=float(booking.total_service_price),
-            discount_amount=float(booking.discount_amount),
-            total_amount=float(booking.total_amount),
-        )
-
+        payment, invoice = build_payment_with_invoice(db, booking, current_user, payload.payment_method)
         db.commit()
     except IntegrityError as exc:
         db.rollback()

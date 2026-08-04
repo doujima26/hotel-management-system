@@ -6,11 +6,12 @@ from app.core.enums import BookingStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.bookings import CancelBookingRequest, CreateBookingRequest
+from app.schemas.bookings import CancelBookingRequest, CheckoutRequest, CreateBookingRequest
 from app.schemas.checkin import CheckInRequest, CheckOutRequest
 from app.services.booking_service import (
     admin_cancel_booking as admin_cancel_booking_action,
     cancel_booking as cancel_booking_action,
+    checkout as checkout_action,
     confirm_booking as confirm_booking_action,
     create_booking as create_booking_action,
     get_booking_detail as get_booking_detail_action,
@@ -36,6 +37,18 @@ def create_booking(
 ):
     data = create_booking_action(db, current_user, payload)
     return ok(data, "Tao booking thanh cong")
+
+
+# Khach dat phong va thanh toan trong 1 buoc: hoac xong ca don lan hoa don,
+# hoac khong tao gi.
+@router.post("/checkout")
+def checkout(
+    payload: CheckoutRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = checkout_action(db, current_user, payload)
+    return ok(data, "Dat phong va thanh toan thanh cong")
 
 
 # Khach xem danh sach booking cua minh.

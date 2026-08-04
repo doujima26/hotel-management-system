@@ -17,9 +17,9 @@ from app.repositories.booking_repository import (
     get_booking_by_id_for_update,
     list_booking_rooms,
     list_booking_services,
+    is_hold_expired,
     list_bookings_by_hotel,
     list_bookings_by_user,
-    unpaid_hold_cutoff,
 )
 from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
@@ -31,12 +31,17 @@ from app.repositories.room_repository import (
 from app.repositories.user_repository import get_user_by_id
 from app.schemas.bookings import (
     BookingResponse,
+    BookingRoomItem,
     BookingRoomResponse,
     BookingServiceResponse,
     CancelBookingRequest,
+    CheckoutRequest,
+    CheckoutResponse,
     CreateBookingRequest,
 )
+from app.schemas.payments import InvoiceResponse, PaymentResponse
 from app.services.hotel_service import get_operating_admin_hotel, get_operational_hotel
+from app.services.payment_service import build_payment_with_invoice
 from app.services.pricing_service import resolve_stay_total
 
 # So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
@@ -46,15 +51,6 @@ _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
 _CANCELLABLE_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
 
 
-# Kiem tra don da het han giu cho chua: chi xay ra voi don dang cho thanh toan
-# ma qua UNPAID_HOLD_MINUTES van chua co thanh toan thanh cong. Phong cua don
-# nay da duoc nha ra ban lai nen khong con thanh toan hay xac nhan duoc nua.
-def is_hold_expired(booking: Booking, payment: Payment | None) -> bool:
-    if booking.status != BookingStatus.PENDING:
-        return False
-    if payment and payment.payment_status == PaymentStatus.COMPLETED:
-        return False
-    return booking.created_at < unpaid_hold_cutoff()
 
 
 # Sinh ma booking dang BK-YYYYMMDD-xxxxxx.
@@ -166,8 +162,29 @@ def _apply_promotion(
     return promotion, discount_amount
 
 
-# Xu ly tao booking moi: kiem tra trung lich, snapshot gia, ap dung khuyen mai neu co.
-def create_booking(db: Session, current_user: User, payload: CreateBookingRequest) -> dict:
+# Gop cac dong cung 1 loai phong thanh 1 dong va sap xep theo room_type_id.
+#
+# Gop: hai dong cung loai phong duoc kiem tra ton kho rieng le nen moi dong deu
+# thay con du phong, cong lai co the vuot so phong that.
+#
+# Sap xep: moi giao dich deu khoa loai phong theo cung mot thu tu, tranh 2 don
+# dat nguoc thu tu nhau giu khoa cheo roi ket khoa chet.
+def _gop_va_sap_xep_phong(rooms: list[BookingRoomItem]) -> list[BookingRoomItem]:
+    gop: dict[int, int] = {}
+    for item in rooms:
+        gop[item.room_type_id] = gop.get(item.room_type_id, 0) + item.quantity
+    return [
+        BookingRoomItem(room_type_id=room_type_id, quantity=quantity)
+        for room_type_id, quantity in sorted(gop.items())
+    ]
+
+
+# Dung booking va cac dong phong/dich vu trong session hien tai nhung KHONG
+# commit - de nguoi goi quyet dinh chot giao dich luc nao. Tra ve booking kem
+# danh sach dong phong.
+def _build_booking(
+    db: Session, current_user: User, payload: CreateBookingRequest
+) -> tuple[Booking, list[BookingRoom]]:
     if payload.check_out_date <= payload.check_in_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -191,7 +208,7 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
     # Khoa tung room_type va kiem tra phong trong truoc khi tao booking, tranh dat trung phong.
     booking_room_plans = []
     total_room_price = 0.0
-    for item in payload.rooms:
+    for item in _gop_va_sap_xep_phong(payload.rooms):
         room_type = get_room_type_by_id_for_update(db, item.room_type_id)
         if not room_type or room_type.hotel_id != hotel.id or not room_type.is_active:
             raise HTTPException(
@@ -267,31 +284,39 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
     # Khuyen mai chi ap len tien phong; dich vu cong them nguyen gia.
     total_amount = total_room_price + total_service_price - discount_amount
 
+    booking = create_booking_record(
+        db,
+        user_id=current_user.id,
+        hotel_id=hotel.id,
+        booking_code=_generate_booking_code(),
+        check_in_date=payload.check_in_date,
+        check_out_date=payload.check_out_date,
+        num_guests=payload.num_guests,
+        total_room_price=total_room_price,
+        total_service_price=total_service_price,
+        total_amount=total_amount,
+        special_requests=payload.special_requests,
+        discount_amount=discount_amount,
+        promotion_id=promotion.id if promotion else None,
+    )
+
+    rooms = [create_booking_room_record(db, booking_id=booking.id, **plan) for plan in booking_room_plans]
+    for plan in booking_service_plans:
+        create_booking_service_record(db, booking_id=booking.id, **plan)
+
+    if promotion:
+        promotion.used_count += 1
+        db.add(promotion)
+
+    return booking, rooms
+
+
+# Xu ly tao booking moi (chua thanh toan): kiem tra trung lich, snapshot gia,
+# ap dung khuyen mai neu co. Don tao qua duong nay giu phong trong han giu cho
+# roi tu nha neu khach khong thanh toan.
+def create_booking(db: Session, current_user: User, payload: CreateBookingRequest) -> dict:
     try:
-        booking = create_booking_record(
-            db,
-            user_id=current_user.id,
-            hotel_id=hotel.id,
-            booking_code=_generate_booking_code(),
-            check_in_date=payload.check_in_date,
-            check_out_date=payload.check_out_date,
-            num_guests=payload.num_guests,
-            total_room_price=total_room_price,
-            total_service_price=total_service_price,
-            total_amount=total_amount,
-            special_requests=payload.special_requests,
-            discount_amount=discount_amount,
-            promotion_id=promotion.id if promotion else None,
-        )
-
-        rooms = [create_booking_room_record(db, booking_id=booking.id, **plan) for plan in booking_room_plans]
-        for plan in booking_service_plans:
-            create_booking_service_record(db, booking_id=booking.id, **plan)
-
-        if promotion:
-            promotion.used_count += 1
-            db.add(promotion)
-
+        booking, rooms = _build_booking(db, current_user, payload)
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -302,6 +327,34 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
 
     db.refresh(booking)
     return serialize_booking(db, booking, rooms, list_booking_services(db, booking.id))
+
+
+# Xu ly dat phong va thanh toan trong CUNG 1 giao dich: hoac tao duoc ca don,
+# thanh toan va hoa don, hoac khong ghi gi. Nho vay khong sinh ra don cho thanh
+# toan nam lai trong he thong khi buoc thanh toan hong giua chung.
+def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
+    try:
+        booking, rooms = _build_booking(db, current_user, payload)
+        # Can id cua booking de gan vao thanh toan va hoa don.
+        db.flush()
+        payment, invoice = build_payment_with_invoice(db, booking, current_user, payload.payment_method)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Khong the hoan tat dat phong, vui long thu lai",
+        ) from exc
+
+    db.refresh(booking)
+    db.refresh(payment)
+    db.refresh(invoice)
+
+    return CheckoutResponse(
+        booking=serialize_booking(db, booking, rooms, list_booking_services(db, booking.id)),
+        payment=PaymentResponse.model_validate(payment),
+        invoice=InvoiceResponse.model_validate(invoice),
+    ).model_dump(mode="json")
 
 
 # Xu ly lay danh sach booking cua nguoi dung hien tai.

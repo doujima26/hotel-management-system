@@ -1,6 +1,6 @@
 import { apiFetch } from "./client";
-import type { Booking, Invoice } from "@/types/models";
-import type { BookingStatus } from "@/types/enums";
+import type { Booking, Invoice, Payment } from "@/types/models";
+import type { BookingStatus, PaymentMethod } from "@/types/enums";
 
 export interface CreateBookingPayload {
   hotel_id: number;
@@ -11,6 +11,18 @@ export interface CreateBookingPayload {
   services?: { service_id: number; quantity: number }[];
   special_requests?: string;
   promotion_id?: number;
+}
+
+// Dat phong va thanh toan trong 1 lan goi: hoac xong ca don lan hoa don, hoac
+// khong tao gi.
+export interface CheckoutPayload extends CreateBookingPayload {
+  payment_method: PaymentMethod;
+}
+
+export interface CheckoutResult {
+  booking: Booking;
+  payment: Payment;
+  invoice: Invoice;
 }
 
 export interface CancelBookingPayload {
@@ -34,6 +46,8 @@ export interface CheckOutPayload {
 export const bookingsApi = {
   create: (payload: CreateBookingPayload) =>
     apiFetch<Booking>("/bookings", { method: "POST", body: payload, auth: true }),
+  checkout: (payload: CheckoutPayload) =>
+    apiFetch<CheckoutResult>("/bookings/checkout", { method: "POST", body: payload, auth: true }),
   listMine: () => apiFetch<Booking[]>("/bookings", { auth: true }),
   getDetail: (id: number) => apiFetch<Booking>(`/bookings/${id}`, { auth: true }),
   getInvoice: (id: number) => apiFetch<Invoice>(`/bookings/${id}/invoice`, { auth: true }),

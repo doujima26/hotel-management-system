@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDate, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { apiFetch } from "@/lib/api/client";
 import { bookingsApi } from "@/lib/api/bookings";
-import { paymentsApi } from "@/lib/api/payments";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
@@ -94,8 +93,8 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const [promotionId, setPromotionId] = useState(NO_PROMOTION_VALUE);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [atPaymentStep, setAtPaymentStep] = useState(false);
   const [payResult, setPayResult] = useState<PayBookingResult | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [payingLoading, setPayingLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -157,7 +156,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const discountAmount = selectedPromotion ? calcPromotionDiscount(selectedPromotion, totalRoomPrice) : 0;
   const previewTotal = totalRoomPrice + totalServicePrice - discountAmount;
 
-  const currentStep = payResult ? 2 : booking ? 1 : 0;
+  const currentStep = payResult ? 2 : atPaymentStep ? 1 : 0;
   const primaryImage = hotel?.images.find((img) => img.is_primary) ?? hotel?.images[0];
   const score = hotel && hotel.total_reviews > 0 ? hotel.avg_rating : null;
 
@@ -178,11 +177,18 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
     setServiceQty((prev) => ({ ...prev, [serviceId]: Math.max(0, value) }));
   }
 
-  async function handleCreateBooking() {
+  // Buoc 1 chi chuyen man hinh, khong ghi gi vao co so du lieu - don va phong
+  // chi duoc giu khi khach thuc su hoan tat thanh toan o buoc 2.
+  function goToPaymentStep() {
     setFormError(null);
-    setSubmitting(true);
+    setAtPaymentStep(true);
+  }
+
+  async function handleCheckout() {
+    setFormError(null);
+    setPayingLoading(true);
     try {
-      const result = await bookingsApi.create({
+      const result = await bookingsApi.checkout({
         hotel_id: id,
         check_in_date: checkIn,
         check_out_date: checkOut,
@@ -191,26 +197,13 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
         services: selectedServices.map((row) => ({ service_id: row.service.id, quantity: row.qty })),
         special_requests: specialRequests || undefined,
         promotion_id: selectedPromotion?.id,
+        payment_method: paymentMethod,
       });
-      setBooking(result);
-      toast.success("Đã tạo đơn. Vui lòng thanh toán để hoàn tất.");
+      setBooking(result.booking);
+      setPayResult({ payment: result.payment, invoice: result.invoice });
+      toast.success("Đặt phòng thành công!");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo đơn thất bại");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handlePay() {
-    if (!booking) return;
-    setFormError(null);
-    setPayingLoading(true);
-    try {
-      const result = await paymentsApi.pay({ booking_id: booking.id, payment_method: paymentMethod });
-      setPayResult(result);
-      toast.success("Thanh toán thành công!");
-    } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Thanh toán thất bại");
+      setFormError(err instanceof ApiError ? err.message : "Đặt phòng thất bại");
     } finally {
       setPayingLoading(false);
     }
@@ -322,12 +315,13 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
         <div className="flex flex-col gap-5">
           {payResult && booking ? (
             <SuccessPanel booking={booking} payResult={payResult} />
-          ) : booking ? (
+          ) : atPaymentStep ? (
             <PaymentPanel
-              booking={booking}
+              totalAmount={previewTotal}
               paymentMethod={paymentMethod}
               onChangeMethod={setPaymentMethod}
-              onPay={handlePay}
+              onPay={handleCheckout}
+              onBack={() => setAtPaymentStep(false)}
               loading={payingLoading}
               error={formError}
             />
@@ -485,11 +479,11 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
 
               {formError && <p className="text-sm text-destructive">{formError}</p>}
               <Button
-                onClick={handleCreateBooking}
-                disabled={submitting || selectedRooms.length === 0}
+                onClick={goToPaymentStep}
+                disabled={selectedRooms.length === 0}
                 className="self-end rounded-full"
               >
-                {submitting ? "Đang xử lý..." : "Tiếp tục: Thanh toán"}
+                Tiếp tục: Thanh toán
               </Button>
             </>
           )}
@@ -500,18 +494,21 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
 }
 
 // Buoc 2: thanh toan (mock - chi chon phuong thuc, khong nhap thong tin the).
+// Chua co ma don o buoc nay: don chi duoc tao khi bam hoan tat.
 function PaymentPanel({
-  booking,
+  totalAmount,
   paymentMethod,
   onChangeMethod,
   onPay,
+  onBack,
   loading,
   error,
 }: {
-  booking: Booking;
+  totalAmount: number;
   paymentMethod: PaymentMethod;
   onChangeMethod: (method: PaymentMethod) => void;
   onPay: () => void;
+  onBack: () => void;
   loading: boolean;
   error: string | null;
 }) {
@@ -519,7 +516,7 @@ function PaymentPanel({
     <section className="rounded-xl border p-4">
       <h2 className="text-lg font-semibold">Thanh toán</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Đơn {booking.booking_code} · Tổng tiền <span className="font-medium text-foreground">{formatMoney(booking.total_amount)}</span>
+        Tổng tiền <span className="font-medium text-foreground">{formatMoney(totalAmount)}</span>
       </p>
       <div className="mt-4 flex flex-col gap-1.5">
         <Label htmlFor="payment_method">Phương thức thanh toán</Label>
@@ -540,11 +537,15 @@ function PaymentPanel({
         </Select>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        * Đây là thanh toán mô phỏng cho mục đích trình diễn, không thu tiền thật.
+        * Đây là thanh toán mô phỏng cho mục đích trình diễn, không thu tiền thật. Phòng chỉ được giữ sau khi bạn
+        hoàn tất thanh toán.
       </p>
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
       <Button onClick={onPay} disabled={loading} className="mt-4 w-full rounded-full">
-        {loading ? "Đang thanh toán..." : `Hoàn tất đặt phòng · ${formatMoney(booking.total_amount)}`}
+        {loading ? "Đang xử lý..." : `Hoàn tất đặt phòng · ${formatMoney(totalAmount)}`}
+      </Button>
+      <Button variant="ghost" onClick={onBack} disabled={loading} className="mt-2 w-full rounded-full">
+        Quay lại chỉnh sửa
       </Button>
     </section>
   );
