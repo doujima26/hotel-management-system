@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
@@ -351,12 +352,12 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
     enabled: approved,
   });
 
-  async function handleAdd() {
-    if (!newImageUrl.trim()) return;
+  async function handleAdd(imageUrl: string) {
+    if (!imageUrl.trim()) return;
     setActionError(null);
     setSubmitting(true);
     try {
-      await hotelsApi.createImage({ image_url: newImageUrl.trim(), is_primary: !images || images.length === 0 });
+      await hotelsApi.createImage({ image_url: imageUrl.trim(), is_primary: !images || images.length === 0 });
       setNewImageUrl("");
       toast.success("Thêm ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
@@ -394,19 +395,20 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
         <CardTitle>Ảnh khách sạn</CardTitle>
         <CardDescription>
           {approved
-            ? "Dán URL ảnh (chưa hỗ trợ upload file trực tiếp)."
+            ? "Tải ảnh từ máy lên, hoặc dán sẵn đường dẫn ảnh có sẵn."
             : "Chỉ quản lý được ảnh sau khi khách sạn được duyệt."}
         </CardDescription>
       </CardHeader>
       {approved && (
         <CardContent className="flex flex-col gap-4">
+          <ImageUploadField label="Tải ảnh từ máy" disabled={submitting} onUploaded={handleAdd} />
           <div className="flex gap-2">
             <Input
-              placeholder="https://..."
+              placeholder="Hoặc dán đường dẫn ảnh https://..."
               value={newImageUrl}
               onChange={(e) => setNewImageUrl(e.target.value)}
             />
-            <Button onClick={handleAdd} disabled={submitting || !newImageUrl.trim()}>
+            <Button onClick={() => handleAdd(newImageUrl)} disabled={submitting || !newImageUrl.trim()}>
               Thêm ảnh
             </Button>
           </div>

@@ -29,8 +29,12 @@ function buildUrl(path: string, params?: ApiFetchOptions["params"]): string {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = "GET", body, params, auth = false, _retried = false } = options;
 
+  // FormData (tai file len) phai de trinh duyet tu dat Content-Type kem boundary,
+  // dat tay thanh application/json se lam backend khong doc duoc file.
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const headers: Record<string, string> = {};
-  if (body !== undefined) {
+  if (body !== undefined && !isFormData) {
     headers["Content-Type"] = "application/json";
   }
   if (auth) {
@@ -43,7 +47,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const res = await fetch(buildUrl(path, params), {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
   });
 
   // 401 khi co auth: thu refresh access token 1 lan roi goi lai request goc.

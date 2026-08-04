@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BadgeCheck } from "lucide-react";
 import { RequireAuth } from "@/components/shared/RequireAuth";
 import { AccountShell } from "@/components/shared/AccountShell";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,7 +80,7 @@ function ProfileSection({ me }: { me: User }) {
         <EditableRow
           label="Ảnh đại diện"
           value={me.avatar_url ?? ""}
-          placeholder="Thêm ảnh đại diện (URL)"
+          placeholder="Tải ảnh lên hoặc dán đường dẫn ảnh"
           onSave={(value) => saveField({ avatar_url: value })}
           isImage
         />
@@ -157,6 +158,17 @@ function EditableRow({
           <Label htmlFor={`field-${label}`} className="sr-only">
             {label}
           </Label>
+          {isImage && (
+            <ImageUploadField
+              label="Tải ảnh từ máy"
+              disabled={saving}
+              onUploaded={async (url) => {
+                setDraft(url);
+                await onSave(url);
+                setEditing(false);
+              }}
+            />
+          )}
           <Input
             id={`field-${label}`}
             value={draft}

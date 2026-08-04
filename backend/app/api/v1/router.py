@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import admin, auth, bookings, dashboard, favorites, hotels, payments, revenue, reviews, rooms, staff, users
+from app.api.v1.endpoints import admin, auth, bookings, dashboard, favorites, hotels, payments, revenue, reviews, rooms, staff, uploads, users
 
 # Tao router goc cho API version v1.
 api_router = APIRouter()
@@ -18,3 +18,4 @@ api_router.include_router(favorites.router)
 api_router.include_router(admin.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(revenue.router)
+api_router.include_router(uploads.router)

@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_minutes: int = 10080
 
+    # Thu muc luu anh nguoi dung tai len, tinh tu thu muc chay backend. Anh
+    # duoc phuc vu lai qua duong dan /uploads.
+    upload_dir: str = 'uploads'
+
+    # Gioi han dung luong moi anh tai len.
+    max_upload_size_mb: int = 5
+
     # Mui gio nghiep vu, tinh theo so gio lech so voi UTC (mac dinh +7 = gio Viet
     # Nam). Dung de xac dinh "1 ngay" khi thong ke doanh thu - khong phu thuoc
     # mui gio cua may chu. Dung offset co dinh vi Viet Nam khong co gio mua he.

@@ -23,6 +23,7 @@ import { ApiError } from "@/types/api";
 import type { RoomItem } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../../../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 
 interface RoomsPageProps {
   params: Promise<{ roomTypeId: string }>;
@@ -288,13 +289,13 @@ function RoomTypeImagesSection({ roomTypeId }: { roomTypeId: number }) {
     queryFn: () => roomsApi.listRoomTypeImages(roomTypeId),
   });
 
-  async function handleAdd() {
-    if (!newImageUrl.trim()) return;
+  async function handleAdd(imageUrl: string) {
+    if (!imageUrl.trim()) return;
     setActionError(null);
     setSubmitting(true);
     try {
       await roomsApi.createRoomTypeImage(roomTypeId, {
-        image_url: newImageUrl.trim(),
+        image_url: imageUrl.trim(),
         is_primary: !images || images.length === 0,
       });
       setNewImageUrl("");
@@ -332,12 +333,17 @@ function RoomTypeImagesSection({ roomTypeId }: { roomTypeId: number }) {
     <Card>
       <CardHeader>
         <CardTitle>Ảnh loại phòng</CardTitle>
-        <CardDescription>Dán URL ảnh (chưa hỗ trợ upload file trực tiếp).</CardDescription>
+        <CardDescription>Tải ảnh từ máy lên, hoặc dán sẵn đường dẫn ảnh có sẵn.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <ImageUploadField label="Tải ảnh từ máy" disabled={submitting} onUploaded={handleAdd} />
         <div className="flex gap-2">
-          <Input placeholder="https://..." value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} />
-          <Button onClick={handleAdd} disabled={submitting || !newImageUrl.trim()}>
+          <Input
+            placeholder="Hoặc dán đường dẫn ảnh https://..."
+            value={newImageUrl}
+            onChange={(e) => setNewImageUrl(e.target.value)}
+          />
+          <Button onClick={() => handleAdd(newImageUrl)} disabled={submitting || !newImageUrl.trim()}>
             Thêm ảnh
           </Button>
         </div>
