@@ -119,7 +119,9 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
 
   const noHotelYet = error instanceof ApiError && error.status === 400;
 
-  // Dem booking dang cho xac nhan de hien badge canh muc "Booking" (muc 6.6).
+  // Dem booking dang cho Admin xac nhan de hien badge canh muc "Don dat phong".
+  // Chi tinh don da thanh toan: don chua tra tien la viec cua khach, Admin
+  // khong xac nhan duoc nen khong phai viec can lam.
   const { data: pendingBookings } = useQuery({
     queryKey: ["hotel-bookings", "pending"],
     queryFn: () => bookingsApi.listForHotel("pending"),
@@ -199,7 +201,10 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
     <AdminHotelContext.Provider value={hotel}>
       <AppSidebarShell
         title="Quản lý khách sạn"
-        items={buildNavGroups(pendingBookings?.length ?? 0, hotel.status)}
+        items={buildNavGroups(
+          pendingBookings?.filter((booking) => booking.payment_status === "completed").length ?? 0,
+          hotel.status,
+        )}
         header={statusBanner}
       >
         {children}

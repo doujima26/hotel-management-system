@@ -1,18 +1,56 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus
-from app.models.entities import Booking, BookingRoom, BookingRoomUnit, BookingService, HotelService, RoomType
+from app.core.enums import BookingStatus, PaymentStatus
+from app.models.entities import (
+    Booking,
+    BookingRoom,
+    BookingRoomUnit,
+    BookingService,
+    HotelService,
+    Payment,
+    RoomType,
+)
 
 # Cac trang thai booking khong con chiem giu phong. Checked_out cung tinh la
 # khong con chiem giu du check_out_date goc chua toi - khach da check-out (ke
 # ca check-out som) nghia la phong da duoc tra that, khong con ly do giu cho.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW, BookingStatus.CHECKED_OUT)
 
+# So phut giu phong cho khach hoan tat thanh toan. Phong van bi giu ngay tu luc
+# tao booking de hai khach khong cung mua duoc phong cuoi cung, nhung qua moc
+# nay ma chua thanh toan thi phong duoc nha ra ban lai.
+UNPAID_HOLD_MINUTES = 30
 
-# Subquery tong so phong da dat theo loai phong trong khoang ngay, loai tru booking da huy/no-show.
+
+# Moc thoi gian tao booking: don pending chua thanh toan tao truoc moc nay coi
+# nhu het han giu cho.
+def unpaid_hold_cutoff() -> datetime:
+    return datetime.now(timezone.utc) - timedelta(minutes=UNPAID_HOLD_MINUTES)
+
+
+# Dieu kien 1 booking con chiem giu phong: chua o trang thai nha phong, va neu
+# dang cho thanh toan thi phai con trong han giu cho hoac da thanh toan xong.
+def _still_holding_rooms():
+    da_thanh_toan = (
+        select(Payment.id)
+        .where(Payment.booking_id == Booking.id, Payment.payment_status == PaymentStatus.COMPLETED)
+        .exists()
+    )
+    return (
+        Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
+        or_(
+            Booking.status != BookingStatus.PENDING,
+            Booking.created_at >= unpaid_hold_cutoff(),
+            da_thanh_toan,
+        ),
+    )
+
+
+# Subquery tong so phong da dat theo loai phong trong khoang ngay, loai tru
+# booking da huy/no-show va don cho thanh toan da het han giu cho.
 def booked_quantity_subquery(db: Session, check_in: date, check_out: date):
     return (
         db.query(
@@ -21,7 +59,7 @@ def booked_quantity_subquery(db: Session, check_in: date, check_out: date):
         )
         .join(Booking, Booking.id == BookingRoom.booking_id)
         .filter(
-            Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
+            *_still_holding_rooms(),
             Booking.check_in_date < check_out,
             Booking.check_out_date > check_in,
         )

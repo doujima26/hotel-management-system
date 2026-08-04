@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus, UserRole
 from app.core.timeutils import business_today
-from app.models.entities import Booking, BookingRoom, BookingService, Promotion, User
+from app.models.entities import Booking, BookingRoom, BookingService, Payment, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
     create_booking_room_record,
@@ -19,6 +19,7 @@ from app.repositories.booking_repository import (
     list_booking_services,
     list_bookings_by_hotel,
     list_bookings_by_user,
+    unpaid_hold_cutoff,
 )
 from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
@@ -43,6 +44,17 @@ _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
 
 # Cac trang thai booking con duoc phep huy.
 _CANCELLABLE_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
+
+
+# Kiem tra don da het han giu cho chua: chi xay ra voi don dang cho thanh toan
+# ma qua UNPAID_HOLD_MINUTES van chua co thanh toan thanh cong. Phong cua don
+# nay da duoc nha ra ban lai nen khong con thanh toan hay xac nhan duoc nua.
+def is_hold_expired(booking: Booking, payment: Payment | None) -> bool:
+    if booking.status != BookingStatus.PENDING:
+        return False
+    if payment and payment.payment_status == PaymentStatus.COMPLETED:
+        return False
+    return booking.created_at < unpaid_hold_cutoff()
 
 
 # Sinh ma booking dang BK-YYYYMMDD-xxxxxx.
@@ -102,6 +114,7 @@ def serialize_booking(
         status=booking.status,
         payment_status=payment.payment_status if payment else None,
         payment_method=payment.payment_method if payment else None,
+        hold_expired=is_hold_expired(booking, payment),
         special_requests=booking.special_requests,
         cancellation_reason=booking.cancellation_reason,
         cancelled_at=booking.cancelled_at,

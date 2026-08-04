@@ -285,6 +285,7 @@ export interface Booking {
   status: BookingStatus;
   payment_status: PaymentStatus | null;
   payment_method: PaymentMethod | null;
+  hold_expired: boolean;
   special_requests: string | null;
   cancellation_reason: string | null;
   cancelled_at: string | null;

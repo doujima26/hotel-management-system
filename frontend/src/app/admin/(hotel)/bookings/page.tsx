@@ -24,8 +24,14 @@ import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type BookingStatus } from "@/types/enums";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
-const FILTER_OPTIONS: { value: BookingStatus | "all"; label: string }[] = [
+// Don o trang thai pending gom 2 viec khac han nhau: cho khach tra tien (Admin
+// khong lam gi duoc) va da tra tien roi cho Admin duyet. Tach thanh 2 muc loc,
+// ca hai deu goi API voi status=pending roi loc tiep theo thanh toan.
+type BookingFilter = BookingStatus | "all" | "awaiting_payment";
+
+const FILTER_OPTIONS: { value: BookingFilter; label: string }[] = [
   { value: "all", label: "Tất cả" },
+  { value: "awaiting_payment", label: "Chờ thanh toán" },
   { value: "pending", label: "Chờ xác nhận" },
   { value: "confirmed", label: "Đã xác nhận" },
   { value: "checked_in", label: "Đang lưu trú" },
@@ -53,18 +59,30 @@ function AdminBookingsContent() {
   // loc de tham so bua khong bi gui thang len API.
   const statusParam = searchParams.get("status");
   const initialStatus = FILTER_OPTIONS.some((opt) => opt.value === statusParam)
-    ? (statusParam as BookingStatus | "all")
+    ? (statusParam as BookingFilter)
     : "all";
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">(initialStatus);
+  const [statusFilter, setStatusFilter] = useState<BookingFilter>(initialStatus);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
+  const apiStatus: BookingStatus | undefined =
+    statusFilter === "all" ? undefined : statusFilter === "awaiting_payment" ? "pending" : statusFilter;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["hotel-bookings", statusFilter],
-    queryFn: () => bookingsApi.listForHotel(statusFilter === "all" ? undefined : statusFilter),
+    queryKey: ["hotel-bookings", apiStatus ?? "all"],
+    queryFn: () => bookingsApi.listForHotel(apiStatus),
   });
+
+  // Hai muc loc cung lay danh sach pending nen tach tiep o day theo thanh toan.
+  const bookings = !data
+    ? undefined
+    : statusFilter === "awaiting_payment"
+      ? data.filter((booking) => booking.payment_status !== "completed")
+      : statusFilter === "pending"
+        ? data.filter((booking) => booking.payment_status === "completed")
+        : data;
 
   async function handleConfirm(id: number) {
     setActionError(null);
@@ -148,7 +166,7 @@ function AdminBookingsContent() {
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
       <div className="flex flex-col gap-3">
-        {data?.map((booking) => (
+        {bookings?.map((booking) => (
           <Card key={booking.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -221,8 +239,10 @@ function AdminBookingsContent() {
                       <span className="text-xs text-muted-foreground">{PAYMENT_METHOD_LABELS[booking.payment_method]}</span>
                     )}
                   </>
+                ) : booking.hold_expired ? (
+                  <span className="text-xs text-destructive">Hết hạn giữ chỗ, phòng đã được mở bán lại</span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Chưa thanh toán</span>
+                  <span className="text-xs text-muted-foreground">Chưa thanh toán, đang giữ chỗ cho khách</span>
                 )}
               </div>
             </CardContent>
@@ -230,9 +250,17 @@ function AdminBookingsContent() {
               <CardFooter className="gap-2">
                 {booking.status === "pending" && (
                   <>
-                    <Button size="sm" onClick={() => handleConfirm(booking.id)} disabled={busyId === booking.id}>
-                      Xác nhận
-                    </Button>
+                    {/* Chua thanh toan thi chua xac nhan duoc: hoa don chi sinh
+                        ra khi khach tra tien, nen nut Xac nhan se luon that bai. */}
+                    {booking.payment_status === "completed" ? (
+                      <Button size="sm" onClick={() => handleConfirm(booking.id)} disabled={busyId === booking.id}>
+                        Xác nhận
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        {booking.hold_expired ? "Khách không thanh toán kịp" : "Đang chờ khách thanh toán"}
+                      </span>
+                    )}
                     <Button
                       size="sm"
                       variant="destructive"
@@ -269,7 +297,7 @@ function AdminBookingsContent() {
             )}
           </Card>
         ))}
-        {data && data.length === 0 && (
+        {bookings && bookings.length === 0 && (
           <p className="text-center text-muted-foreground">Không có booking nào ở trạng thái này.</p>
         )}
       </div>

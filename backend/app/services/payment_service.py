@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus
 from app.models.entities import User
-from app.repositories.booking_repository import get_booking_by_id, get_booking_by_id_for_update
+from app.repositories.booking_repository import (
+    UNPAID_HOLD_MINUTES,
+    get_booking_by_id,
+    get_booking_by_id_for_update,
+)
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import (
     create_invoice_record,
@@ -17,6 +21,7 @@ from app.repositories.payment_repository import (
     get_payment_by_id,
 )
 from app.schemas.payments import InvoiceResponse, PayBookingRequest, PayBookingResponse, PaymentResponse
+from app.services.booking_service import is_hold_expired
 
 
 # Sinh ma hoa don dang INV-YYYYMMDD-xxxxxx.
@@ -56,6 +61,13 @@ def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Booking da duoc thanh toan",
+        )
+    # Qua han giu cho thi phong da duoc nha ra ban lai, cho thanh toan tiep se
+    # dan den ban trung 1 phong cho 2 khach.
+    if is_hold_expired(booking, None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Don da qua han giu cho {UNPAID_HOLD_MINUTES} phut, vui long dat lai",
         )
 
     hotel = get_hotel_by_id(db, booking.hotel_id)
