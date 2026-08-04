@@ -367,7 +367,7 @@ CROSS JOIN LATERAL (
 WHERE extract(dow FROM d.shift_date) <> (s.staff_no % 7);
 
 -- ============================================================
--- 6. KHUYEN MAI, GIA THEO NGAY, KHOA LICH PHONG
+-- 6. KHUYEN MAI, QUY TAC GIA THEO MUA, GIA THEO NGAY, KHOA LICH PHONG
 -- ============================================================
 INSERT INTO promotions (hotel_id, name, description, discount_type, discount_value, min_booking_amount, max_discount_amount, start_date, end_date, usage_limit, used_count)
 SELECT
@@ -384,13 +384,37 @@ JOIN (VALUES
 ) AS t(name, description, discount_type, discount_value, min_amount, max_discount, started_days_ago, ends_in_days, usage_limit) ON true
 WHERE h.status = 'approved' AND h.star_rating >= 3;
 
--- Gia cuoi tuan: thu 6 va thu 7 trong 60 ngay toi tang 20% so voi gia goc.
+-- Quy tac gia theo mua cua tung khach san dang hoat dong. Cac quy tac nay tu
+-- ap khi tinh gia tung dem, khong sinh san dong nao trong room_type_rates.
+INSERT INTO pricing_rules (hotel_id, name, description, recurrence, start_date, end_date, start_month, start_day, end_month, end_day, weekdays, adjustment_type, adjustment_value, priority)
+SELECT
+    h.id,
+    t.name, t.description, t.recurrence,
+    CASE WHEN t.recurrence = 'one_time' THEN CURRENT_DATE + t.starts_in_days END,
+    CASE WHEN t.recurrence = 'one_time' THEN CURRENT_DATE + t.ends_in_days END,
+    t.start_month, t.start_day, t.end_month, t.end_day,
+    t.weekdays,
+    t.adjustment_type::discount_type, t.adjustment_value, t.priority
+FROM hotels h
+JOIN (VALUES
+    ('Cao diem Tet Duong lich', 'Tu 28/12 den 02/01 tang 30 phan tram',
+     'yearly', NULL::int, NULL::int, 12, 28, 1, 2, NULL::smallint[], 'percentage', 30, 40),
+    ('Cuoi tuan cao diem', 'Thu 6 va thu 7 tang 20 phan tram',
+     'yearly', NULL, NULL, 1, 1, 12, 31, ARRAY[5, 6]::smallint[], 'percentage', 20, 30),
+    ('Uu dai thang nay', 'Giam 100k trong 30 ngay toi',
+     'one_time', 0, 30, NULL, NULL, NULL, NULL, NULL::smallint[], 'fixed_amount', -100000, 20),
+    ('Giam gia mua he', 'Thang 6 den thang 8 giam 15 phan tram',
+     'yearly', NULL, NULL, 6, 1, 8, 31, NULL::smallint[], 'percentage', -15, 10)
+) AS t(name, description, recurrence, starts_in_days, ends_in_days, start_month, start_day, end_month, end_day, weekdays, adjustment_type, adjustment_value, priority) ON true
+WHERE h.status = 'approved';
+
+-- Gia sua tay cho 3 ngay sap toi cua moi loai phong. Gia sua tay duoc uu tien
+-- hon quy tac theo mua nen day la vi du de doi chieu tren lich gia.
 INSERT INTO room_type_rates (room_type_id, rate_date, price)
-SELECT rt.id, d.rate_date::date, round(rt.base_price * 1.2, -3)
+SELECT rt.id, d.rate_date::date, round(rt.base_price * 1.35, -3)
 FROM room_types rt
 JOIN hotels h ON h.id = rt.hotel_id AND h.status = 'approved'
-CROSS JOIN generate_series(CURRENT_DATE, CURRENT_DATE + 59, INTERVAL '1 day') AS d(rate_date)
-WHERE extract(dow FROM d.rate_date) IN (5, 6);
+CROSS JOIN generate_series(CURRENT_DATE + 3, CURRENT_DATE + 5, INTERVAL '1 day') AS d(rate_date);
 
 -- Khoa lich bao tri: phong dau tien cua moi khach san 5 sao, 3 ngay tu tuan sau.
 INSERT INTO room_blocks (room_id, start_date, end_date, reason, created_by)

@@ -4,10 +4,26 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import AmenityScope, DiscountType, HotelStatus, RoomStatus
-from app.models.entities import Amenity, AmenityCategory, Hotel, Room, RoomType, RoomTypeImage, User
+from app.core.enums import AmenityScope, DiscountType, HotelStatus, PricingRecurrence, RoomStatus
+from app.models.entities import (
+    Amenity,
+    AmenityCategory,
+    Hotel,
+    PricingRule,
+    Room,
+    RoomType,
+    RoomTypeImage,
+    User,
+)
+from app.repositories.pricing_repository import (
+    create_pricing_rule_record,
+    delete_pricing_rule_record,
+    get_pricing_rule_by_id,
+    list_active_pricing_rules,
+    list_pricing_rule_records,
+    save_pricing_rule,
+)
 from app.repositories.room_repository import (
-    bulk_upsert_room_type_rates,
     count_rooms_by_room_type,
     count_amenities_in_category,
     create_amenity_category_record,
@@ -28,11 +44,11 @@ from app.repositories.room_repository import (
     delete_room_type_image_record,
     delete_room_type_record,
     delete_room_type_rate,
+    delete_room_type_rates_in_range,
     get_amenity_by_id,
     get_amenity_category_by_id,
     get_hotel_by_id,
     get_overlapping_room_blocks,
-    get_rates_in_range,
     get_room_block_by_id,
     get_room_by_id_for_update,
     get_room_type_amenity_link,
@@ -64,16 +80,20 @@ from app.schemas.rooms import (
     AmenityResponse,
     CreateAmenityCategoryRequest,
     CreateAmenityRequest,
+    ClearRoomTypeRatesResponse,
+    CreatePricingRuleRequest,
     CreateRoomBlockRequest,
     CreateRoomRequest,
     CreateRoomTypeImageRequest,
     CreateRoomTypeRequest,
     DeleteAmenityCategoryResponse,
     DeleteAmenityResponse,
+    DeletePricingRuleResponse,
     DeleteRoomBlockResponse,
     DeleteRoomResponse,
     DeleteRoomTypeImageResponse,
     DeleteRoomTypeResponse,
+    PricingRuleResponse,
     RoomAvailabilityResponse,
     RoomBlockResponse,
     RoomCalendarDayItem,
@@ -88,14 +108,23 @@ from app.schemas.rooms import (
     RoomTypeRateCalendarResponse,
     RoomTypeRateDayItem,
     RoomTypeResponse,
-    SeasonalRateRequest,
     SetRoomTypeRateRequest,
     UpdateAmenityCategoryRequest,
     UpdateAmenityRequest,
+    UpdatePricingRuleRequest,
     UpdateRoomRequest,
     UpdateRoomTypeRequest,
 )
-from app.services.hotel_service import get_operational_hotel
+from app.services.hotel_service import (
+    get_approved_admin_hotel,
+    get_operating_admin_hotel,
+    get_operational_hotel,
+)
+from app.services.pricing_service import (
+    PRICE_SOURCE_MANUAL,
+    resolve_nightly_prices,
+    resolve_stay_total,
+)
 
 
 # Chuyen loai phong thanh du lieu tra ve.
@@ -540,21 +569,16 @@ def get_room_availability(
     amenities_by_room_type = list_amenities_by_room_type_ids(db, room_type_ids)
 
     num_nights = (check_out - check_in).days
+    # Nap quy tac gia cua khach san 1 lan roi dung chung cho moi loai phong.
+    pricing_rules = list_active_pricing_rules(db, hotel_id)
 
     def _average_effective_price(room_type: RoomType) -> float:
-        # Gia co the khac nhau tung dem (gia theo mua/ngay ghi de trong
-        # room_type_rates) - tra ve gia BINH QUAN/dem cho dung khoang ngay
+        # Gia co the khac nhau tung dem (gia sua tay trong room_type_rates hoac
+        # quy tac gia theo mua) - tra ve gia BINH QUAN/dem cho dung khoang ngay
         # dang xem, de frontend nhan voi so dem van ra dung tong tien that
         # (giong het cach create_booking tinh tien).
         base_price = float(room_type.base_price)
-        rates = get_rates_in_range(db, room_type.id, check_in, check_out)
-        if not rates:
-            return base_price
-        nights_total = 0.0
-        current_night = check_in
-        while current_night < check_out:
-            nights_total += rates.get(current_night, base_price)
-            current_night += timedelta(days=1)
+        nights_total, _ = resolve_stay_total(db, room_type, check_in, check_out, rules=pricing_rules)
         return nights_total / num_nights if num_nights else base_price
 
     items = [
@@ -736,18 +760,20 @@ def get_room_type_rate_calendar(
             detail=f"Chi xem toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
         )
 
-    overrides = get_rates_in_range(db, room_type_id, from_date, to_date)
-    base_price = float(room_type.base_price)
+    prices = resolve_nightly_prices(db, room_type, from_date, to_date)
 
     days = []
     current = from_date
     while current <= to_date:
-        override_price = overrides.get(current)
+        night = prices[current]
         days.append(
             RoomTypeRateDayItem(
                 date=current,
-                override_price=override_price,
-                effective_price=override_price if override_price is not None else base_price,
+                override_price=night.price if night.source == PRICE_SOURCE_MANUAL else None,
+                effective_price=night.price,
+                source=night.source,
+                rule_id=night.rule_id,
+                rule_name=night.rule_name,
             )
         )
         current += timedelta(days=1)
@@ -766,11 +792,15 @@ def set_room_type_rate(
 
     rate = upsert_room_type_rate(db, room_type_id, rate_date, payload.price)
     return RoomTypeRateDayItem(
-        date=rate_date, override_price=float(rate.price), effective_price=float(rate.price)
+        date=rate_date,
+        override_price=float(rate.price),
+        effective_price=float(rate.price),
+        source=PRICE_SOURCE_MANUAL,
     ).model_dump(mode="json")
 
 
-# Xu ly xoa gia ghi de 1 ngay (quay ve dung base_price).
+# Xu ly xoa gia ghi de 1 ngay - gia ngay do quay ve quy tac gia theo mua neu co
+# quy tac dang khop, khong thi ve base_price.
 def clear_room_type_rate(db: Session, current_user: User, room_type_id: int, rate_date: date) -> dict:
     room_type = get_room_type_by_id(db, room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
@@ -779,45 +809,205 @@ def clear_room_type_rate(db: Session, current_user: User, room_type_id: int, rat
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ngay nay chua co gia ghi de")
 
+    night = resolve_nightly_prices(db, room_type, rate_date, rate_date)[rate_date]
     return RoomTypeRateDayItem(
-        date=rate_date, override_price=None, effective_price=float(room_type.base_price)
+        date=rate_date,
+        override_price=None,
+        effective_price=night.price,
+        source=night.source,
+        rule_id=night.rule_id,
+        rule_name=night.rule_name,
     ).model_dump(mode="json")
 
 
-# Xu ly ap gia theo mua cho 1 khoang ngay - tinh 1 lan tu base_price + dieu
-# chinh roi ghi de hang loat, khong luu lai "quy tac" nao (xem giai thich o
-# bulk_upsert_room_type_rates). Sau khi ap, Admin van sua tay tung ngay binh
-# thuong qua set_room_type_rate.
-def apply_seasonal_rate(
-    db: Session, current_user: User, room_type_id: int, payload: SeasonalRateRequest
+# Xu ly xoa gia sua tay hang loat trong 1 khoang ngay - cac ngay do quay ve cho
+# quy tac gia theo mua quyet dinh, khong con quy tac nao thi ve base_price.
+def clear_room_type_rates_in_range(
+    db: Session, current_user: User, room_type_id: int, from_date: date, to_date: date
 ) -> dict:
     room_type = get_room_type_by_id(db, room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
 
-    if payload.to_date < payload.from_date:
+    if to_date < from_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
-    if (payload.to_date - payload.from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
+    if (to_date - from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi ap dung toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
+            detail=f"Chi xoa toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
         )
 
-    base_price = float(room_type.base_price)
-    if payload.adjustment_type == DiscountType.PERCENTAGE and payload.adjustment_value <= -100:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Muc giam theo phan tram khong duoc tu 100% tro len")
-    if payload.adjustment_type == DiscountType.FIXED_AMOUNT and base_price + payload.adjustment_value <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gia sau dieu chinh phai lon hon 0")
+    cleared = delete_room_type_rates_in_range(db, room_type_id, from_date, to_date)
+    return ClearRoomTypeRatesResponse(
+        room_type_id=room_type_id, from_date=from_date, to_date=to_date, cleared=cleared
+    ).model_dump(mode="json")
 
-    bulk_upsert_room_type_rates(
-        db,
-        room_type_id,
-        base_price,
-        payload.from_date,
-        payload.to_date,
-        payload.adjustment_type,
-        payload.adjustment_value,
+
+# So ngay lon nhat cua tung thang, thang 2 lay 29 de con khai bao duoc ngay
+# 29/02 cho nam nhuan.
+_MAX_DAY_IN_MONTH = {1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+
+
+# Chuyen quy tac gia thanh du lieu tra ve, kem ten loai phong khi quy tac chi
+# ap cho 1 loai phong.
+def serialize_pricing_rule(rule: PricingRule, room_type_names: dict[int, str] | None = None) -> dict:
+    data = PricingRuleResponse.model_validate(rule)
+    if rule.room_type_id is not None and room_type_names:
+        data.room_type_name = room_type_names.get(rule.room_type_id)
+    return data.model_dump(mode="json")
+
+
+# Kiem tra khoang ngay cua quy tac gia theo dung kieu lap lai da chon.
+def _validate_pricing_rule_period(rule: PricingRule) -> None:
+    if rule.recurrence == PricingRecurrence.YEARLY:
+        if None in (rule.start_month, rule.start_day, rule.end_month, rule.end_day):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Quy tac lap hang nam phai nhap du ngay va thang bat dau, ket thuc",
+            )
+        for month, day in ((rule.start_month, rule.start_day), (rule.end_month, rule.end_day)):
+            if day > _MAX_DAY_IN_MONTH[month]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Thang {month} khong co ngay {day}",
+                )
+        return
+
+    if rule.start_date is None or rule.end_date is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Quy tac ap 1 lan phai nhap ngay bat dau va ngay ket thuc",
+        )
+    if rule.end_date < rule.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngay ket thuc phai sau ngay bat dau",
+        )
+
+
+# Kiem tra muc dieu chinh khong dua gia cua loai phong nao ve 0 hoac am. Quy
+# tac khong chon loai phong se ap cho ca khach san nen doi chieu voi loai phong
+# co gia thap nhat.
+def _validate_pricing_rule_adjustment(
+    db: Session,
+    hotel_id: int,
+    room_type_id: int | None,
+    adjustment_type: DiscountType,
+    adjustment_value: float,
+) -> None:
+    if adjustment_type == DiscountType.PERCENTAGE:
+        if adjustment_value <= -100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Muc giam theo phan tram khong duoc tu 100% tro len",
+            )
+        return
+
+    if room_type_id is not None:
+        room_type = get_room_type_by_id(db, room_type_id)
+        base_prices = [float(room_type.base_price)] if room_type else []
+    else:
+        base_prices = [float(item.base_price) for item in list_room_type_records(db, hotel_id)]
+
+    if base_prices and min(base_prices) + adjustment_value <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Gia sau dieu chinh phai lon hon 0",
+        )
+
+
+# Kiem tra loai phong duoc chon co thuoc khach san dang thao tac khong.
+def _validate_pricing_rule_room_type(db: Session, hotel_id: int, room_type_id: int | None) -> None:
+    if room_type_id is None:
+        return
+    room_type = get_room_type_by_id(db, room_type_id)
+    if not room_type or room_type.hotel_id != hotel_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loai phong khong ton tai trong khach san nay",
+        )
+
+
+# Lay quy tac gia cua khach san admin hien tai, chan quy tac cua khach san khac.
+def _get_own_pricing_rule(db: Session, hotel_id: int, rule_id: int) -> PricingRule:
+    rule = get_pricing_rule_by_id(db, rule_id)
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quy tac gia khong ton tai")
+    if rule.hotel_id != hotel_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc quan ly quy tac gia cua khach san minh",
+        )
+    return rule
+
+
+# Xu ly tao quy tac gia theo mua.
+def create_pricing_rule(db: Session, current_user: User, payload: CreatePricingRuleRequest) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    _validate_pricing_rule_room_type(db, hotel.id, payload.room_type_id)
+    _validate_pricing_rule_adjustment(
+        db, hotel.id, payload.room_type_id, payload.adjustment_type, payload.adjustment_value
     )
-    return get_room_type_rate_calendar(db, current_user, room_type_id, payload.from_date, payload.to_date)
+
+    rule = PricingRule(
+        recurrence=PricingRecurrence(payload.recurrence),
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        start_month=payload.start_month,
+        start_day=payload.start_day,
+        end_month=payload.end_month,
+        end_day=payload.end_day,
+    )
+    _validate_pricing_rule_period(rule)
+
+    created = create_pricing_rule_record(db, hotel.id, payload)
+    return serialize_pricing_rule(created, _room_type_names(db, hotel.id))
+
+
+# Xu ly lay danh sach quy tac gia cua khach san.
+def list_pricing_rules(db: Session, current_user: User) -> list[dict]:
+    hotel = get_operating_admin_hotel(db, current_user)
+    room_type_names = _room_type_names(db, hotel.id)
+    return [serialize_pricing_rule(rule, room_type_names) for rule in list_pricing_rule_records(db, hotel.id)]
+
+
+# Lay ten cac loai phong cua khach san de gan vao quy tac khi tra ve.
+def _room_type_names(db: Session, hotel_id: int) -> dict[int, str]:
+    return {item.id: item.name for item in list_room_type_records(db, hotel_id)}
+
+
+# Xu ly sua quy tac gia theo mua.
+def update_pricing_rule(
+    db: Session, current_user: User, rule_id: int, payload: UpdatePricingRuleRequest
+) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    rule = _get_own_pricing_rule(db, hotel.id, rule_id)
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if "recurrence" in update_data:
+        update_data["recurrence"] = PricingRecurrence(update_data["recurrence"])
+    if "adjustment_type" in update_data:
+        update_data["adjustment_type"] = DiscountType(update_data["adjustment_type"])
+    for field, value in update_data.items():
+        setattr(rule, field, value)
+
+    _validate_pricing_rule_room_type(db, hotel.id, rule.room_type_id)
+    _validate_pricing_rule_period(rule)
+    _validate_pricing_rule_adjustment(
+        db, hotel.id, rule.room_type_id, rule.adjustment_type, float(rule.adjustment_value)
+    )
+
+    rule = save_pricing_rule(db, rule)
+    return serialize_pricing_rule(rule, _room_type_names(db, hotel.id))
+
+
+# Xu ly xoa quy tac gia theo mua. Gia da sua tay trong room_type_rates khong bi
+# anh huong, cac ngay con lai quay ve quy tac con lai hoac base_price.
+def delete_pricing_rule(db: Session, current_user: User, rule_id: int) -> dict:
+    hotel = get_approved_admin_hotel(db, current_user)
+    rule = _get_own_pricing_rule(db, hotel.id, rule_id)
+
+    delete_pricing_rule_record(db, rule)
+    return DeletePricingRuleResponse(id=rule_id).model_dump(mode="json")
 
 
 # Xu ly tao khoa lich cho 1 phong vat ly.

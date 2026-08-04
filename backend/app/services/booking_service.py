@@ -1,5 +1,5 @@
 import secrets
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -24,7 +24,6 @@ from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
 from app.repositories.room_repository import (
     count_sellable_rooms_for_dates,
-    get_rates_in_range,
     get_room_type_by_id,
     get_room_type_by_id_for_update,
 )
@@ -37,6 +36,7 @@ from app.schemas.bookings import (
     CreateBookingRequest,
 )
 from app.services.hotel_service import get_operating_admin_hotel, get_operational_hotel
+from app.services.pricing_service import resolve_stay_total
 
 # So gio toi thieu truoc gio nhan phong (00:00 ngay check_in_date) de duoc huy mien phi.
 _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL = 24
@@ -201,15 +201,10 @@ def create_booking(db: Session, current_user: User, payload: CreateBookingReques
                 detail=f"Loai phong {room_type.name} chi con {available} phong trong",
             )
 
-        # Gia co the khac nhau tung dem (gia theo mua/ngay ghi de trong
-        # room_type_rates) - cong don gia tung dem thay vi nhan 1 gia phang.
-        rates = get_rates_in_range(db, item.room_type_id, payload.check_in_date, payload.check_out_date)
+        # Gia co the khac nhau tung dem (gia sua tay trong room_type_rates hoac
+        # quy tac gia theo mua) - cong don gia tung dem thay vi nhan 1 gia phang.
         base_price = float(room_type.base_price)
-        nights_total = 0.0
-        current_night = payload.check_in_date
-        while current_night < payload.check_out_date:
-            nights_total += rates.get(current_night, base_price)
-            current_night += timedelta(days=1)
+        nights_total, _ = resolve_stay_total(db, room_type, payload.check_in_date, payload.check_out_date)
 
         subtotal = nights_total * item.quantity
         # price_per_night luu gia BINH QUAN/dem de hien thi (tong tien thuc luon

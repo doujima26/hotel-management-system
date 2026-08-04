@@ -73,6 +73,7 @@ function buildNavGroups(pendingBookings: number, status: HotelStatus): SidebarGr
         // "Lich trong phong" chu khong phai "Lich phong": phan biet ro voi
         // "Khoa lich phong" ben Van hanh - 2 ten cu gan trung nhau nen de nham.
         lock({ href: "/admin/calendar", label: "Lịch trống phòng" }),
+        lock({ href: "/admin/pricing", label: "Giá phòng" }),
         lock({ href: "/admin/promotions", label: "Khuyến mãi" }),
         lock({ href: "/admin/reviews", label: "Đánh giá" }),
       ],

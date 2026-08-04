@@ -5,6 +5,8 @@ import type {
   HotelStatus,
   PaymentMethod,
   PaymentStatus,
+  PriceSource,
+  PricingRecurrence,
   RoomStatus,
   ShiftType,
   UserRole,
@@ -178,6 +180,41 @@ export interface RoomTypeRateDay {
   date: string;
   override_price: number | null;
   effective_price: number;
+  source: PriceSource;
+  rule_id: number | null;
+  rule_name: string | null;
+}
+
+export interface PricingRule {
+  id: number;
+  hotel_id: number;
+  room_type_id: number | null;
+  room_type_name: string | null;
+  name: string;
+  description: string | null;
+  recurrence: PricingRecurrence;
+  start_date: string | null;
+  end_date: string | null;
+  start_month: number | null;
+  start_day: number | null;
+  end_month: number | null;
+  end_day: number | null;
+  weekdays: number[] | null;
+  adjustment_type: DiscountType;
+  adjustment_value: number;
+  priority: number;
+  is_active: boolean;
+}
+
+export interface DeletePricingRuleResult {
+  id: number;
+}
+
+export interface ClearRoomTypeRatesResult {
+  room_type_id: number;
+  from_date: string;
+  to_date: string;
+  cleared: number;
 }
 
 export interface RoomTypeRateCalendar {

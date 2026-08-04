@@ -57,6 +57,15 @@ class DiscountType(StrEnum):
     FIXED_AMOUNT = 'fixed_amount'
 
 
+# Dinh nghia kieu lap lai cua quy tac gia theo mua: ap dung 1 lan cho 1 khoang
+# ngay cu the, hoac lap lai hang nam theo cap thang/ngay. Luu dang chuoi trong
+# DB (VARCHAR) chu khong dung enum cua Postgres - them gia tri moi chi can sua
+# Python, khong phai chay migration doi kieu enum.
+class PricingRecurrence(StrEnum):
+    ONE_TIME = 'one_time'
+    YEARLY = 'yearly'
+
+
 # Dinh nghia ca lam viec cua nhan vien.
 class ShiftType(StrEnum):
     MORNING = 'morning'

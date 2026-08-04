@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -38,12 +38,12 @@ from app.repositories.hotel_repository import (
     search_hotel_records,
     set_hotel_image_primary,
 )
+from app.repositories.pricing_repository import list_active_pricing_rules_by_hotel_ids
 from app.repositories.room_repository import (
     create_hotel_amenity_link,
     delete_hotel_amenity_link,
     get_amenity_by_id,
     get_hotel_amenity_link,
-    get_rates_in_range,
     list_hotel_amenity_records,
     list_room_type_amenity_records,
 )
@@ -71,6 +71,7 @@ from app.schemas.hotels import (
     UpdatePromotionRequest,
 )
 from app.schemas.rooms import AmenityResponse, HotelAmenityLinkResponse
+from app.services.pricing_service import resolve_stay_total
 
 
 # Chuyen khach san thanh du lieu tra ve.
@@ -656,6 +657,8 @@ def search_hotels(
     image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
     reference_room_types = get_reference_room_type_by_hotel_ids(db, hotel_ids, num_guests)
     num_nights = (check_out - check_in).days if check_in and check_out else None
+    # Nap quy tac gia cua moi khach san trong trang ket qua bang 1 truy van.
+    pricing_rules_by_hotel = list_active_pricing_rules_by_hotel_ids(db, hotel_ids)
 
     items = []
     for hotel in hotels:
@@ -672,15 +675,17 @@ def search_hotels(
         promotion_name = None
         if price_per_night is not None:
             if check_in and check_out and room_type is not None:
-                # Gia co the khac nhau tung dem (gia theo mua/ngay ghi de) -
-                # cong don gia tung dem thay vi nhan 1 gia phang, giong het
-                # cach tinh tien luc tao booking that (create_booking).
-                rates = get_rates_in_range(db, room_type.id, check_in, check_out)
-                nights_total = 0.0
-                current_night = check_in
-                while current_night < check_out:
-                    nights_total += rates.get(current_night, price_per_night)
-                    current_night += timedelta(days=1)
+                # Gia co the khac nhau tung dem (gia sua tay trong room_type_rates
+                # hoac quy tac gia theo mua) - cong don gia tung dem thay vi nhan
+                # 1 gia phang, giong het cach tinh tien luc tao booking that
+                # (create_booking).
+                nights_total, _ = resolve_stay_total(
+                    db,
+                    room_type,
+                    check_in,
+                    check_out,
+                    rules=pricing_rules_by_hotel.get(hotel.id, []),
+                )
                 total_price = nights_total
                 price_per_night = nights_total / num_nights if num_nights else price_per_night
             else:

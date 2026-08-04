@@ -20,6 +20,11 @@ export type PaymentMethod = "zalopay" | "momo" | "credit_card" | "bank_transfer"
 
 export type DiscountType = "percentage" | "fixed_amount";
 
+export type PricingRecurrence = "one_time" | "yearly";
+
+// Nguon sinh ra gia cua 1 dem tren lich gia.
+export type PriceSource = "manual" | "rule" | "base";
+
 export type ShiftType = "morning" | "afternoon" | "night";
 
 export type CheckType = "check_in" | "check_out";

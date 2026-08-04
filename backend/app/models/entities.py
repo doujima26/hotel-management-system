@@ -1,5 +1,5 @@
 from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, SmallInteger, String, Text, Time, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -12,6 +12,7 @@ from app.core.enums import (
     HotelStatus,
     PaymentMethod,
     PaymentStatus,
+    PricingRecurrence,
     RoomStatus,
     ShiftType,
     UserRole,
@@ -170,6 +171,41 @@ class RoomTypeRate(Base):
     room_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="CASCADE"), nullable=False)
     rate_date: Mapped[Date] = mapped_column(Date, nullable=False)
     price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+# Model bang pricing_rules - quy tac dieu chinh gia phong theo mua va ngay le.
+#
+# room_type_id de trong nghia la ap cho moi loai phong cua khach san.
+# recurrence quyet dinh cap cot nao duoc dung: one_time doc start_date/end_date,
+# yearly doc start_month/start_day va end_month/end_day.
+# weekdays la danh sach thu trong tuan theo quy uoc EXTRACT(DOW) cua PostgreSQL
+# (0 la chu nhat den 6 la thu bay), de trong nghia la ap cho moi thu.
+# adjustment_value mang dau: am la giam gia, duong la phu thu.
+class PricingRule(Base):
+    __tablename__ = "pricing_rules"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False)
+    room_type_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("room_types.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    recurrence: Mapped[str] = mapped_column(String(20), nullable=False, default=PricingRecurrence.ONE_TIME)
+    start_date: Mapped[Date | None] = mapped_column(Date)
+    end_date: Mapped[Date | None] = mapped_column(Date)
+    start_month: Mapped[int | None] = mapped_column(SmallInteger)
+    start_day: Mapped[int | None] = mapped_column(SmallInteger)
+    end_month: Mapped[int | None] = mapped_column(SmallInteger)
+    end_day: Mapped[int | None] = mapped_column(SmallInteger)
+    weekdays: Mapped[list[int] | None] = mapped_column(ARRAY(SmallInteger))
+    adjustment_type: Mapped[DiscountType] = mapped_column(
+        Enum(DiscountType, name="discount_type", values_callable=enum_values),
+        nullable=False,
+    )
+    adjustment_value: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

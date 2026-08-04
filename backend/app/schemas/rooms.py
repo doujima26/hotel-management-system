@@ -1,8 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.enums import AmenityScope, DiscountType, RoomStatus
+from app.core.enums import AmenityScope, DiscountType, PricingRecurrence, RoomStatus
 
 
 # Schema du lieu dau vao cho tao loai phong.
@@ -265,19 +265,24 @@ class SetRoomTypeRateRequest(BaseModel):
     price: float = Field(gt=0)
 
 
-# Schema du lieu dau vao cho ap gia theo mua cho 1 khoang ngay.
-class SeasonalRateRequest(BaseModel):
+# Schema du lieu tra ve khi xoa gia sua tay hang loat trong 1 khoang ngay.
+class ClearRoomTypeRatesResponse(BaseModel):
+    room_type_id: int
     from_date: date
     to_date: date
-    adjustment_type: DiscountType
-    adjustment_value: float
+    cleared: int
 
 
-# Schema 1 ngay trong lich gia cua 1 loai phong.
+# Schema 1 ngay trong lich gia cua 1 loai phong. source cho biet gia ngay do
+# den tu dau: manual la gia sua tay, rule la quy tac gia theo mua, base la
+# base_price cua loai phong.
 class RoomTypeRateDayItem(BaseModel):
     date: date
     override_price: float | None = None
     effective_price: float
+    source: str = "base"
+    rule_id: int | None = None
+    rule_name: str | None = None
 
 
 # Schema lich gia cua 1 loai phong theo khoang ngay.
@@ -286,6 +291,97 @@ class RoomTypeRateCalendarResponse(BaseModel):
     from_date: date
     to_date: date
     days: list[RoomTypeRateDayItem]
+
+
+# Kiem tra danh sach thu trong tuan: khong rong, khong trung, moi gia tri nam
+# trong 0 (chu nhat) den 6 (thu bay).
+def _validate_weekdays(value: list[int] | None) -> list[int] | None:
+    if value is None:
+        return None
+    if not value:
+        raise ValueError("Danh sach thu trong tuan khong duoc de rong")
+    if len(set(value)) != len(value):
+        raise ValueError("Danh sach thu trong tuan bi trung gia tri")
+    if any(item < 0 or item > 6 for item in value):
+        raise ValueError("Thu trong tuan chi nhan gia tri tu 0 den 6")
+    return sorted(value)
+
+
+# Schema du lieu dau vao cho tao quy tac gia theo mua.
+class CreatePricingRuleRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=255)
+    description: str | None = None
+    room_type_id: int | None = Field(default=None, gt=0)
+    recurrence: PricingRecurrence = PricingRecurrence.ONE_TIME
+    start_date: date | None = None
+    end_date: date | None = None
+    start_month: int | None = Field(default=None, ge=1, le=12)
+    start_day: int | None = Field(default=None, ge=1, le=31)
+    end_month: int | None = Field(default=None, ge=1, le=12)
+    end_day: int | None = Field(default=None, ge=1, le=31)
+    weekdays: list[int] | None = None
+    adjustment_type: DiscountType
+    adjustment_value: float
+    priority: int = Field(default=0, ge=0, le=1000)
+    is_active: bool = True
+
+    @field_validator("weekdays")
+    @classmethod
+    def check_weekdays(cls, value: list[int] | None) -> list[int] | None:
+        return _validate_weekdays(value)
+
+
+# Schema du lieu dau vao cho sua quy tac gia theo mua (tat ca field tuy chon).
+class UpdatePricingRuleRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    description: str | None = None
+    room_type_id: int | None = Field(default=None, gt=0)
+    recurrence: PricingRecurrence | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    start_month: int | None = Field(default=None, ge=1, le=12)
+    start_day: int | None = Field(default=None, ge=1, le=31)
+    end_month: int | None = Field(default=None, ge=1, le=12)
+    end_day: int | None = Field(default=None, ge=1, le=31)
+    weekdays: list[int] | None = None
+    adjustment_type: DiscountType | None = None
+    adjustment_value: float | None = None
+    priority: int | None = Field(default=None, ge=0, le=1000)
+    is_active: bool | None = None
+
+    @field_validator("weekdays")
+    @classmethod
+    def check_weekdays(cls, value: list[int] | None) -> list[int] | None:
+        return _validate_weekdays(value)
+
+
+# Schema du lieu tra ve quy tac gia theo mua.
+class PricingRuleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    hotel_id: int
+    room_type_id: int | None = None
+    room_type_name: str | None = None
+    name: str
+    description: str | None = None
+    recurrence: PricingRecurrence
+    start_date: date | None = None
+    end_date: date | None = None
+    start_month: int | None = None
+    start_day: int | None = None
+    end_month: int | None = None
+    end_day: int | None = None
+    weekdays: list[int] | None = None
+    adjustment_type: DiscountType
+    adjustment_value: float
+    priority: int
+    is_active: bool
+
+
+# Schema du lieu tra ve khi xoa quy tac gia theo mua.
+class DeletePricingRuleResponse(BaseModel):
+    id: int
 
 
 # Schema du lieu dau vao cho tao khoa lich phong vat ly.

@@ -3,11 +3,14 @@ import { apiFetch } from "./client";
 import type {
   Amenity,
   AmenityCategory,
+  ClearRoomTypeRatesResult,
   DeleteAmenityResult,
+  DeletePricingRuleResult,
   DeleteRoomBlockResult,
   DeleteRoomResult,
   DeleteRoomTypeImageResult,
   DeleteRoomTypeResult,
+  PricingRule,
   RoomAvailability,
   RoomBlock,
   RoomCalendar,
@@ -20,7 +23,7 @@ import type {
   RoomTypeRateCalendar,
   RoomTypeRateDay,
 } from "@/types/models";
-import type { AmenityScope, DiscountType } from "@/types/enums";
+import type { AmenityScope, DiscountType, PricingRecurrence } from "@/types/enums";
 
 export interface RoomAvailabilityParams {
   hotel_id: number;
@@ -84,18 +87,32 @@ export interface CreateRoomTypeImagePayload {
   is_primary?: boolean;
 }
 
-export interface SeasonalRatePayload {
-  from_date: string;
-  to_date: string;
-  adjustment_type: DiscountType;
-  adjustment_value: number;
-}
 
 export interface CreateRoomBlockPayload {
   room_id: number;
   start_date: string;
   end_date: string;
   reason?: string;
+}
+
+// Khoang ngay khai bao theo recurrence: one_time dung start_date/end_date,
+// yearly dung cap thang/ngay.
+export interface PricingRulePayload {
+  name: string;
+  description?: string | null;
+  room_type_id?: number | null;
+  recurrence: PricingRecurrence;
+  start_date?: string | null;
+  end_date?: string | null;
+  start_month?: number | null;
+  start_day?: number | null;
+  end_month?: number | null;
+  end_day?: number | null;
+  weekdays?: number[] | null;
+  adjustment_type: DiscountType;
+  adjustment_value: number;
+  priority?: number;
+  is_active?: boolean;
 }
 
 export const roomsApi = {
@@ -191,12 +208,20 @@ export const roomsApi = {
       method: "DELETE",
       auth: true,
     }),
-  applySeasonalRate: (roomTypeId: number, payload: SeasonalRatePayload) =>
-    apiFetch<RoomTypeRateCalendar>(`/rooms/room-types/${roomTypeId}/rates/seasonal`, {
-      method: "POST",
-      body: payload,
+  clearRatesInRange: (roomTypeId: number, params: { from_date: string; to_date: string }) =>
+    apiFetch<ClearRoomTypeRatesResult>(`/rooms/room-types/${roomTypeId}/rates`, {
+      method: "DELETE",
+      params,
       auth: true,
     }),
+
+  listPricingRules: () => apiFetch<PricingRule[]>("/rooms/pricing-rules", { auth: true }),
+  createPricingRule: (payload: PricingRulePayload) =>
+    apiFetch<PricingRule>("/rooms/pricing-rules", { method: "POST", body: payload, auth: true }),
+  updatePricingRule: (ruleId: number, payload: Partial<PricingRulePayload>) =>
+    apiFetch<PricingRule>(`/rooms/pricing-rules/${ruleId}`, { method: "PUT", body: payload, auth: true }),
+  deletePricingRule: (ruleId: number) =>
+    apiFetch<DeletePricingRuleResult>(`/rooms/pricing-rules/${ruleId}`, { method: "DELETE", auth: true }),
 
   createRoomBlock: (payload: CreateRoomBlockPayload) =>
     apiFetch<RoomBlock>("/rooms/blocks", { method: "POST", body: payload, auth: true }),

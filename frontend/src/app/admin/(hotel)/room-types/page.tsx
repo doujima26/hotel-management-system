@@ -382,7 +382,7 @@ export default function AdminRoomTypesPage() {
               <Link href={`/admin/room-types/${roomType.id}/rooms`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
                 Quản lý phòng vật lý &amp; ảnh
               </Link>
-              <Link href={`/admin/room-types/${roomType.id}/rates`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              <Link href={`/admin/pricing?room_type=${roomType.id}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
                 Giá theo ngày
               </Link>
               <Button size="sm" variant="outline" onClick={() => setEditing(roomType)}>

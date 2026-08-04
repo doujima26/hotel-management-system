@@ -1,9 +1,9 @@
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.enums import AmenityScope, BookingStatus, DiscountType, RoomStatus
+from app.core.enums import AmenityScope, BookingStatus, RoomStatus
 from app.models.entities import (
     Amenity,
     AmenityCategory,
@@ -216,48 +216,21 @@ def delete_room_type_rate(db: Session, room_type_id: int, rate_date: date) -> bo
     return True
 
 
-# Ap gia theo mua cho 1 khoang ngay: tinh 1 gia duy nhat tu base_price + dieu
-# chinh (phan tram hoac so tien, co dau - am la giam gia, duong la phu thu),
-# roi ghi de hang loat vao room_type_rates cho tung ngay trong khoang. Day la
-# hanh dong tinh-va-ghi-mot-lan (khong luu lai "quy tac" o dau ca) - sau khi
-# ap xong, Admin van sua tay tung ngay binh thuong qua upsert_room_type_rate.
-def bulk_upsert_room_type_rates(
-    db: Session,
-    room_type_id: int,
-    base_price: float,
-    from_date: date,
-    to_date: date,
-    adjustment_type: DiscountType,
-    adjustment_value: float,
-) -> None:
-    if adjustment_type == DiscountType.PERCENTAGE:
-        new_price = base_price * (1 + adjustment_value / 100)
-    else:
-        new_price = base_price + adjustment_value
-    new_price = round(new_price, 2)
-
-    existing_rows = {
-        rate.rate_date: rate
-        for rate in db.query(RoomTypeRate)
+# Xoa gia ghi de hang loat trong 1 khoang ngay - cac ngay do quay ve cho quy
+# tac gia theo mua quyet dinh, khong con quy tac nao thi ve base_price. Tra ve
+# so ngay da xoa.
+def delete_room_type_rates_in_range(db: Session, room_type_id: int, from_date: date, to_date: date) -> int:
+    deleted = (
+        db.query(RoomTypeRate)
         .filter(
             RoomTypeRate.room_type_id == room_type_id,
             RoomTypeRate.rate_date >= from_date,
             RoomTypeRate.rate_date <= to_date,
         )
-        .all()
-    }
-
-    current = from_date
-    while current <= to_date:
-        existing = existing_rows.get(current)
-        if existing:
-            existing.price = new_price
-            db.add(existing)
-        else:
-            db.add(RoomTypeRate(room_type_id=room_type_id, rate_date=current, price=new_price))
-        current += timedelta(days=1)
-
+        .delete(synchronize_session=False)
+    )
     db.commit()
+    return deleted
 
 
 # Kiem tra 1 phong da co khoa lich nao giao voi khoang ngay moi chua (ca 2 dau
