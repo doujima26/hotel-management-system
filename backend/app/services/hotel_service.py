@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from fastapi import HTTPException, status
@@ -519,25 +520,28 @@ _SEASONAL_DEAL_LOOKAHEAD_DAYS = 60
 # Xu ly cong khai lay danh sach khach san dang hoac sap co giam gia theo mua va
 # ngay le cho trang chu. Khac list_trending_deals o cho nguon giam gia la quy
 # tac gia (giam thang vao gia phong) chu khong phai ma khuyen mai.
-def list_seasonal_deals(db: Session, limit: int = 15) -> list[dict]:
-    rules = list_active_discount_rules_for_approved_hotels(db)
-    if not rules:
-        return []
+@dataclass(frozen=True)
+class SeasonalDeal:
+    label: str
+    reference_price: float
+    discounted_price: float
+    discount_percent: float
+    # De trong nghia la uu dai dang ap dung, co gia tri la ngay se bat dau.
+    starts_on: date | None
 
+
+# Tim uu dai theo mua TOT NHAT cua tung khach san tu danh sach quy tac giam gia.
+# Dung chung cho trang chu va cac cho khac can hien uu dai cua 1 nhom khach san.
+def pick_best_seasonal_deals(db: Session, rules: list, min_prices: dict[int, float]) -> dict[int, SeasonalDeal]:
     today = date.today()
     last_day = today + timedelta(days=_SEASONAL_DEAL_LOOKAHEAD_DAYS)
-
-    hotel_ids = list({rule.hotel_id for rule in rules})
-    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
-    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
-    hotels_by_id = get_hotels_by_ids(db, hotel_ids)
     # Quy tac chi ap 1 loai phong thi doi chieu voi gia goc cua chinh loai do,
     # khong lay gia re nhat khach san vi muc giam khong ap cho phong do.
     scoped_prices = get_base_prices_by_room_type_ids(
         db, [rule.room_type_id for rule in rules if rule.room_type_id is not None]
     )
 
-    best_by_hotel: dict[int, tuple[float, float, float, str, date | None]] = {}
+    best_by_hotel: dict[int, SeasonalDeal] = {}
     for rule in rules:
         starts_on = first_matching_date(rule, today, last_day)
         if starts_on is None:
@@ -553,26 +557,59 @@ def list_seasonal_deals(db: Session, limit: int = 15) -> list[dict]:
         if discounted_price <= 0 or discounted_price >= reference_price:
             continue
 
-        discount_percent = (reference_price - discounted_price) / reference_price * 100
+        deal = SeasonalDeal(
+            label=rule.name,
+            reference_price=reference_price,
+            discounted_price=discounted_price,
+            discount_percent=(reference_price - discounted_price) / reference_price * 100,
+            starts_on=None if starts_on <= today else starts_on,
+        )
         current_best = best_by_hotel.get(rule.hotel_id)
-        if current_best is None or discount_percent > current_best[0]:
-            best_by_hotel[rule.hotel_id] = (
-                discount_percent,
-                reference_price,
-                discounted_price,
-                rule.name,
-                None if starts_on <= today else starts_on,
-            )
+        if current_best is None or deal.discount_percent > current_best.discount_percent:
+            best_by_hotel[rule.hotel_id] = deal
+
+    return best_by_hotel
+
+
+# Tim uu dai theo mua tot nhat cua 1 nhom khach san cu the.
+def get_seasonal_deals_for_hotels(db: Session, hotel_ids: list[int]) -> dict[int, SeasonalDeal]:
+    if not hotel_ids:
+        return {}
+    rules_by_hotel = list_active_pricing_rules_by_hotel_ids(db, hotel_ids)
+    discount_rules = [
+        rule for rules in rules_by_hotel.values() for rule in rules if float(rule.adjustment_value) < 0
+    ]
+    if not discount_rules:
+        return {}
+    return pick_best_seasonal_deals(db, discount_rules, get_min_active_room_price_by_hotel_ids(db, hotel_ids))
+
+
+def list_seasonal_deals(db: Session, limit: int = 15) -> list[dict]:
+    rules = list_active_discount_rules_for_approved_hotels(db)
+    if not rules:
+        return []
+
+    hotel_ids = list({rule.hotel_id for rule in rules})
+    min_prices = get_min_active_room_price_by_hotel_ids(db, hotel_ids)
+    image_urls = get_primary_image_url_by_hotel_ids(db, hotel_ids)
+    hotels_by_id = get_hotels_by_ids(db, hotel_ids)
+
+    best_by_hotel = pick_best_seasonal_deals(db, rules, min_prices)
 
     # Uu dai dang ap dung xep truoc, sau do toi muc giam sau hon.
     ranked = sorted(
         best_by_hotel.items(),
-        key=lambda item: (item[1][4] is not None, -item[1][0]),
+        key=lambda item: (item[1].starts_on is not None, -item[1].discount_percent),
     )[:limit]
 
     items = []
-    for hotel_id, (discount_percent, reference_price, discounted_price, label, starts_on) in ranked:
+    for hotel_id, deal in ranked:
         hotel = hotels_by_id[hotel_id]
+        reference_price = deal.reference_price
+        discounted_price = deal.discounted_price
+        discount_percent = deal.discount_percent
+        label = deal.label
+        starts_on = deal.starts_on
         items.append(
             HotelHighlightResponse(
                 id=hotel.id,

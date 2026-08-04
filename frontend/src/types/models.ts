@@ -866,6 +866,17 @@ export interface Favorite {
   hotel_id: number;
   hotel_name: string;
   city: string;
+  district: string | null;
+  address: string | null;
+  star_rating: number | null;
+  avg_rating: number;
+  total_reviews: number;
+  primary_image_url: string | null;
+  from_price: number | null;
+  is_bookable: boolean;
+  deal_label: string | null;
+  deal_discount_percent: number | null;
+  deal_starts_on: string | null;
   created_at: string;
 }
 
