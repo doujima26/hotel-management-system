@@ -71,10 +71,13 @@ function ProfileSection({ me }: { me: User }) {
           onSave={(value) => saveField({ full_name: value })}
         />
         <EmailRow email={me.email} verified={me.is_verified} />
+        {/* minLength chan luu khi de trong: so dien thoai da bat buoc luc dang
+            ky nen khong cho xoa trang o day. Dinh dang do backend kiem. */}
         <EditableRow
           label="Số điện thoại"
           value={me.phone ?? ""}
           placeholder="Thêm số điện thoại của bạn"
+          minLength={9}
           onSave={(value) => saveField({ phone: value })}
         />
         <EditableRow

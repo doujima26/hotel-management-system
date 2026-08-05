@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.enums import UserRole
+from app.core.validators import validate_phone
 
 
 # Schema du lieu dau vao cho dang ky.
@@ -8,8 +9,13 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=2, max_length=255)
-    phone: str | None = Field(default=None, max_length=20)
+    phone: str = Field(max_length=20)
     role: UserRole = UserRole.USER
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, value: str) -> str:
+        return validate_phone(value)
 
 
 # Schema du lieu dau vao cho dang nhap.

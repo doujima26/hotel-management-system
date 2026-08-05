@@ -38,7 +38,7 @@ export default function RegisterPage() {
         full_name: values.full_name,
         email: values.email,
         password: values.password,
-        phone: values.phone || undefined,
+        phone: values.phone,
       });
       setEmail(values.email);
       setOtpMock(result.otp_mock);
@@ -146,7 +146,7 @@ export default function RegisterPage() {
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">Số điện thoại (không bắt buộc)</Label>
+              <Label htmlFor="phone">Số điện thoại</Label>
               <Input id="phone" {...register("phone")} />
               {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
             </div>
