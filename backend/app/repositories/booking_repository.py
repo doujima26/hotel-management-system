@@ -1,6 +1,6 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.enums import BookingStatus, PaymentStatus
@@ -19,29 +19,6 @@ from app.models.entities import (
 # ca check-out som) nghia la phong da duoc tra that, khong con ly do giu cho.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW, BookingStatus.CHECKED_OUT)
 
-# So phut giu phong cho khach hoan tat thanh toan. Phong van bi giu ngay tu luc
-# tao booking de hai khach khong cung mua duoc phong cuoi cung, nhung qua moc
-# nay ma chua thanh toan thi phong duoc nha ra ban lai.
-UNPAID_HOLD_MINUTES = 30
-
-
-# Moc thoi gian tao booking: don pending chua thanh toan tao truoc moc nay coi
-# nhu het han giu cho.
-def unpaid_hold_cutoff() -> datetime:
-    return datetime.now(timezone.utc) - timedelta(minutes=UNPAID_HOLD_MINUTES)
-
-
-# Kiem tra 1 don da het han giu cho chua. Dat canh dieu kien SQL ben duoi vi ca
-# hai cung dien dat mot luat, sua mot ben ma quen ben kia se lam ton kho lech
-# voi thong tin hien cho nguoi dung.
-def is_hold_expired(booking: Booking, payment: Payment | None) -> bool:
-    if booking.status != BookingStatus.PENDING:
-        return False
-    if payment and payment.payment_status == PaymentStatus.COMPLETED:
-        return False
-    return booking.created_at < unpaid_hold_cutoff()
-
-
 # Dieu kien SQL: don da co giao dich thanh toan thanh cong.
 def da_thanh_toan_xong():
     return (
@@ -51,28 +28,14 @@ def da_thanh_toan_xong():
     )
 
 
-# Dieu kien SQL cho 1 don van con trong han giu cho: khong phai don cho thanh
-# toan, hoac con trong moc thoi gian, hoac da thanh toan xong. Ban SQL cua
-# is_hold_expired o tren.
-def hold_con_hieu_luc():
-    return or_(
-        Booking.status != BookingStatus.PENDING,
-        Booking.created_at >= unpaid_hold_cutoff(),
-        da_thanh_toan_xong(),
-    )
-
-
-# Dieu kien 1 booking con chiem giu phong: chua o trang thai nha phong, va neu
-# dang cho thanh toan thi phai con trong han giu cho hoac da thanh toan xong.
+# Dieu kien 1 booking con chiem giu phong. Moi don deu duoc tao kem thanh toan
+# trong cung 1 giao dich (bookings/checkout) nen chi can xet trang thai.
 def _still_holding_rooms():
-    return (
-        Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
-        hold_con_hieu_luc(),
-    )
+    return (Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),)
 
 
 # Subquery tong so phong da dat theo loai phong trong khoang ngay, loai tru
-# booking da huy/no-show va don cho thanh toan da het han giu cho.
+# booking da huy/no-show/da tra phong.
 def booked_quantity_subquery(db: Session, check_in: date, check_out: date):
     return (
         db.query(

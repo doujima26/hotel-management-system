@@ -17,7 +17,6 @@ from app.repositories.booking_repository import (
     get_booking_by_id_for_update,
     list_booking_rooms,
     list_booking_services,
-    is_hold_expired,
     list_bookings_by_hotel,
     list_bookings_by_user,
 )
@@ -111,7 +110,6 @@ def serialize_booking(
         status=booking.status,
         payment_status=payment.payment_status if payment else None,
         payment_method=payment.payment_method if payment else None,
-        hold_expired=is_hold_expired(booking, payment),
         special_requests=booking.special_requests,
         cancellation_reason=booking.cancellation_reason,
         cancelled_at=booking.cancelled_at,

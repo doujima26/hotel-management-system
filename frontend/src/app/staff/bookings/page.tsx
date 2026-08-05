@@ -239,10 +239,8 @@ export default function StaffBookingsPage() {
                       </span>
                     )}
                   </>
-                ) : booking.hold_expired ? (
-                  <span className="text-xs text-destructive">Hết hạn giữ chỗ</span>
                 ) : (
-                  <span className="text-xs text-warning-strong">Chưa thanh toán</span>
+                  <span className="text-xs text-destructive">Chưa thanh toán</span>
                 )}
               </div>
             </CardContent>

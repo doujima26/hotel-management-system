@@ -1,14 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from app.core.enums import PaymentMethod, PaymentStatus
-
-
-# Schema du lieu dau vao cho thanh toan booking.
-class PayBookingRequest(BaseModel):
-    booking_id: int = Field(gt=0)
-    payment_method: PaymentMethod
 
 
 # Schema du lieu tra ve thong tin thanh toan.
@@ -44,9 +38,3 @@ class InvoiceResponse(BaseModel):
     discount_amount: float
     total_amount: float
     issued_at: datetime
-
-
-# Schema du lieu tra ve sau khi thanh toan thanh cong, kem hoa don.
-class PayBookingResponse(BaseModel):
-    payment: PaymentResponse
-    invoice: InvoiceResponse

@@ -2,26 +2,19 @@ import secrets
 from datetime import date
 
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, PaymentMethod
+from app.core.enums import PaymentMethod
 from app.models.entities import Booking, Invoice, Payment, User
-from app.repositories.booking_repository import (
-    UNPAID_HOLD_MINUTES,
-    get_booking_by_id,
-    get_booking_by_id_for_update,
-    is_hold_expired,
-)
+from app.repositories.booking_repository import get_booking_by_id
 from app.repositories.hotel_repository import get_hotel_by_id
 from app.repositories.payment_repository import (
     create_invoice_record,
     create_payment_record,
     get_invoice_by_booking_id,
-    get_payment_by_booking_id,
     get_payment_by_id,
 )
-from app.schemas.payments import InvoiceResponse, PayBookingRequest, PayBookingResponse, PaymentResponse
+from app.schemas.payments import InvoiceResponse, PaymentResponse
 
 
 # Sinh ma hoa don dang INV-YYYYMMDD-xxxxxx.
@@ -79,57 +72,6 @@ def build_payment_with_invoice(
     )
 
     return payment, invoice
-
-
-def pay_booking(db: Session, current_user: User, payload: PayBookingRequest) -> dict:
-    booking = get_booking_by_id_for_update(db, payload.booking_id)
-    if not booking:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
-        )
-    if booking.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc thanh toan booking cua minh",
-        )
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking khong con hop le de thanh toan",
-        )
-    # Booking van giu PENDING sau khi thanh toan (cho Admin xac nhan), nen phai
-    # kiem tra rieng da co Payment chua, khong the chi dua vao booking.status.
-    if get_payment_by_booking_id(db, booking.id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking da duoc thanh toan",
-        )
-    # Qua han giu cho thi phong da duoc nha ra ban lai, cho thanh toan tiep se
-    # dan den ban trung 1 phong cho 2 khach.
-    if is_hold_expired(booking, None):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Don da qua han giu cho {UNPAID_HOLD_MINUTES} phut, vui long dat lai",
-        )
-
-    try:
-        payment, invoice = build_payment_with_invoice(db, booking, current_user, payload.payment_method)
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Khong the tao thanh toan, vui long thu lai",
-        ) from exc
-
-    db.refresh(payment)
-    db.refresh(invoice)
-
-    return PayBookingResponse(
-        payment=PaymentResponse.model_validate(payment),
-        invoice=InvoiceResponse.model_validate(invoice),
-    ).model_dump(mode="json")
 
 
 # Xu ly lay chi tiet 1 payment, chi cho chinh chu booking xem.

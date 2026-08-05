@@ -86,8 +86,6 @@ class BookingResponse(BaseModel):
     status: BookingStatus
     payment_status: PaymentStatus | None = None
     payment_method: PaymentMethod | None = None
-    # Don cho thanh toan da qua han giu cho: phong da duoc nha ra ban lai.
-    hold_expired: bool = False
     special_requests: str | None = None
     cancellation_reason: str | None = None
     cancelled_at: datetime | None = None

@@ -264,10 +264,8 @@ function AdminBookingsContent() {
                       <span className="text-xs text-muted-foreground">{PAYMENT_METHOD_LABELS[booking.payment_method]}</span>
                     )}
                   </>
-                ) : booking.hold_expired ? (
-                  <span className="text-xs text-destructive">Hết hạn giữ chỗ, phòng đã được mở bán lại</span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Chưa thanh toán, đang giữ chỗ cho khách</span>
+                  <span className="text-xs text-destructive">Chưa thanh toán</span>
                 )}
               </div>
             </CardContent>
@@ -276,15 +274,15 @@ function AdminBookingsContent() {
                 {booking.status === "pending" && (
                   <>
                     {/* Chua thanh toan thi chua xac nhan duoc: hoa don chi sinh
-                        ra khi khach tra tien, nen nut Xac nhan se luon that bai. */}
+                        ra khi khach tra tien, nen nut Xac nhan se luon that bai.
+                        Chi con don cu tu truoc khi gop dat phong va thanh toan
+                        vao 1 buoc moi roi vao nhanh nay. */}
                     {booking.payment_status === "completed" ? (
                       <Button size="sm" onClick={() => handleConfirm(booking.id)} disabled={busyId === booking.id}>
                         Xác nhận
                       </Button>
                     ) : (
-                      <span className="text-sm text-muted-foreground">
-                        {booking.hold_expired ? "Khách không thanh toán kịp" : "Đang chờ khách thanh toán"}
-                      </span>
+                      <span className="text-sm text-muted-foreground">Đơn chưa thanh toán</span>
                     )}
                     <Button
                       size="sm"
