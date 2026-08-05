@@ -6,14 +6,13 @@ from app.core.enums import BookingStatus, UserRole
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.schemas.bookings import CancelBookingRequest, CheckoutRequest, CreateBookingRequest
+from app.schemas.bookings import CancelBookingRequest, CheckoutRequest
 from app.schemas.checkin import CheckInRequest, CheckOutRequest
 from app.services.booking_service import (
     admin_cancel_booking as admin_cancel_booking_action,
     cancel_booking as cancel_booking_action,
     checkout as checkout_action,
     confirm_booking as confirm_booking_action,
-    create_booking as create_booking_action,
     get_booking_detail as get_booking_detail_action,
     list_hotel_bookings as list_hotel_bookings_action,
     list_my_bookings as list_my_bookings_action,
@@ -26,17 +25,6 @@ from app.services.checkin_service import (
 from app.services.payment_service import get_invoice_by_booking as get_invoice_by_booking_action
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
-
-
-# Khach tao booking moi.
-@router.post("")
-def create_booking(
-    payload: CreateBookingRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.USER)),
-):
-    data = create_booking_action(db, current_user, payload)
-    return ok(data, "Tao booking thanh cong")
 
 
 # Khach dat phong va thanh toan trong 1 buoc: hoac xong ca don lan hoa don,

@@ -2,6 +2,7 @@ import { apiFetch } from "./client";
 import type { Booking, Invoice, Payment } from "@/types/models";
 import type { BookingStatus, PaymentMethod } from "@/types/enums";
 
+// Chi dung lam phan chung cua CheckoutPayload - khong con API tao don rieng.
 export interface CreateBookingPayload {
   hotel_id: number;
   check_in_date: string;
@@ -44,8 +45,6 @@ export interface CheckOutPayload {
 }
 
 export const bookingsApi = {
-  create: (payload: CreateBookingPayload) =>
-    apiFetch<Booking>("/bookings", { method: "POST", body: payload, auth: true }),
   checkout: (payload: CheckoutPayload) =>
     apiFetch<CheckoutResult>("/bookings/checkout", { method: "POST", body: payload, auth: true }),
   listMine: () => apiFetch<Booking[]>("/bookings", { auth: true }),

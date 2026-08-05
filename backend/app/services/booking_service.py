@@ -312,24 +312,6 @@ def _build_booking(
     return booking, rooms
 
 
-# Xu ly tao booking moi (chua thanh toan): kiem tra trung lich, snapshot gia,
-# ap dung khuyen mai neu co. Don tao qua duong nay giu phong trong han giu cho
-# roi tu nha neu khach khong thanh toan.
-def create_booking(db: Session, current_user: User, payload: CreateBookingRequest) -> dict:
-    try:
-        booking, rooms = _build_booking(db, current_user, payload)
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Khong the tao booking, vui long thu lai",
-        ) from exc
-
-    db.refresh(booking)
-    return serialize_booking(db, booking, rooms, list_booking_services(db, booking.id))
-
-
 # Xu ly dat phong va thanh toan trong CUNG 1 giao dich: hoac tao duoc ca don,
 # thanh toan va hoa don, hoac khong ghi gi. Nho vay khong sinh ra don cho thanh
 # toan nam lai trong he thong khi buoc thanh toan hong giua chung.

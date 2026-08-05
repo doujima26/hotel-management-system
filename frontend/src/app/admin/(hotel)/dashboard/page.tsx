@@ -194,10 +194,9 @@ export default function AdminDashboardPage() {
         <>
           <p className="-mt-3 text-sm text-muted-foreground">Hôm nay, {formatDate(data.date)}</p>
 
-          {/* Cac o co trang thai tuong ung thi truyen ?status= de trang Booking
-              mo san dung bo loc do (trang Booking mac dinh xem tat ca). Nhan
-              phong / tra phong hom nay khong co bo loc tuong ung vi chung loc
-              theo NGAY chu khong theo trang thai. */}
+          {/* Moi o truyen ?status= de trang Booking mo san dung bo loc tuong ung
+              (trang Booking mac dinh xem tat ca), va bo loc do dung dung luat
+              dem cua o - bam vao phai ra dung so don da hien tren o. */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <StatTile
               href="/admin/bookings?status=pending"
@@ -209,12 +208,22 @@ export default function AdminDashboardPage() {
             <StatTile
               href="/admin/bookings?status=overdue_checkin"
               icon={CalendarClock}
-              label="Chưa check-in"
+              label="Quá hạn nhận phòng"
               value={data.overdue_confirmed_bookings}
               tone={data.overdue_confirmed_bookings > 0 ? "danger" : "neutral"}
             />
-            <StatTile href="/admin/bookings" icon={LogIn} label="Nhận phòng hôm nay" value={data.arrivals_today} />
-            <StatTile href="/admin/bookings" icon={LogOut} label="Trả phòng hôm nay" value={data.departures_today} />
+            <StatTile
+              href="/admin/bookings?status=arrivals_today"
+              icon={LogIn}
+              label="Nhận phòng hôm nay"
+              value={data.arrivals_today}
+            />
+            <StatTile
+              href="/admin/bookings?status=departures_today"
+              icon={LogOut}
+              label="Trả phòng hôm nay"
+              value={data.departures_today}
+            />
             <StatTile href="/admin/bookings?status=checked_in" icon={Users} label="Đang lưu trú" value={data.in_house} />
           </div>
 

@@ -21,26 +21,50 @@ import { formatDate, formatMoney } from "@/lib/utils/format";
 import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
 import { ApiError } from "@/types/api";
+import type { Booking } from "@/types/models";
 import { PAYMENT_METHOD_LABELS, type BookingStatus } from "@/types/enums";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
-// Don o trang thai pending gom 2 viec khac han nhau: cho khach tra tien (Admin
-// khong lam gi duoc) va da tra tien roi cho Admin duyet. Tach thanh 2 muc loc,
-// ca hai deu goi API voi status=pending roi loc tiep theo thanh toan.
-// "Qua han nhan phong" cung lam tuong tu tren danh sach confirmed, loc theo ngay.
-type BookingFilter = BookingStatus | "all" | "awaiting_payment" | "overdue_checkin";
+// Ngoai cac muc loc thang theo trang thai, con 3 muc ghep them dieu kien khac:
+// "Cho xac nhan" chi lay don da tra tien vi don chua tra tien thi Admin khong
+// bam xac nhan duoc, 2 muc "hom nay" loc theo ngay chu khong theo trang thai.
+// Chung deu lay danh sach tu API roi loc lai o trinh duyet.
+type BookingFilter = BookingStatus | "all" | "overdue_checkin" | "arrivals_today" | "departures_today";
 
 const FILTER_OPTIONS: { value: BookingFilter; label: string }[] = [
   { value: "all", label: "Tất cả" },
-  { value: "awaiting_payment", label: "Chờ thanh toán" },
   { value: "pending", label: "Chờ xác nhận" },
   { value: "confirmed", label: "Đã xác nhận" },
+  { value: "arrivals_today", label: "Nhận phòng hôm nay" },
+  { value: "departures_today", label: "Trả phòng hôm nay" },
   { value: "overdue_checkin", label: "Quá hạn nhận phòng" },
   { value: "checked_in", label: "Đang lưu trú" },
   { value: "checked_out", label: "Đã trả phòng" },
   { value: "cancelled", label: "Đã hủy" },
   { value: "no_show", label: "Không đến" },
 ];
+
+// Giu dung luat voi cac o tren Dashboard: khach den/di trong ngay tinh ca phan
+// da lam xong, nen con so tren o va danh sach o day luon khop nhau.
+function matchesFilter(booking: Booking, filter: BookingFilter, today: string): boolean {
+  switch (filter) {
+    case "pending":
+      return booking.payment_status === "completed";
+    case "overdue_checkin":
+      return booking.check_in_date < today;
+    case "arrivals_today":
+      return (
+        booking.check_in_date === today &&
+        (booking.status === "confirmed" || booking.status === "checked_in" || booking.status === "checked_out")
+      );
+    case "departures_today":
+      return (
+        booking.check_out_date === today && (booking.status === "checked_in" || booking.status === "checked_out")
+      );
+    default:
+      return true;
+  }
+}
 
 // Boc Suspense vi ben trong dung useSearchParams - dung khuyen nghi cua Next
 // de phan con lai cua trang van duoc prerender.
@@ -69,31 +93,21 @@ function AdminBookingsContent() {
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
+  // Hai muc loc theo ngay trai tren nhieu trang thai nen phai lay ca danh sach.
   const apiStatus: BookingStatus | undefined =
-    statusFilter === "all"
+    statusFilter === "all" || statusFilter === "arrivals_today" || statusFilter === "departures_today"
       ? undefined
-      : statusFilter === "awaiting_payment"
-        ? "pending"
-        : statusFilter === "overdue_checkin"
-          ? "confirmed"
-          : statusFilter;
+      : statusFilter === "overdue_checkin"
+        ? "confirmed"
+        : statusFilter;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["hotel-bookings", apiStatus ?? "all"],
     queryFn: () => bookingsApi.listForHotel(apiStatus),
   });
 
-  // Cac muc loc dung chung mot danh sach tu API nen tach tiep o day: 2 muc
-  // pending tach theo thanh toan, muc qua han tach theo ngay nhan phong.
-  const bookings = !data
-    ? undefined
-    : statusFilter === "awaiting_payment"
-      ? data.filter((booking) => booking.payment_status !== "completed")
-      : statusFilter === "pending"
-        ? data.filter((booking) => booking.payment_status === "completed")
-        : statusFilter === "overdue_checkin"
-          ? data.filter((booking) => booking.check_in_date < todayDateString())
-          : data;
+  const today = todayDateString();
+  const bookings = data?.filter((booking) => matchesFilter(booking, statusFilter, today));
 
   async function handleConfirm(id: number) {
     setActionError(null);
