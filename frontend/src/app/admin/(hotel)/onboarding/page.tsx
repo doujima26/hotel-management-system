@@ -14,15 +14,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
+import { phoneField } from "@/lib/validation/auth";
 
 const onboardingSchema = z.object({
-  name: z.string().min(2, "Tên tối thiểu 2 ký tự").max(255),
-  address: z.string().min(5, "Địa chỉ tối thiểu 5 ký tự"),
-  city: z.string().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
-  district: z.string().max(100).optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
-  email: z.email("Email không hợp lệ").optional().or(z.literal("")),
-  description: z.string().optional().or(z.literal("")),
+  name: z.string().trim().min(2, "Tên tối thiểu 2 ký tự").max(255),
+  address: z.string().trim().min(5, "Địa chỉ tối thiểu 5 ký tự"),
+  city: z.string().trim().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
+  district: z.string().trim().min(2, "Vui lòng nhập quận/huyện").max(100),
+  phone: phoneField,
+  email: z.email("Email không hợp lệ"),
+  description: z.string().trim().min(10, "Mô tả tối thiểu 10 ký tự"),
 });
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
@@ -45,10 +46,10 @@ export default function AdminOnboardingPage() {
         name: values.name,
         address: values.address,
         city: values.city,
-        district: values.district || undefined,
-        phone: values.phone || undefined,
-        email: values.email || undefined,
-        description: values.description || undefined,
+        district: values.district,
+        phone: values.phone,
+        email: values.email,
+        description: values.description,
       });
       toast.success("Đăng ký khách sạn thành công, đang chờ duyệt");
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
@@ -91,29 +92,32 @@ export default function AdminOnboardingPage() {
               {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="district">Quận/Huyện (không bắt buộc)</Label>
+              <Label htmlFor="district">Quận/Huyện</Label>
               <Input id="district" {...register("district")} />
+              {errors.district && <p className="text-sm text-destructive">{errors.district.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">Số điện thoại (không bắt buộc)</Label>
+              <Label htmlFor="phone">Số điện thoại</Label>
               <Input id="phone" {...register("phone")} />
+              {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email khách sạn (không bắt buộc)</Label>
+              <Label htmlFor="email">Email khách sạn</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Mô tả (không bắt buộc)</Label>
+            <Label htmlFor="description">Mô tả</Label>
             <textarea
               id="description"
               {...register("description")}
               rows={3}
               className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
+            {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
           </div>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <Button type="submit" disabled={isSubmitting}>

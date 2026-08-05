@@ -15,19 +15,20 @@ import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
+import { phoneField } from "@/lib/validation/auth";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
 import { canEditListing, useAdminHotel } from "../layout";
 
 const PAYMENT_METHODS: PaymentMethod[] = ["momo", "zalopay", "credit_card", "bank_transfer"];
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Tên tối thiểu 2 ký tự").max(255),
-  address: z.string().min(5, "Địa chỉ tối thiểu 5 ký tự"),
-  city: z.string().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
-  district: z.string().max(100).optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
-  email: z.email("Email không hợp lệ").optional().or(z.literal("")),
-  description: z.string().optional().or(z.literal("")),
+  name: z.string().trim().min(2, "Tên tối thiểu 2 ký tự").max(255),
+  address: z.string().trim().min(5, "Địa chỉ tối thiểu 5 ký tự"),
+  city: z.string().trim().min(2, "Thành phố tối thiểu 2 ký tự").max(100),
+  district: z.string().trim().min(2, "Vui lòng nhập quận/huyện").max(100),
+  phone: phoneField,
+  email: z.email("Email không hợp lệ"),
+  description: z.string().trim().min(10, "Mô tả tối thiểu 10 ký tự"),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -75,10 +76,10 @@ export default function AdminHotelProfilePage() {
         name: values.name,
         address: values.address,
         city: values.city,
-        district: values.district || undefined,
-        phone: values.phone || undefined,
-        email: values.email || undefined,
-        description: values.description || undefined,
+        district: values.district,
+        phone: values.phone,
+        email: values.email,
+        description: values.description,
         star_rating: starRating ? Number(starRating) : undefined,
       });
       toast.success("Cập nhật thông tin khách sạn thành công");
@@ -136,12 +137,14 @@ export default function AdminHotelProfilePage() {
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="district">Quận/Huyện</Label>
                 <Input id="district" disabled={!editing} {...register("district")} />
+                {errors.district && <p className="text-sm text-destructive">{errors.district.message}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="phone">Số điện thoại</Label>
                 <Input id="phone" disabled={!editing} {...register("phone")} />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">Email khách sạn</Label>
@@ -170,6 +173,7 @@ export default function AdminHotelProfilePage() {
                 disabled={!editing}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
               />
+              {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             {editing && (

@@ -47,12 +47,12 @@ export interface SearchFiltersParams {
 
 export interface CreateHotelPayload {
   name: string;
-  description?: string;
+  description: string;
   address: string;
   city: string;
-  district?: string;
-  phone?: string;
-  email?: string;
+  district: string;
+  phone: string;
+  email: string;
   star_rating?: number;
 }
 

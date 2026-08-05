@@ -1,20 +1,31 @@
 from datetime import date, time
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.enums import DiscountType, HotelStatus, PaymentMethod
+from app.core.validators import validate_phone
 
 
-# Schema du lieu dau vao cho admin dang ky khach san.
+# Schema du lieu dau vao cho admin dang ky khach san. Moi thong tin mo ta khach
+# san deu bat buoc, rieng hang sao van tuy chon vi khong phai khach san nao cung
+# duoc xep hang. str_strip_whitespace de chuoi toan dau cach khong qua duoc
+# min_length.
 class CreateHotelRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     name: str = Field(min_length=2, max_length=255)
-    description: str | None = None
+    description: str = Field(min_length=10)
     address: str = Field(min_length=5)
     city: str = Field(min_length=2, max_length=100)
-    district: str | None = Field(default=None, max_length=100)
-    phone: str | None = Field(default=None, max_length=20)
-    email: EmailStr | None = None
+    district: str = Field(min_length=2, max_length=100)
+    phone: str = Field(max_length=20)
+    email: EmailStr
     star_rating: int | None = Field(default=None, ge=1, le=5)
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, value: str) -> str:
+        return validate_phone(value)
 
 
 # Schema du lieu dau vao cho tao dich vu khach san.
@@ -61,13 +72,17 @@ class UpdatePromotionRequest(BaseModel):
     is_active: bool | None = None
 
 
-# Schema du lieu dau vao cho cap nhat thong tin khach san.
+# Schema du lieu dau vao cho cap nhat thong tin khach san. Bo trong 1 truong
+# nghia la khong doi truong do; con da gui len thi phai hop le, khong duoc de
+# rong de xoa trang thong tin bat buoc.
 class UpdateHotelRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     name: str | None = Field(default=None, min_length=2, max_length=255)
-    description: str | None = None
+    description: str | None = Field(default=None, min_length=10)
     address: str | None = Field(default=None, min_length=5)
     city: str | None = Field(default=None, min_length=2, max_length=100)
-    district: str | None = Field(default=None, max_length=100)
+    district: str | None = Field(default=None, min_length=2, max_length=100)
     phone: str | None = Field(default=None, max_length=20)
     email: EmailStr | None = None
     star_rating: int | None = Field(default=None, ge=1, le=5)
@@ -78,6 +93,11 @@ class UpdateHotelRequest(BaseModel):
     children_policy: str | None = None
     pets_allowed: bool | None = None
     payment_methods: list[PaymentMethod] | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, value: str | None) -> str | None:
+        return validate_phone(value) if value is not None else None
 
 
 # Schema du lieu tra ve thong tin khach san (phia admin quan ly).
