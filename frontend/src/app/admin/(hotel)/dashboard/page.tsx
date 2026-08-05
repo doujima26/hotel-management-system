@@ -207,7 +207,7 @@ export default function AdminDashboardPage() {
               tone={data.pending_bookings > 0 ? "warning" : "neutral"}
             />
             <StatTile
-              href="/admin/bookings?status=confirmed"
+              href="/admin/bookings?status=overdue_checkin"
               icon={CalendarClock}
               label="Chưa check-in"
               value={data.overdue_confirmed_bookings}

@@ -42,19 +42,23 @@ def is_hold_expired(booking: Booking, payment: Payment | None) -> bool:
     return booking.created_at < unpaid_hold_cutoff()
 
 
-# Dieu kien SQL cho 1 don van con trong han giu cho: khong phai don cho thanh
-# toan, hoac con trong moc thoi gian, hoac da thanh toan xong. Ban SQL cua
-# is_hold_expired o tren.
-def hold_con_hieu_luc():
-    da_thanh_toan = (
+# Dieu kien SQL: don da co giao dich thanh toan thanh cong.
+def da_thanh_toan_xong():
+    return (
         select(Payment.id)
         .where(Payment.booking_id == Booking.id, Payment.payment_status == PaymentStatus.COMPLETED)
         .exists()
     )
+
+
+# Dieu kien SQL cho 1 don van con trong han giu cho: khong phai don cho thanh
+# toan, hoac con trong moc thoi gian, hoac da thanh toan xong. Ban SQL cua
+# is_hold_expired o tren.
+def hold_con_hieu_luc():
     return or_(
         Booking.status != BookingStatus.PENDING,
         Booking.created_at >= unpaid_hold_cutoff(),
-        da_thanh_toan,
+        da_thanh_toan_xong(),
     )
 
 

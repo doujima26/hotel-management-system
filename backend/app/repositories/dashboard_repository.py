@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.enums import BookingStatus, HotelStatus, PaymentStatus
 from app.core.timeutils import day_range_to_instants
 from app.models.entities import Booking, BookingRoom, BookingService, Hotel, HotelService, Payment, RoomType, User
-from app.repositories.booking_repository import hold_con_hieu_luc
+from app.repositories.booking_repository import da_thanh_toan_xong
 
 # Cac trang thai booking khong tinh vao doanh thu/ty le lap day.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
@@ -195,12 +195,14 @@ def get_top_services(db: Session, hotel_id: int, from_date: date, to_date: date,
     )
 
 
-# Dem so booking dang cho xac nhan (Dashboard - can xu ly ngay). Bo don da het
-# han giu cho vi phong cua chung da duoc ban lai, admin khong xac nhan duoc nua.
+# Dem so booking dang cho Admin xac nhan (Dashboard - can xu ly ngay). Chi tinh
+# don da tra tien: don chua tra tien thi Admin khong bam xac nhan duoc, va don
+# da tra tien thi khong bao gio het han giu cho. Cung dinh nghia voi muc loc
+# "Cho xac nhan" o trang Booking.
 def count_pending_bookings(db: Session, hotel_id: int) -> int:
     return int(
         db.query(func.count(Booking.id))
-        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.PENDING, hold_con_hieu_luc())
+        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.PENDING, da_thanh_toan_xong())
         .scalar()
         or 0
     )
