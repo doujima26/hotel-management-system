@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.enums import BookingStatus, HotelStatus, PaymentStatus
 from app.core.timeutils import day_range_to_instants
 from app.models.entities import Booking, BookingRoom, BookingService, Hotel, HotelService, Payment, RoomType, User
+from app.repositories.booking_repository import hold_con_hieu_luc
 
 # Cac trang thai booking khong tinh vao doanh thu/ty le lap day.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW)
@@ -194,43 +195,50 @@ def get_top_services(db: Session, hotel_id: int, from_date: date, to_date: date,
     )
 
 
-# Dem so booking dang cho xac nhan (Dashboard - can xu ly ngay).
+# Dem so booking dang cho xac nhan (Dashboard - can xu ly ngay). Bo don da het
+# han giu cho vi phong cua chung da duoc ban lai, admin khong xac nhan duoc nua.
 def count_pending_bookings(db: Session, hotel_id: int) -> int:
     return int(
         db.query(func.count(Booking.id))
-        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.PENDING)
+        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.PENDING, hold_con_hieu_luc())
         .scalar()
         or 0
     )
 
 
 # Dem so booking da xac nhan nhung qua ngay nhan phong van chua check-in
-# (Dashboard - can xu ly ngay).
+# (Dashboard - can xu ly ngay). Khach nhan phong dung hom nay chua tinh la tre,
+# ho da co o "Nhan phong hom nay" rieng.
 def count_overdue_confirmed_bookings(db: Session, hotel_id: int, today: date) -> int:
     return int(
         db.query(func.count(Booking.id))
-        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.CONFIRMED, Booking.check_in_date <= today)
+        .filter(Booking.hotel_id == hotel_id, Booking.status == BookingStatus.CONFIRMED, Booking.check_in_date < today)
         .scalar()
         or 0
     )
 
 
-# Dem so khach nhan phong hom nay, tra phong hom nay, va dang luu tru - dung
-# 1 lan truy van cho ca 3 chi so (Dashboard - van hanh hom nay).
+# Dem so khach nhan phong hom nay, tra phong hom nay, va dang luu tru
+# (Dashboard - van hanh hom nay). Ca hai o "hom nay" deu dem tong viec cua ca
+# ngay, ke ca phan da lam xong, nen con so khong tut dan trong ngay.
 def count_arrivals_and_departures_today(db: Session, hotel_id: int, today: date) -> tuple[int, int, int]:
     arrivals = int(
         db.query(func.count(Booking.id))
         .filter(
             Booking.hotel_id == hotel_id,
             Booking.check_in_date == today,
-            Booking.status.in_((BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)),
+            Booking.status.in_((BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN, BookingStatus.CHECKED_OUT)),
         )
         .scalar()
         or 0
     )
     departures = int(
         db.query(func.count(Booking.id))
-        .filter(Booking.hotel_id == hotel_id, Booking.check_out_date == today, Booking.status == BookingStatus.CHECKED_IN)
+        .filter(
+            Booking.hotel_id == hotel_id,
+            Booking.check_out_date == today,
+            Booking.status.in_((BookingStatus.CHECKED_IN, BookingStatus.CHECKED_OUT)),
+        )
         .scalar()
         or 0
     )
