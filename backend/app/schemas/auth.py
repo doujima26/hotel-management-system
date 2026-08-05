@@ -75,9 +75,10 @@ class UserPublicResponse(BaseModel):
     is_verified: bool
 
 
-# Schema du lieu tra ve sau khi dang ky tai khoan (kem OTP mock de test).
+# Schema du lieu tra ve sau khi dang ky tai khoan. otp_mock chi co gia tri khi
+# he thong chua cau hinh SMTP, da gui mail that thi la None.
 class RegisterResponse(UserPublicResponse):
-    otp_mock: str
+    otp_mock: str | None = None
 
 
 # Schema thong tin nguoi dung rut gon kem trong ket qua dang nhap.

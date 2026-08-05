@@ -34,9 +34,10 @@ class StaffMemberResponse(BaseModel):
     hired_at: date | None = None
 
 
-# Schema du lieu tra ve sau khi tao nhan vien, kem mat khau tam (mock, chua gui mail that).
+# Schema du lieu tra ve sau khi tao nhan vien. temp_password_mock chi co gia tri
+# khi he thong chua cau hinh SMTP, da gui mail that thi la None.
 class CreateStaffResponse(StaffMemberResponse):
-    temp_password_mock: str
+    temp_password_mock: str | None = None
 
 
 # Schema du lieu dau vao cho Admin xep ca lam viec cho nhan vien.

@@ -31,7 +31,7 @@ export interface LoginUser {
 }
 
 export interface RegisterResult extends User {
-  otp_mock: string;
+  otp_mock: string | null;
 }
 
 export interface LoginResult {
@@ -775,7 +775,7 @@ export interface StaffMember {
 }
 
 export interface CreateStaffResult extends StaffMember {
-  temp_password_mock: string;
+  temp_password_mock: string | null;
 }
 
 export interface StaffScheduleCalendarShift {

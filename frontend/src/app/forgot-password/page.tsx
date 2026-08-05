@@ -67,8 +67,10 @@ export default function ForgotPasswordPage() {
           <CardHeader>
             <CardTitle>Đặt lại mật khẩu</CardTitle>
             <CardDescription>
-              Nhập mã OTP đã gửi tới {email} và mật khẩu mới. Môi trường demo: mã đã được điền sẵn nếu email tồn
-              tại.
+              Nhập mã OTP đã gửi tới {email} và mật khẩu mới.
+              {otpMock
+                ? " Máy chủ chưa cấu hình gửi email nên mã được điền sẵn giúp bạn."
+                : " Mã có hiệu lực trong 10 phút, vui lòng kiểm tra cả mục thư rác."}
             </CardDescription>
           </CardHeader>
           <CardContent>

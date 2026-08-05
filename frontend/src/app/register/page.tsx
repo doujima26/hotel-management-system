@@ -41,8 +41,8 @@ export default function RegisterPage() {
         phone: values.phone,
       });
       setEmail(values.email);
-      setOtpMock(result.otp_mock);
-      setOtp(result.otp_mock);
+      setOtpMock(result.otp_mock ?? "");
+      setOtp(result.otp_mock ?? "");
       setStep("verify");
       toast.success("Đăng ký thành công. Vui lòng xác thực OTP.");
     } catch (err) {
@@ -90,7 +90,10 @@ export default function RegisterPage() {
           <CardHeader>
             <CardTitle>Xác thực tài khoản</CardTitle>
             <CardDescription>
-              Nhập mã OTP đã gửi tới {email}. Môi trường demo: mã đã được điền sẵn từ response đăng ký.
+              Nhập mã OTP đã gửi tới {email}.
+              {otpMock
+                ? " Máy chủ chưa cấu hình gửi email nên mã được điền sẵn giúp bạn."
+                : " Mã có hiệu lực trong 10 phút, vui lòng kiểm tra cả mục thư rác."}
             </CardDescription>
           </CardHeader>
           <CardContent>

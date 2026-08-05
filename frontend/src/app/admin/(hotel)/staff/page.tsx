@@ -164,18 +164,21 @@ export default function AdminStaffPage() {
           <CardHeader>
             <CardTitle>Tài khoản nhân viên đã tạo</CardTitle>
             <CardDescription>
-              Gửi thông tin này cho nhân viên qua kênh riêng (chưa có gửi email thật). Mật khẩu tạm chỉ hiển thị một
-              lần ngay bây giờ.
+              {justCreated.temp_password_mock
+                ? "Máy chủ chưa cấu hình gửi email nên hãy gửi thông tin này cho nhân viên qua kênh riêng. Mật khẩu tạm chỉ hiển thị một lần ngay bây giờ."
+                : "Thông tin đăng nhập đã được gửi tới email của nhân viên."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <p className="text-sm">
               Email: <span className="font-medium">{justCreated.email}</span>
             </p>
-            <p className="text-sm">
-              Mật khẩu tạm:{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{justCreated.temp_password_mock}</code>
-            </p>
+            {justCreated.temp_password_mock && (
+              <p className="text-sm">
+                Mật khẩu tạm:{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{justCreated.temp_password_mock}</code>
+              </p>
+            )}
             <Button size="sm" variant="outline" className="self-start" onClick={() => setJustCreated(null)}>
               Đã lưu, đóng thông báo
             </Button>
@@ -189,7 +192,7 @@ export default function AdminStaffPage() {
           <CardDescription>
             {isEditing
               ? "Chỉ Chức vụ sửa được. Họ tên, Email, Số điện thoại của tài khoản đã tạo không đổi được ở đây."
-              : "Tài khoản đăng nhập được tạo ngay, chưa gửi email thật nên cần copy mật khẩu tạm."}
+              : "Tài khoản đăng nhập được tạo ngay và thông tin đăng nhập gửi tới email của nhân viên."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
