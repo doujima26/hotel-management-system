@@ -165,6 +165,10 @@ FROM (VALUES
     ('owner18@gmail.com', 'Vung Tau Sea Hotel', 'Khach san ven bien Vung Tau', '3 Thuy Van', 'Bà Rịa - Vũng Tàu', 'Vũng Tàu', 10.346000, 107.086000, '02543000018', 'contact18@gmail.com', 3, 'rejected', 'Thieu giay phep kinh doanh luu tru va anh thuc te cua phong.', false)
 ) AS t(owner_email, name, description, address, city, district, lat, lng, phone, email, star_rating, status, rejection_reason, pets_allowed);
 
+-- Ty le hoa hong nen tang: giai tu 8 den 12 phan tram thay vi de tat ca cung
+-- mot muc, de man hinh doi soat thay duoc su khac nhau giua cac khach san.
+UPDATE hotels SET commission_rate = 8 + (id % 5);
+
 -- Anh khach san: 1 anh dai dien + 2 anh phu cho moi khach san.
 INSERT INTO hotel_images (hotel_id, image_url, is_primary, sort_order)
 SELECT h.id, 'https://picsum.photos/seed/hotel' || h.id || '-' || g.n || '/1200/700', g.n = 1, g.n
@@ -432,10 +436,14 @@ WHERE h.status = 'approved' AND h.star_rating = 5;
 INSERT INTO bookings (
     booking_code, user_id, hotel_id, check_in_date, check_out_date, num_guests,
     total_room_price, total_service_price, discount_amount, total_amount, status,
-    cancellation_reason, cancelled_at, cancelled_by, special_requests, created_at
+    cancellation_reason, cancelled_at, cancelled_by, special_requests, created_at,
+    commission_rate
 )
 SELECT
-    'BK' || lpad(rt.rt_no::text, 3, '0') || lpad(v.n::text, 2, '0'),
+    -- Ma don phai dung dinh dang SePay boc tach duoc: tien to BK + dung 8 ky tu
+    -- chu/so, khong gach ngang. Dung md5 de sinh ma on dinh giua cac lan chay
+    -- seed; doi 0 va 1 sang chu vi ma con duoc doc bang mat khi go tay.
+    'BK' || translate(upper(substr(md5(rt.rt_no::text || '-' || v.n::text), 1, 8)), '01', 'YZ'),
     cust.id,
     rt.hotel_id,
     CURRENT_DATE + v.check_in_offset + (sign(v.spread) * (rt.rt_no % abs(v.spread)))::int,
@@ -452,9 +460,10 @@ SELECT
     CASE WHEN (rt.rt_no + v.n) % 4 = 0 THEN 'Xin phong tang cao, yen tinh.'
          WHEN (rt.rt_no + v.n) % 4 = 1 THEN 'Toi den muon sau 22h, nho giu phong.'
     END,
-    now() - ((abs(v.check_in_offset) + 7) * INTERVAL '1 day')
+    now() - ((abs(v.check_in_offset) + 7) * INTERVAL '1 day'),
+    rt.commission_rate
 FROM (
-    SELECT rt.id, rt.hotel_id, rt.base_price, rt.max_guests,
+    SELECT rt.id, rt.hotel_id, rt.base_price, rt.max_guests, h.commission_rate,
            row_number() OVER (ORDER BY rt.hotel_id, rt.id) AS rt_no
     FROM room_types rt
     JOIN hotels h ON h.id = rt.hotel_id
@@ -538,10 +547,22 @@ SET used_count = x.total
 FROM (SELECT promotion_id, count(*) AS total FROM bookings WHERE promotion_id IS NOT NULL GROUP BY promotion_id) x
 WHERE x.promotion_id = p.id;
 
+-- Hoa hong nen tang: tinh tren TIEN PHONG sau khuyen mai, khong tinh tren dich
+-- vu them - giong het cach booking_service._tinh_hoa_hong lam khi tao don that.
+-- Phai chay SAU buoc ap khuyen mai, neu khong se tinh tren gia chua giam.
+UPDATE bookings
+SET commission_amount = round((total_room_price - discount_amount) * commission_rate / 100);
+
 -- ============================================================
 -- 8. THANH TOAN VA HOA DON
--- Don da tra phong / dang o / da xac nhan la da thu tien; don huy la da hoan
--- tien; don cho xac nhan thi chua thu duoc dong nao.
+-- Don da tra phong / dang o / da xac nhan / cho xac nhan deu la da thu tien;
+-- don huy la da hoan tien.
+--
+-- Don pending BUOC PHAI co thanh toan: he thong chi sinh don kem thanh toan
+-- (checkout gop 1 giao dich) hoac cho tien chuyen khoan ve trong 15 phut. Don
+-- pending khong thanh toan tao tu 22 ngay truoc se bi coi la het han giu cho va
+-- tu huy ngay khi ai do mo danh sach don - trang thai "cho xac nhan" se bien mat
+-- khoi du lieu mau.
 -- ============================================================
 INSERT INTO payments (booking_id, amount, payment_method, payment_status, transaction_id, paid_at)
 SELECT
@@ -554,7 +575,7 @@ SELECT
     -- lieu trai deu thay vi don cuc vao mot moc.
     (b.check_in_date - 1) + INTERVAL '10 hours'
 FROM bookings b
-WHERE b.status IN ('checked_out', 'checked_in', 'confirmed', 'cancelled');
+WHERE b.status IN ('checked_out', 'checked_in', 'confirmed', 'cancelled', 'pending');
 
 INSERT INTO invoices (
     invoice_number, booking_id, payment_id, user_id, hotel_id,
@@ -574,6 +595,27 @@ JOIN bookings b ON b.id = p.booking_id
 JOIN users u ON u.id = b.user_id
 JOIN hotels h ON h.id = b.hotel_id
 WHERE p.payment_status = 'completed';
+
+-- Cac dot nen tang da chi tra cho khach san. Chi tra 60 phan tram so phai tra
+-- de man hinh doi soat con cong no thay vi ve 0 het - co so du moi thay duoc
+-- man hinh dang lam gi.
+INSERT INTO hotel_payouts (hotel_id, amount, period_from, period_to, reference, note, created_by, created_at)
+SELECT
+    x.hotel_id,
+    round(x.phai_tra * 0.6),
+    CURRENT_DATE - 60,
+    CURRENT_DATE - 30,
+    'FT' || lpad(x.hotel_id::text, 8, '0'),
+    'Doi soat ky thang truoc',
+    (SELECT id FROM users WHERE role = 'super_admin' ORDER BY id LIMIT 1),
+    now() - INTERVAL '20 days'
+FROM (
+    SELECT b.hotel_id, sum(b.total_amount - b.commission_amount) AS phai_tra
+    FROM bookings b
+    JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'completed'
+    GROUP BY b.hotel_id
+) x
+WHERE x.phai_tra > 0;
 
 -- ============================================================
 -- 9. NGHIEP VU LUU TRU: CHECK-IN / CHECK-OUT VA TRANG THAI PHONG
