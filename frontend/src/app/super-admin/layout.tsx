@@ -11,6 +11,7 @@ const NAV_GROUPS: SidebarGroup[] = [
     items: [
       { href: "/super-admin/hotels", label: "Khách sạn" },
       { href: "/super-admin/users", label: "Người dùng" },
+      { href: "/super-admin/settlements", label: "Đối soát công nợ" },
     ],
   },
   {

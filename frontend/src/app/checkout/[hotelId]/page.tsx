@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { apiFetch } from "@/lib/api/client";
-import { bookingsApi } from "@/lib/api/bookings";
+import { bookingsApi, type BankTransferInfo } from "@/lib/api/bookings";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
@@ -95,6 +95,8 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [atPaymentStep, setAtPaymentStep] = useState(false);
   const [payResult, setPayResult] = useState<PayBookingResult | null>(null);
+  // Chi co khi chon chuyen khoan: don da tao va dang cho tien ve.
+  const [bankTransfer, setBankTransfer] = useState<BankTransferInfo | null>(null);
   const [payingLoading, setPayingLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -156,7 +158,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
   const discountAmount = selectedPromotion ? calcPromotionDiscount(selectedPromotion, totalRoomPrice) : 0;
   const previewTotal = totalRoomPrice + totalServicePrice - discountAmount;
 
-  const currentStep = payResult ? 2 : atPaymentStep ? 1 : 0;
+  const currentStep = payResult || bankTransfer ? 2 : atPaymentStep ? 1 : 0;
   const primaryImage = hotel?.images.find((img) => img.is_primary) ?? hotel?.images[0];
   const score = hotel && hotel.total_reviews > 0 ? hotel.avg_rating : null;
 
@@ -200,8 +202,15 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
         payment_method: paymentMethod,
       });
       setBooking(result.booking);
-      setPayResult({ payment: result.payment, invoice: result.invoice });
-      toast.success("Đặt phòng thành công!");
+      if (result.bank_transfer) {
+        // Chuyen khoan: don da giu phong nhung chua tra tien, chuyen sang man
+        // hinh quet QR thay vi man hinh thanh cong.
+        setBankTransfer(result.bank_transfer);
+        toast.success("Đã giữ phòng, vui lòng chuyển khoản để hoàn tất");
+      } else if (result.payment && result.invoice) {
+        setPayResult({ payment: result.payment, invoice: result.invoice });
+        toast.success("Đặt phòng thành công!");
+      }
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Đặt phòng thất bại");
     } finally {
@@ -313,7 +322,9 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
 
         {/* Cot phai: noi dung tung buoc */}
         <div className="flex flex-col gap-5">
-          {payResult && booking ? (
+          {bankTransfer && booking ? (
+            <BankTransferPanel booking={booking} info={bankTransfer} />
+          ) : payResult && booking ? (
             <SuccessPanel booking={booking} payResult={payResult} />
           ) : atPaymentStep ? (
             <PaymentPanel
@@ -571,6 +582,107 @@ function SuccessPanel({ booking, payResult }: { booking: Booking; payResult: Pay
           Đơn đặt phòng của tôi
         </Link>
       </div>
+    </section>
+  );
+}
+
+// Buoc 3 cua luong chuyen khoan: hien QR, dem nguoc han giu phong va hoi lai
+// trang thai don cho toi khi ngan hang bao tien da ve.
+//
+// Khong the tin trinh duyet bao "da chuyen roi" - chi webhook tu ngan hang moi
+// xac nhan duoc. Nen o day chi hoi lai trang thai don, khong co nut "toi da
+// thanh toan".
+function BankTransferPanel({ booking, info }: { booking: Booking; info: BankTransferInfo }) {
+  const [conLai, setConLai] = useState(() => Math.max(0, Math.floor((new Date(info.expires_at).getTime() - Date.now()) / 1000)));
+
+  const { data: donMoiNhat } = useQuery({
+    queryKey: ["booking-payment-status", booking.id],
+    queryFn: () => bookingsApi.getDetail(booking.id),
+    // Hoi lai moi 5 giay, dung han khi da nhan duoc tien hoac het han giu phong.
+    refetchInterval: (query) =>
+      query.state.data?.payment_status === "completed" || conLai <= 0 ? false : 5000,
+  });
+
+  useEffect(() => {
+    if (conLai <= 0) return;
+    const dong_ho = setInterval(() => setConLai((truoc) => Math.max(0, truoc - 1)), 1000);
+    return () => clearInterval(dong_ho);
+  }, [conLai]);
+
+  const daThanhToan = donMoiNhat?.payment_status === "completed";
+  const hetHan = conLai <= 0 && !daThanhToan;
+
+  if (daThanhToan) {
+    return (
+      <section className="flex flex-col items-center gap-4 rounded-xl border p-8 text-center">
+        <span className="flex size-14 items-center justify-center rounded-full bg-green-100 text-green-700">
+          <BadgeCheck className="size-8" />
+        </span>
+        <h1 className="text-2xl font-bold">Đã nhận được thanh toán!</h1>
+        <p className="text-muted-foreground">
+          Đơn {booking.booking_code} đang chờ khách sạn xác nhận. Bạn sẽ nhận thông báo qua email khi được xác nhận.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link href={`/bookings/${booking.id}`} className="text-primary underline-offset-4 hover:underline">
+            Xem chi tiết đơn
+          </Link>
+          <Link href="/bookings" className="text-primary underline-offset-4 hover:underline">
+            Đơn đặt phòng của tôi
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (hetHan) {
+    return (
+      <section className="flex flex-col items-center gap-4 rounded-xl border p-8 text-center">
+        <h1 className="text-2xl font-bold">Đã hết hạn giữ phòng</h1>
+        <p className="text-muted-foreground">
+          Chúng tôi chưa nhận được thanh toán nên phòng đã được mở bán lại. Nếu bạn vừa chuyển khoản, tiền sẽ
+          được hoàn lại — vui lòng liên hệ để được hỗ trợ.
+        </p>
+        <Link href={`/hotels/${booking.hotel_id}`} className="text-primary underline-offset-4 hover:underline">
+          Đặt lại
+        </Link>
+      </section>
+    );
+  }
+
+  const phut = Math.floor(conLai / 60);
+  const giay = conLai % 60;
+
+  return (
+    <section className="flex flex-col items-center gap-4 rounded-xl border p-8 text-center">
+      <h1 className="text-2xl font-bold">Quét mã để hoàn tất thanh toán</h1>
+      <p className="text-muted-foreground">
+        Phòng đang được giữ cho bạn. Còn{" "}
+        <strong className="text-foreground">
+          {phut}:{String(giay).padStart(2, "0")}
+        </strong>
+      </p>
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={info.qr_url} alt="Mã QR chuyển khoản" className="size-64 rounded-lg border object-contain" />
+
+      <dl className="w-full max-w-sm text-left text-sm">
+        <div className="flex justify-between border-b py-2">
+          <dt className="text-muted-foreground">Số tiền</dt>
+          <dd className="font-semibold">{formatMoney(info.amount)}</dd>
+        </div>
+        <div className="flex justify-between border-b py-2">
+          <dt className="text-muted-foreground">Số tài khoản</dt>
+          <dd className="font-mono">{info.account_number}</dd>
+        </div>
+        <div className="flex justify-between py-2">
+          <dt className="text-muted-foreground">Nội dung</dt>
+          <dd className="font-mono font-semibold">{info.payment_code}</dd>
+        </div>
+      </dl>
+
+      <p className="max-w-md text-sm text-muted-foreground">
+        Giữ nguyên nội dung chuyển khoản. Hệ thống tự nhận khi tiền về, bạn không cần bấm gì thêm.
+      </p>
     </section>
   );
 }

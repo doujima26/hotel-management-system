@@ -1,10 +1,13 @@
 import { apiFetch } from "./client";
 import type {
   AdminActionLogListResult,
+  AdminHotel,
   AdminHotelDetail,
   AdminHotelListResult,
   AdminUserDetail,
   AdminUserListResult,
+  HotelPayout,
+  HotelSettlement,
   ReviewHotelResult,
   SetUserActiveResult,
 } from "@/types/models";
@@ -42,6 +45,15 @@ export interface ReviewHotelPayload {
   reason?: string;
 }
 
+export interface CreatePayoutPayload {
+  hotel_id: number;
+  amount: number;
+  period_from?: string;
+  period_to?: string;
+  reference?: string;
+  note?: string;
+}
+
 export const adminApi = {
   listHotels: (params: ListHotelsParams) => apiFetch<AdminHotelListResult>("/admin/hotels", { params, auth: true }),
   // Ho so day du de tham dinh truoc khi duyet.
@@ -60,4 +72,16 @@ export const adminApi = {
       body: { is_active: isActive },
       auth: true,
     }),
+  // Doi soat cong no voi tung khach san.
+  listSettlements: () => apiFetch<HotelSettlement[]>("/admin/settlements", { auth: true }),
+  listHotelPayouts: (hotelId: number) =>
+    apiFetch<HotelPayout[]>(`/admin/hotels/${hotelId}/payouts`, { auth: true }),
+  updateCommissionRate: (hotelId: number, commissionRate: number) =>
+    apiFetch<AdminHotel>(`/admin/hotels/${hotelId}/commission`, {
+      method: "PATCH",
+      body: { commission_rate: commissionRate },
+      auth: true,
+    }),
+  createPayout: (payload: CreatePayoutPayload) =>
+    apiFetch<HotelPayout>("/admin/payouts", { method: "POST", body: payload, auth: true }),
 };

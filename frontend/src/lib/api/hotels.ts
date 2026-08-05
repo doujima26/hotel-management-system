@@ -11,7 +11,9 @@ import type {
   HotelHighlight,
   HotelImage,
   HotelSearchFilters,
+  HotelPayout,
   HotelSearchResult,
+  HotelSettlement,
   HotelServiceItem,
   Promotion,
 } from "@/types/models";
@@ -119,6 +121,9 @@ export const hotelsApi = {
 
   // Cac ham ben duoi danh cho Admin (Client Component, can auth), goi qua rewrites proxy.
   getMine: () => apiFetch<AdminHotel>("/hotels/me", { auth: true }),
+  // So tien nen tang dang giu ho khach san nay.
+  getMySettlement: () => apiFetch<HotelSettlement>("/hotels/me/settlement", { auth: true }),
+  listMyPayouts: () => apiFetch<HotelPayout[]>("/hotels/me/payouts", { auth: true }),
   create: (payload: CreateHotelPayload) => apiFetch<AdminHotel>("/hotels", { method: "POST", body: payload, auth: true }),
   update: (payload: UpdateHotelPayload) => apiFetch<AdminHotel>("/hotels", { method: "PATCH", body: payload, auth: true }),
 

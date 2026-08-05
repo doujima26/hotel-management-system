@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
+import { hotelsApi } from "@/lib/api/hotels";
 import { revenueApi } from "@/lib/api/revenue";
 import { ApiError } from "@/types/api";
 import type { DailyRevenuePoint, RevenueByRoomTypeItem } from "@/types/revenue";
@@ -180,6 +181,74 @@ function TopRoomTypesChart({ items }: { items: RevenueByRoomTypeItem[] }) {
   );
 }
 
+// Khoi doi soat: nen tang thu tien cua khach roi tru hoa hong, phan con lai
+// chuyen tra cho khach san. Tach khoi cac chi so kinh doanh phia duoi vi day la
+// dong tien thuc te chu khong phai hieu qua kinh doanh.
+function SettlementCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-settlement"],
+    queryFn: () => hotelsApi.getMySettlement(),
+  });
+  const { data: payouts } = useQuery({
+    queryKey: ["my-payouts"],
+    queryFn: () => hotelsApi.listMyPayouts(),
+  });
+
+  if (isLoading || !data) return null;
+
+  const lanGanNhat = payouts?.[0];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Đối soát với nền tảng</CardTitle>
+        <CardDescription>
+          Khách thanh toán về tài khoản nền tảng. Sau khi trừ hoa hồng {data.commission_rate}%, phần còn lại
+          được chuyển trả cho khách sạn.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <SettlementFigure label="Khách đã thanh toán" value={data.total_collected} />
+          <SettlementFigure label={`Hoa hồng nền tảng`} value={data.total_commission} />
+          <SettlementFigure label="Đã nhận" value={data.total_paid} />
+          <SettlementFigure
+            label={data.outstanding < 0 ? "Đã nhận dư" : "Nền tảng đang giữ"}
+            value={Math.abs(data.outstanding)}
+            highlight
+          />
+        </div>
+
+        {/* Con no am: don bi huy va hoan tien SAU khi nen tang da chuyen tra.
+            Phai giai thich, khong thi chu khach san tuong he thong tinh sai. */}
+        {data.outstanding < 0 && (
+          <p className="text-sm text-amber-600">
+            Khoản này phát sinh do có đơn bị hủy và hoàn tiền sau khi nền tảng đã chuyển trả. Số tiền sẽ được
+            bù trừ vào kỳ chi trả tiếp theo.
+          </p>
+        )}
+
+        {lanGanNhat && (
+          <p className="text-sm text-muted-foreground">
+            Lần nhận gần nhất: {formatMoney(lanGanNhat.amount)} ngày {formatDate(lanGanNhat.created_at)}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettlementFigure({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 font-semibold", highlight ? "text-lg text-primary" : "text-sm")}>
+        {formatMoney(value)}
+      </p>
+    </div>
+  );
+}
+
 export default function AdminRevenuePage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -195,6 +264,8 @@ export default function AdminRevenuePage() {
         <h2 className="text-lg font-semibold">Doanh thu</h2>
         <p className="text-sm text-muted-foreground">Hiệu quả kinh doanh của khách sạn theo khoảng ngày đã chọn.</p>
       </div>
+
+      <SettlementCard />
 
       <div className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">

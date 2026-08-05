@@ -898,3 +898,30 @@ export interface SendVerifyOtpResult {
   otp_mock: string | null;
   is_verified: boolean | null;
 }
+
+// Doi soat cong no giua nen tang va 1 khach san. Nen tang thu tien cua khach
+// roi tru hoa hong, phan con lai la tien cua khach san.
+export interface HotelSettlement {
+  hotel_id: number;
+  hotel_name: string;
+  commission_rate: number;
+  total_collected: number;
+  total_commission: number;
+  payable: number;
+  total_paid: number;
+  // Am nghia la nen tang da tra du - phat sinh khi don bi huy sau khi da chi tra.
+  outstanding: number;
+}
+
+// Mot dot nen tang da chuyen tien cho khach san. Viec chuyen tien lam ngoai he
+// thong, ban ghi nay chi de tru cong no.
+export interface HotelPayout {
+  id: number;
+  hotel_id: number;
+  amount: number;
+  period_from: string | null;
+  period_to: string | null;
+  reference: string | null;
+  note: string | null;
+  created_at: string;
+}

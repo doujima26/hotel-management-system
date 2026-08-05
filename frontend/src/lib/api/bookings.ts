@@ -20,10 +20,24 @@ export interface CheckoutPayload extends CreateBookingPayload {
   payment_method: PaymentMethod;
 }
 
+// Thong tin de khach quet ma QR chuyen khoan. Chi co khi chon bank_transfer.
+export interface BankTransferInfo {
+  // Noi dung chuyen khoan phai giu nguyen de he thong biet tien cua don nao.
+  payment_code: string;
+  amount: number;
+  account_number: string;
+  bank: string;
+  qr_url: string;
+  expires_at: string;
+}
+
+// Chon phuong thuc mock thi co ngay thanh toan va hoa don. Chon chuyen khoan
+// thi chi co don kem thong tin QR; thanh toan sinh ra khi ngan hang bao tien ve.
 export interface CheckoutResult {
   booking: Booking;
-  payment: Payment;
-  invoice: Invoice;
+  payment: Payment | null;
+  invoice: Invoice | null;
+  bank_transfer: BankTransferInfo | null;
 }
 
 export interface CancelBookingPayload {
