@@ -1,7 +1,7 @@
 import secrets
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import ROUND_CEILING, Decimal
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -324,23 +324,32 @@ def _build_booking(
     return booking, rooms
 
 
+# Ghep tham so vao dia chi sinh anh QR. Dia chi cau hinh co the da kem san tham
+# so (vi du chon mau anh, hien ten chu tai khoan) nen phai tron vao query dang
+# co, khong noi them dau "?" thu hai - noi them se lam moi tham so phia sau bi
+# nuot vao gia tri cua tham so cuoi cung.
+#
+# Tham so da co san trong dia chi cau hinh duoc giu nguyen, khong ghi de: chinh
+# dia chi do moi biet dich vu sinh QR dang dung ten tham so kieu gi.
+def _dia_chi_anh_qr(so_tien: int, noi_dung: str) -> str:
+    phan_tich = urlparse(settings.sepay_qr_base_url)
+    tham_so = {ten: gia_tri[0] for ten, gia_tri in parse_qs(phan_tich.query).items()}
+    tham_so.setdefault("acc", settings.sepay_account_number)
+    tham_so.setdefault("bank", settings.sepay_bank)
+    tham_so["amount"] = str(so_tien)
+    tham_so["des"] = noi_dung
+    return phan_tich._replace(query=urlencode(tham_so)).geturl()
+
+
 # Dung thong tin de khach quet ma QR chuyen khoan cho 1 don.
 def _thong_tin_chuyen_khoan(booking: Booking) -> BankTransferResponse:
     so_tien = int(Decimal(booking.total_amount).quantize(Decimal(1), rounding=ROUND_CEILING))
-    tham_so = urlencode(
-        {
-            "acc": settings.sepay_account_number,
-            "bank": settings.sepay_bank,
-            "amount": so_tien,
-            "des": booking.booking_code,
-        }
-    )
     return BankTransferResponse(
         payment_code=booking.booking_code,
         amount=so_tien,
         account_number=settings.sepay_account_number,
         bank=settings.sepay_bank,
-        qr_url=f"{settings.sepay_qr_base_url}?{tham_so}",
+        qr_url=_dia_chi_anh_qr(so_tien, booking.booking_code),
         expires_at=booking.created_at + timedelta(minutes=settings.sepay_hold_minutes),
     )
 
