@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.enums import BookingStatus, PaymentStatus
 from app.models.entities import (
     Booking,
@@ -19,6 +20,13 @@ from app.models.entities import (
 # ca check-out som) nghia la phong da duoc tra that, khong con ly do giu cho.
 _INACTIVE_BOOKING_STATUSES = (BookingStatus.CANCELLED, BookingStatus.NO_SHOW, BookingStatus.CHECKED_OUT)
 
+
+# Moc thoi gian tao don: don cho chuyen khoan tao truoc moc nay coi nhu het han
+# giu cho, phong duoc ban lai.
+def han_giu_cho_cutoff() -> datetime:
+    return datetime.now(timezone.utc) - timedelta(minutes=settings.sepay_hold_minutes)
+
+
 # Dieu kien SQL: don da co giao dich thanh toan thanh cong.
 def da_thanh_toan_xong():
     return (
@@ -28,14 +36,41 @@ def da_thanh_toan_xong():
     )
 
 
-# Dieu kien 1 booking con chiem giu phong. Moi don deu duoc tao kem thanh toan
-# trong cung 1 giao dich (bookings/checkout) nen chi can xet trang thai.
+# Dieu kien 1 booking con chiem giu phong: chua o trang thai nha phong, va neu
+# dang cho khach chuyen khoan thi phai con trong han giu cho.
+#
+# Han giu cho chi ap cho don pending chua tra tien - luong SePay tao don truoc,
+# tien ve sau. Cac phuong thuc mock tra tien ngay luc dat nen khong bao gio roi
+# vao nhanh nay.
 def _still_holding_rooms():
-    return (Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),)
+    return (
+        Booking.status.notin_(_INACTIVE_BOOKING_STATUSES),
+        or_(
+            Booking.status != BookingStatus.PENDING,
+            Booking.created_at >= han_giu_cho_cutoff(),
+            da_thanh_toan_xong(),
+        ),
+    )
+
+
+# Danh sach don cho chuyen khoan da qua han giu cho, khoa row de 2 request cung
+# don khong cung huy. skip_locked de request sau khong phai cho, don do da co
+# nguoi xu ly roi.
+def list_expired_unpaid_bookings(db: Session) -> list[Booking]:
+    return (
+        db.query(Booking)
+        .filter(
+            Booking.status == BookingStatus.PENDING,
+            Booking.created_at < han_giu_cho_cutoff(),
+            ~da_thanh_toan_xong(),
+        )
+        .with_for_update(skip_locked=True)
+        .all()
+    )
 
 
 # Subquery tong so phong da dat theo loai phong trong khoang ngay, loai tru
-# booking da huy/no-show/da tra phong.
+# booking da huy/no-show/da tra phong va don cho chuyen khoan da het han.
 def booked_quantity_subquery(db: Session, check_in: date, check_out: date):
     return (
         db.query(
@@ -169,6 +204,12 @@ def get_booking_by_id(db: Session, booking_id: int) -> Booking | None:
 # Lay booking theo id va khoa row de thanh toan an toan, tranh thanh toan trung.
 def get_booking_by_id_for_update(db: Session, booking_id: int) -> Booking | None:
     return db.query(Booking).filter(Booking.id == booking_id).with_for_update().first()
+
+
+# Lay booking theo ma va khoa row. Dung cho webhook SePay: 2 goi tin cua cung 1
+# don toi cung luc se phai xep hang, khong cung ghi nhan thanh toan.
+def get_booking_by_code_for_update(db: Session, booking_code: str) -> Booking | None:
+    return db.query(Booking).filter(Booking.booking_code == booking_code).with_for_update().first()
 
 
 # Lay danh sach dong phong theo booking.

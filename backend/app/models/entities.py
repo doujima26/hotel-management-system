@@ -430,6 +430,30 @@ class Invoice(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+# Model bang sepay_transactions - nhat ky moi giao dich chuyen khoan SePay bao
+# ve. Giu ca giao dich khong khop duoc don de con doi soat va hoan tien.
+class SepayTransaction(Base):
+    __tablename__ = "sepay_transactions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # Khoa chong trung: SePay gui lai cung 1 giao dich toi 7 lan khi server loi.
+    sepay_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    payment_code: Mapped[str | None] = mapped_column(String(20))
+    booking_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("bookings.id", ondelete="RESTRICT"))
+    payment_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("payments.id", ondelete="RESTRICT"))
+    transfer_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    gateway: Mapped[str] = mapped_column(String(50), nullable=False)
+    account_number: Mapped[str] = mapped_column(String(50), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    reference_code: Mapped[str | None] = mapped_column(String(100))
+    transaction_date: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="unmatched")
+    note: Mapped[str | None] = mapped_column(Text)
+    raw_payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 # Model bang hotel_services.
 class HotelService(Base):
     __tablename__ = "hotel_services"

@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # DATABASE_URL va khong bao gio commit.
     database_url: str = 'postgresql+psycopg2://postgres:postgres@localhost:5433/hotel_booking_DB'
 
+    # Chuoi ket noi toi database danh rieng cho kiem thu tich hop. Bo test dung
+    # database nay thay cho database phat trien de du lieu seed khong lam hong
+    # test (vd tien nghi trung ten voi tien nghi test tu tao).
+    test_database_url: str = 'postgresql+psycopg2://postgres:postgres@localhost:5433/hotel_booking_test'
+
     # Cau hinh JWT cho access token va refresh token.
     jwt_secret_key: str = 'change_me'
     jwt_algorithm: str = 'HS256'
@@ -60,6 +65,23 @@ class Settings(BaseSettings):
     # Nam). Dung de xac dinh "1 ngay" khi thong ke doanh thu - khong phu thuoc
     # mui gio cua may chu. Dung offset co dinh vi Viet Nam khong co gio mua he.
     business_timezone_offset_hours: int = 7
+
+    # Cau hinh SePay (thanh toan bang chuyen khoan ngan hang). De trong secret
+    # nghia la chua cau hinh: endpoint webhook se tu choi moi request thay vi
+    # chay voi secret rong - secret rong ma van xac thuc thi ai cung ky duoc.
+    sepay_webhook_secret: str = ''
+    # So tai khoan va ma ngan hang dung de sinh ma QR cho khach quet.
+    sepay_account_number: str = ''
+    sepay_bank: str = ''
+    # Dia chi dich vu sinh anh QR cua SePay. De trong bien moi truong thi dung
+    # gia tri nay; doi duoc de khong phai sua code neu SePay doi duong dan.
+    sepay_qr_base_url: str = 'https://qr.sepay.vn/img'
+    # So phut giu phong cho khach chuyen khoan xong. Qua moc nay ma tien chua ve
+    # thi don tu huy va phong duoc ban lai.
+    sepay_hold_minutes: int = 15
+    # Do lech toi da cho phep giua dau thoi gian SePay ky va thoi diem nhan, tinh
+    # bang giay. Gap goi tin cu hon moc nay thi tu choi de chong phat lai.
+    sepay_timestamp_tolerance_seconds: int = 300
 
 
 # Khoi tao doi tuong settings dung chung toan he thong.
