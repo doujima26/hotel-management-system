@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -292,3 +292,52 @@ class HotelDetailResponse(BaseModel):
     amenities: list[HotelAmenityItem] = []
     services: list[str] = []
     images: list[HotelImageResponse]
+
+
+# ===== Doi soat cong no voi khach san =====
+
+
+# Schema du lieu dau vao cho Super Admin doi ty le hoa hong cua 1 khach san.
+class UpdateCommissionRateRequest(BaseModel):
+    commission_rate: float = Field(ge=0, le=100)
+
+
+# Schema du lieu dau vao cho Super Admin ghi nhan 1 dot da chi tra cho khach san.
+class CreatePayoutRequest(BaseModel):
+    hotel_id: int = Field(gt=0)
+    amount: float = Field(gt=0)
+    period_from: date | None = None
+    period_to: date | None = None
+    reference: str | None = Field(default=None, max_length=255)
+    note: str | None = None
+
+
+# Schema du lieu tra ve 1 dot da chi tra.
+class PayoutResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    hotel_id: int
+    amount: float
+    period_from: date | None = None
+    period_to: date | None = None
+    reference: str | None = None
+    note: str | None = None
+    created_at: datetime
+
+
+# Schema du lieu tra ve tinh hinh cong no voi 1 khach san.
+class HotelSettlementResponse(BaseModel):
+    hotel_id: int
+    hotel_name: str
+    commission_rate: float
+    # Tong tien don da thu duoc cua khach san nay.
+    total_collected: float
+    # Tong hoa hong nen tang huong tren cac don do.
+    total_commission: float
+    # So phai tra khach san = da thu - hoa hong.
+    payable: float
+    # Da chi tra bao nhieu.
+    total_paid: float
+    # Con no bao nhieu = phai tra - da chi tra.
+    outstanding: float

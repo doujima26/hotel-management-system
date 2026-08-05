@@ -1,6 +1,6 @@
 import secrets
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import ROUND_CEILING, Decimal
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from fastapi import BackgroundTasks, HTTPException, status
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentMethod, PaymentStatus, UserRole
 from app.core.timeutils import business_today
-from app.models.entities import Booking, BookingRoom, BookingService, Payment, Promotion, User
+from app.models.entities import Booking, BookingRoom, BookingService, Hotel, Payment, Promotion, User
 from app.repositories.booking_repository import (
     create_booking_record,
     create_booking_room_record,
@@ -297,6 +297,8 @@ def _build_booking(
     # Khuyen mai chi ap len tien phong; dich vu cong them nguyen gia.
     total_amount = total_room_price + total_service_price - discount_amount
 
+    commission_rate, commission_amount = _tinh_hoa_hong(hotel, total_room_price, discount_amount)
+
     booking = create_booking_record(
         db,
         user_id=current_user.id,
@@ -311,6 +313,8 @@ def _build_booking(
         special_requests=payload.special_requests,
         discount_amount=discount_amount,
         promotion_id=promotion.id if promotion else None,
+        commission_rate=commission_rate,
+        commission_amount=commission_amount,
     )
 
     rooms = [create_booking_room_record(db, booking_id=booking.id, **plan) for plan in booking_room_plans]
@@ -339,6 +343,22 @@ def _dia_chi_anh_qr(so_tien: int, noi_dung: str) -> str:
     tham_so["amount"] = str(so_tien)
     tham_so["des"] = noi_dung
     return phan_tich._replace(query=urlencode(tham_so)).geturl()
+
+
+# Tinh hoa hong nen tang cho 1 don, tra ve (ty le, so tien).
+#
+# Hoa hong chi tinh tren TIEN PHONG sau khuyen mai, khong tinh tren dich vu them
+# (dua don, an sang...) - dich vu do khach san tu cung cap va tu huong.
+#
+# Ty le va so tien deu duoc chup vao don, khong tinh lai luc doc: Super Admin doi
+# ty le thi don da tao van giu nguyen con so cu.
+def _tinh_hoa_hong(hotel: Hotel, total_room_price: float, discount_amount: float) -> tuple[float, float]:
+    ty_le = float(hotel.commission_rate or 0)
+    tien_phong = Decimal(str(total_room_price)) - Decimal(str(discount_amount))
+    if tien_phong <= 0 or ty_le <= 0:
+        return ty_le, 0.0
+    hoa_hong = (tien_phong * Decimal(str(ty_le)) / Decimal(100)).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    return ty_le, float(hoa_hong)
 
 
 # Dung thong tin de khach quet ma QR chuyen khoan cho 1 don.

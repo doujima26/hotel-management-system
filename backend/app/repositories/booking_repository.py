@@ -135,6 +135,8 @@ def create_booking_record(
     total_service_price: float = 0,
     discount_amount: float = 0,
     promotion_id: int | None = None,
+    commission_rate: float = 0,
+    commission_amount: float = 0,
 ) -> Booking:
     booking = Booking(
         booking_code=booking_code,
@@ -150,6 +152,8 @@ def create_booking_record(
         total_amount=total_amount,
         status=BookingStatus.PENDING,
         special_requests=special_requests,
+        commission_rate=commission_rate,
+        commission_amount=commission_amount,
     )
     db.add(booking)
     db.flush()

@@ -21,13 +21,18 @@ from app.repositories.hotel_repository import (
     get_hotel_image_by_id,
     get_hotel_service_by_id,
     get_hotel_service_by_name,
+    get_booking_totals_by_hotel,
     get_hotels_by_ids,
+    get_payout_totals_by_hotel,
     get_min_active_room_price_by_hotel_ids,
     get_primary_image_url_by_hotel_ids,
     get_promotion_by_id,
     get_reference_room_type_by_hotel_ids,
     get_search_facets,
+    create_payout_record,
     list_hotel_image_records,
+    list_hotels_for_settlement,
+    list_payouts_by_hotel,
     list_hotel_service_records,
     list_promotion_records,
     list_top_rated_hotel_records,
@@ -70,7 +75,11 @@ from app.schemas.hotels import (
     HotelSearchItemResponse,
     HotelSearchResponse,
     HotelServiceResponse,
+    HotelSettlementResponse,
+    PayoutResponse,
     PromotionResponse,
+    CreatePayoutRequest,
+    UpdateCommissionRateRequest,
     UpdateHotelRequest,
     UpdateHotelServiceRequest,
     UpdatePromotionRequest,
@@ -973,3 +982,103 @@ def set_primary_hotel_image(db: Session, current_user: User, image_id: int) -> d
     image = _get_owned_hotel_image(db, current_user, image_id)
     image = set_hotel_image_primary(db, image.hotel_id, image)
     return serialize_hotel_image(image)
+
+
+# ===== Doi soat cong no voi khach san =====
+
+
+# Gop so lieu doi soat cua 1 khach san tu 3 nguon: tien don da thu, hoa hong da
+# chup tren tung don, va cac dot da chi tra.
+def _dung_doi_soat(hotel: Hotel, tong_don: tuple[float, float], da_tra: float) -> HotelSettlementResponse:
+    da_thu, hoa_hong = tong_don
+    phai_tra = da_thu - hoa_hong
+    return HotelSettlementResponse(
+        hotel_id=hotel.id,
+        hotel_name=hotel.name,
+        commission_rate=float(hotel.commission_rate or 0),
+        total_collected=da_thu,
+        total_commission=hoa_hong,
+        payable=phai_tra,
+        total_paid=da_tra,
+        outstanding=phai_tra - da_tra,
+    )
+
+
+# Xu ly Super Admin xem cong no voi toan bo khach san.
+def list_hotel_settlements(db: Session, current_user: User) -> list[dict]:
+    hotels = list_hotels_for_settlement(db)
+    hotel_ids = [hotel.id for hotel in hotels]
+    tong_don = get_booking_totals_by_hotel(db, hotel_ids)
+    da_tra = get_payout_totals_by_hotel(db, hotel_ids)
+    ket_qua = [
+        _dung_doi_soat(hotel, tong_don.get(hotel.id, (0.0, 0.0)), da_tra.get(hotel.id, 0.0))
+        for hotel in hotels
+    ]
+    # Khach san dang no nhieu nhat len dau - do la viec can xu ly truoc.
+    ket_qua.sort(key=lambda item: item.outstanding, reverse=True)
+    return [item.model_dump(mode="json") for item in ket_qua]
+
+
+# Xu ly Admin xem cong no nen tang dang giu ho khach san minh.
+def get_my_settlement(db: Session, current_user: User) -> dict:
+    hotel = get_operating_admin_hotel(db, current_user)
+    tong_don = get_booking_totals_by_hotel(db, [hotel.id])
+    da_tra = get_payout_totals_by_hotel(db, [hotel.id])
+    doi_soat = _dung_doi_soat(hotel, tong_don.get(hotel.id, (0.0, 0.0)), da_tra.get(hotel.id, 0.0))
+    return doi_soat.model_dump(mode="json")
+
+
+# Xu ly Admin xem lich su cac dot nen tang da chi tra cho khach san minh.
+def list_my_payouts(db: Session, current_user: User) -> list[dict]:
+    hotel = get_operating_admin_hotel(db, current_user)
+    return [PayoutResponse.model_validate(item).model_dump(mode="json") for item in list_payouts_by_hotel(db, hotel.id)]
+
+
+# Xu ly Super Admin xem lich su chi tra cua 1 khach san bat ky.
+def list_hotel_payouts(db: Session, current_user: User, hotel_id: int) -> list[dict]:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+    return [PayoutResponse.model_validate(item).model_dump(mode="json") for item in list_payouts_by_hotel(db, hotel.id)]
+
+
+# Xu ly Super Admin doi ty le hoa hong cua 1 khach san. Ty le moi chi ap cho don
+# tao SAU thoi diem doi; don da tao giu nguyen ty le da chup.
+def update_commission_rate(db: Session, current_user: User, hotel_id: int, payload: UpdateCommissionRateRequest) -> dict:
+    hotel = get_hotel_by_id(db, hotel_id)
+    if not hotel:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+
+    hotel.commission_rate = payload.commission_rate
+    save_hotel(db, hotel)
+    return serialize_hotel(hotel)
+
+
+# Xu ly Super Admin ghi nhan 1 dot da chi tra cho khach san. Viec chuyen tien
+# that lam ngoai he thong, day chi la buoc ghi so.
+def create_hotel_payout(db: Session, current_user: User, payload: CreatePayoutRequest) -> dict:
+    hotel = get_hotel_by_id(db, payload.hotel_id)
+    if not hotel:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+
+    # Chan ghi vuot so dang no: ghi thua se lam cong no am va sai so sach.
+    tong_don = get_booking_totals_by_hotel(db, [hotel.id])
+    da_tra = get_payout_totals_by_hotel(db, [hotel.id])
+    con_no = _dung_doi_soat(hotel, tong_don.get(hotel.id, (0.0, 0.0)), da_tra.get(hotel.id, 0.0)).outstanding
+    if payload.amount > con_no:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"So tien vuot qua cong no hien tai ({con_no:,.0f} d)",
+        )
+
+    payout = create_payout_record(
+        db,
+        hotel_id=hotel.id,
+        amount=payload.amount,
+        period_from=payload.period_from,
+        period_to=payload.period_to,
+        reference=payload.reference,
+        note=payload.note,
+        created_by=current_user.id,
+    )
+    return PayoutResponse.model_validate(payout).model_dump(mode="json")

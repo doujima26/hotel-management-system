@@ -3,14 +3,17 @@ from datetime import date
 from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, HotelSortOption, HotelStatus
+from app.core.enums import BookingStatus, DiscountType, HotelSortOption, HotelStatus, PaymentStatus
 from app.models.entities import (
     Amenity,
+    Booking,
     BookingService,
     Hotel,
     HotelAmenity,
     HotelImage,
+    HotelPayout,
     HotelService,
+    Payment,
     Promotion,
     RoomType,
     RoomTypeAmenity,
@@ -712,3 +715,88 @@ def set_hotel_image_primary(db: Session, hotel_id: int, image: HotelImage) -> Ho
     db.commit()
     db.refresh(image)
     return image
+
+
+# ===== Doi soat cong no voi khach san =====
+
+
+# Tong tien don da THU DUOC va tong hoa hong nen tang huong, gom theo khach san.
+#
+# Chi tinh don co thanh toan completed: don huy da hoan tien co payment_status
+# refunded nen tu roi ra khoi phep tinh, khong can dieu kien rieng.
+#
+# Dung total_amount cua DON chu khong dung so tien khach chuyen: khach chuyen
+# thua thi phan thua la khoan phai hoan lai cho khach, khong phai tien cua
+# khach san.
+def get_booking_totals_by_hotel(db: Session, hotel_ids: list[int] | None = None) -> dict[int, tuple[float, float]]:
+    query = (
+        db.query(
+            Booking.hotel_id,
+            func.coalesce(func.sum(Booking.total_amount), 0),
+            func.coalesce(func.sum(Booking.commission_amount), 0),
+        )
+        .join(Payment, Payment.booking_id == Booking.id)
+        .filter(Payment.payment_status == PaymentStatus.COMPLETED)
+        .group_by(Booking.hotel_id)
+    )
+    if hotel_ids is not None:
+        query = query.filter(Booking.hotel_id.in_(hotel_ids))
+    return {hotel_id: (float(da_thu), float(hoa_hong)) for hotel_id, da_thu, hoa_hong in query.all()}
+
+
+# Tong so tien da chi tra cho tung khach san.
+def get_payout_totals_by_hotel(db: Session, hotel_ids: list[int] | None = None) -> dict[int, float]:
+    query = db.query(HotelPayout.hotel_id, func.coalesce(func.sum(HotelPayout.amount), 0)).group_by(
+        HotelPayout.hotel_id
+    )
+    if hotel_ids is not None:
+        query = query.filter(HotelPayout.hotel_id.in_(hotel_ids))
+    return {hotel_id: float(tong) for hotel_id, tong in query.all()}
+
+
+# Danh sach cac dot da chi tra cho 1 khach san, moi nhat truoc.
+def list_payouts_by_hotel(db: Session, hotel_id: int) -> list[HotelPayout]:
+    return (
+        db.query(HotelPayout)
+        .filter(HotelPayout.hotel_id == hotel_id)
+        .order_by(HotelPayout.created_at.desc())
+        .all()
+    )
+
+
+# Ghi nhan 1 dot chi tra cho khach san.
+def create_payout_record(
+    db: Session,
+    *,
+    hotel_id: int,
+    amount: float,
+    period_from: date | None,
+    period_to: date | None,
+    reference: str | None,
+    note: str | None,
+    created_by: int,
+) -> HotelPayout:
+    payout = HotelPayout(
+        hotel_id=hotel_id,
+        amount=amount,
+        period_from=period_from,
+        period_to=period_to,
+        reference=reference,
+        note=note,
+        created_by=created_by,
+    )
+    db.add(payout)
+    db.commit()
+    db.refresh(payout)
+    return payout
+
+
+# Danh sach khach san can doi soat cong no: chi khach san da tung van hanh
+# (approved/suspended) moi co don va co tien de doi soat.
+def list_hotels_for_settlement(db: Session) -> list[Hotel]:
+    return (
+        db.query(Hotel)
+        .filter(Hotel.status.in_((HotelStatus.APPROVED, HotelStatus.SUSPENDED)))
+        .order_by(Hotel.name.asc())
+        .all()
+    )

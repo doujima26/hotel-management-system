@@ -28,7 +28,9 @@ from app.services.hotel_service import (
     delete_promotion as delete_promotion_service_action,
     get_hotel_detail as get_hotel_detail_action,
     get_my_hotel as get_my_hotel_action,
+    get_my_settlement as get_my_settlement_action,
     get_search_filters as get_search_filters_action,
+    list_my_payouts as list_my_payouts_action,
     list_hotel_amenities as list_hotel_amenities_action,
     list_hotel_images as list_hotel_images_action,
     list_hotel_services as list_hotel_services_action,
@@ -182,6 +184,27 @@ def get_my_hotel(
 ):
     data = get_my_hotel_action(db, current_user)
     return ok(data, "Thong tin khach san cua toi")
+
+
+# Admin xem so tien nen tang dang giu ho khach san minh. Dat truoc "/{hotel_id}"
+# de tranh bi route dong nuot mat.
+@router.get("/me/settlement")
+def get_my_settlement_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = get_my_settlement_action(db, current_user)
+    return ok(data, "Doi soat cong no")
+
+
+# Admin xem lich su cac dot nen tang da chi tra cho khach san minh.
+@router.get("/me/payouts")
+def list_my_payouts_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    data = list_my_payouts_action(db, current_user)
+    return ok(data, "Lich su nhan tien")
 
 
 # Admin cap nhat thong tin khach san cua minh.

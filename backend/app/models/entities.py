@@ -74,6 +74,9 @@ class Hotel(Base):
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     avg_rating: Mapped[float] = mapped_column(Numeric(4, 2), nullable=False, default=0)
     total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Ty le hoa hong nen tang huong tren moi don, phan tram. Chi ap cho don MOI;
+    # don da tao giu ty le da chup trong bang bookings.
+    commission_rate: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, server_default=text("10.00"))
     # Quy tac chung (house rules): gio nhan/tra phong, chinh sach huy/tre em, thu cung.
     check_in_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'14:00'"))
     check_out_time: Mapped[Time] = mapped_column(Time, nullable=False, server_default=text("'12:00'"))
@@ -350,6 +353,10 @@ class Booking(Base):
     cancelled_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"))
     promotion_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("promotions.id"))
     special_requests: Mapped[str | None] = mapped_column(Text)
+    # Hoa hong nen tang, chup lai luc tao don giong cach booking_rooms chup gia
+    # phong. Doi ty le ben hotels khong lam thay doi don da tao.
+    commission_rate: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, server_default=text("0"))
+    commission_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, server_default=text("0"))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -427,6 +434,22 @@ class Invoice(Base):
     discount_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     issued_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+# Model bang hotel_payouts - cac dot nen tang chi tra tien cho khach san. Viec
+# chuyen tien that lam ngoai he thong; bang nay ghi nhan lai de tinh cong no.
+class HotelPayout(Base):
+    __tablename__ = "hotel_payouts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    hotel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("hotels.id", ondelete="RESTRICT"), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    period_from: Mapped[Date | None] = mapped_column(Date)
+    period_to: Mapped[Date | None] = mapped_column(Date)
+    reference: Mapped[str | None] = mapped_column(String(255))
+    note: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

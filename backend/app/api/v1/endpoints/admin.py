@@ -7,6 +7,7 @@ from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.admin import ReviewHotelRequest, SetUserActiveRequest
+from app.schemas.hotels import CreatePayoutRequest, UpdateCommissionRateRequest
 from app.services.admin_service import (
     get_hotel_detail_for_admin,
     get_user_detail_for_admin,
@@ -15,6 +16,12 @@ from app.services.admin_service import (
     list_users_for_admin,
     review_hotel,
     set_user_active_for_admin,
+)
+from app.services.hotel_service import (
+    create_hotel_payout,
+    list_hotel_payouts,
+    list_hotel_settlements,
+    update_commission_rate,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -130,3 +137,50 @@ def list_admin_action_logs_endpoint(
 ):
     data = list_admin_action_logs(db, target_type=target_type, page=page, page_size=page_size)
     return ok(data, "Nhat ky hanh dong quan tri")
+
+
+# Super Admin xem cong no voi tung khach san (mo hinh thuong nhan: nen tang thu
+# tien roi chi tra lai cho khach san sau khi tru hoa hong).
+@router.get("/settlements")
+def list_settlements_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = list_hotel_settlements(db, current_user)
+    return ok(data, "Cong no voi khach san")
+
+
+# Super Admin xem lich su cac dot da chi tra cho 1 khach san.
+@router.get("/hotels/{hotel_id}/payouts")
+def list_hotel_payouts_endpoint(
+    hotel_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = list_hotel_payouts(db, current_user, hotel_id)
+    return ok(data, "Lich su chi tra")
+
+
+# Super Admin doi ty le hoa hong cua 1 khach san. Ty le moi chi ap cho don tao
+# sau thoi diem doi.
+@router.patch("/hotels/{hotel_id}/commission")
+def update_commission_endpoint(
+    hotel_id: int,
+    payload: UpdateCommissionRateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = update_commission_rate(db, current_user, hotel_id, payload)
+    return ok(data, "Cap nhat ty le hoa hong thanh cong")
+
+
+# Super Admin ghi nhan 1 dot da chi tra cho khach san. Viec chuyen tien that lam
+# ngoai he thong, day chi la buoc ghi so.
+@router.post("/payouts")
+def create_payout_endpoint(
+    payload: CreatePayoutRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
+):
+    data = create_hotel_payout(db, current_user, payload)
+    return ok(data, "Ghi nhan dot chi tra thanh cong")
