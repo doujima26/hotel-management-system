@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enums import AdminActionTarget, AdminActionType, HotelStatus, UserRole
@@ -64,6 +64,7 @@ from app.schemas.admin import (
     SetUserActiveRequest,
 )
 from app.services.auth_service import set_user_active
+from app.services.email_service import queue_email, send_hotel_review_result
 
 
 # So ngay lay chi so hoat dong cho danh sach khach san.
@@ -270,7 +271,13 @@ _ALLOWED_TRANSITIONS = {
 # service cho dung phan tang, va de ban ghi nhat ky nam cung mot giao dich voi
 # thay doi trang thai (khong the co truong hop doi trang thai xong nhung mat
 # nhat ky, hoac nguoc lai).
-def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRequest) -> dict:
+def review_hotel(
+    db: Session,
+    actor: User,
+    hotel_id: int,
+    payload: ReviewHotelRequest,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict:
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel:
         raise HTTPException(
@@ -313,6 +320,20 @@ def review_hotel(db: Session, actor: User, hotel_id: int, payload: ReviewHotelRe
         reason=reason or None,
     )
     hotel = save_hotel(db, hotel)
+
+    # Bao ket qua tham dinh cho chu khach san. Tam dung khong gui vi ly do da
+    # hien ngay tren trang quan ly cua ho.
+    if new_status in (HotelStatus.APPROVED, HotelStatus.REJECTED):
+        owner = get_user_by_id(db, hotel.owner_id)
+        if owner:
+            queue_email(
+                background_tasks,
+                send_hotel_review_result,
+                owner.email,
+                hotel.name,
+                new_status == HotelStatus.APPROVED,
+                reason or None,
+            )
 
     return ReviewHotelResponse(
         id=hotel.id,

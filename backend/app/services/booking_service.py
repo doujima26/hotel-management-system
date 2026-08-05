@@ -1,7 +1,7 @@
 import secrets
 from datetime import date, datetime, time, timezone
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -40,6 +40,7 @@ from app.schemas.bookings import (
     CreateBookingRequest,
 )
 from app.schemas.payments import InvoiceResponse, PaymentResponse
+from app.services.email_service import queue_email, send_booking_confirmed
 from app.services.hotel_service import get_operating_admin_hotel, get_operational_hotel
 from app.services.payment_service import build_payment_with_invoice
 from app.services.pricing_service import resolve_stay_total
@@ -406,7 +407,9 @@ def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingS
 
 # Xu ly Admin xac nhan hoa don: booking phai da thanh toan va dang cho xac nhan.
 # Sau khi xac nhan, he thong (mock) tu dong gui email thong bao cho khach.
-def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
+def confirm_booking(
+    db: Session, current_user: User, booking_id: int, background_tasks: BackgroundTasks | None = None
+) -> dict:
     hotel = get_operating_admin_hotel(db, current_user)
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
@@ -434,6 +437,21 @@ def confirm_booking(db: Session, current_user: User, booking_id: int) -> dict:
     db.add(booking)
     db.commit()
     db.refresh(booking)
+
+    # Bao cho khach sau khi da chot trang thai, khong phai truoc.
+    customer = get_user_by_id(db, booking.user_id)
+    if customer:
+        queue_email(
+            background_tasks,
+            send_booking_confirmed,
+            customer.email,
+            customer.full_name,
+            booking.booking_code,
+            hotel.name,
+            booking.check_in_date.strftime("%d/%m/%Y"),
+            booking.check_out_date.strftime("%d/%m/%Y"),
+            float(booking.total_amount),
+        )
 
     rooms = list_booking_rooms(db, booking.id)
     return serialize_booking(db, booking, rooms, list_booking_services(db, booking.id))

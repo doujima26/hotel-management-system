@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -111,10 +111,11 @@ def set_user_active_endpoint(
 def review_hotel_endpoint(
     hotel_id: int,
     payload: ReviewHotelRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ):
-    data = review_hotel(db, current_user, hotel_id, payload)
+    data = review_hotel(db, current_user, hotel_id, payload, background_tasks)
     return ok(data, "Cap nhat trang thai duyet khach san thanh cong")
 
 

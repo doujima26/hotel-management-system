@@ -1,7 +1,7 @@
 import secrets
 from datetime import date, time, timedelta
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enums import UserRole
@@ -33,6 +33,7 @@ from app.schemas.staff import (
     StaffScheduleCalendarRow,
     StaffScheduleCalendarShift,
 )
+from app.services.email_service import is_email_configured, queue_email, send_staff_account_created
 from app.services.hotel_service import (
     get_approved_admin_hotel,
     get_operating_admin_hotel,
@@ -61,9 +62,14 @@ def _serialize_staff(staff: StaffMember, user: User) -> dict:
 
 
 # Xu ly Admin tao nhan vien moi: tao tai khoan User (role staff) va gan vao khach
-# san minh. Mat khau tam duoc mock tra ve thang trong response, chua gui email
-# that (Gmail SMTP that se lam o Phase 8).
-def create_staff(db: Session, current_user: User, payload: CreateStaffRequest) -> dict:
+# san minh. Mat khau tam duoc gui qua email cho nhan vien; chi tra kem trong
+# response khi chua cau hinh SMTP de moi truong phat trien van dung duoc.
+def create_staff(
+    db: Session,
+    current_user: User,
+    payload: CreateStaffRequest,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict:
     # Doi trang thai da duyet: khach san tam dung khong duoc them tai khoan moi.
     hotel = get_approved_admin_hotel(db, current_user)
 
@@ -94,8 +100,20 @@ def create_staff(db: Session, current_user: User, payload: CreateStaffRequest) -
         hired_at=payload.hired_at,
     )
 
+    queue_email(
+        background_tasks,
+        send_staff_account_created,
+        payload.email,
+        payload.full_name,
+        hotel.name,
+        temp_password,
+    )
+
     data = _serialize_staff(staff, user)
-    return CreateStaffResponse(**data, temp_password_mock=temp_password).model_dump(mode="json")
+    return CreateStaffResponse(
+        **data,
+        temp_password_mock=None if is_email_configured() else temp_password,
+    ).model_dump(mode="json")
 
 
 # Xu ly lay danh sach nhan vien cua khach san Admin dang quan ly.

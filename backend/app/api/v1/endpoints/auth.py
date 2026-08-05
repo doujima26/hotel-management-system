@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -35,8 +35,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Xu ly dang ky tai khoan moi.
 @router.post("/register")
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    data = register_user(db, payload)
+def register(payload: RegisterRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    data = register_user(db, payload, background_tasks)
     return ok(data, "Dang ky thanh cong, vui long xac thuc OTP")
 
 
@@ -119,8 +119,10 @@ def change_password_endpoint(
 
 # Xu ly cap OTP mock cho luong quen mat khau.
 @router.post("/forgot-password")
-def forgot_password_endpoint(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    data = forgot_password(db, payload)
+def forgot_password_endpoint(
+    payload: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    data = forgot_password(db, payload, background_tasks)
     return ok(data, "Neu email ton tai, OTP da duoc gui")
 
 
@@ -133,8 +135,10 @@ def reset_password_endpoint(payload: ResetPasswordRequest, db: Session = Depends
 
 # Xu ly gui OTP mock de xac thuc tai khoan.
 @router.post("/send-verify-otp")
-def send_verify_otp_endpoint(payload: SendVerifyOtpRequest, db: Session = Depends(get_db)):
-    data = send_verify_otp(db, payload)
+def send_verify_otp_endpoint(
+    payload: SendVerifyOtpRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    data = send_verify_otp(db, payload, background_tasks)
     return ok(data, "Neu email ton tai, OTP xac thuc da duoc gui")
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -73,14 +73,15 @@ def list_hotel_bookings(
     return ok(data, "Danh sach booking cua khach san")
 
 
-# Admin xac nhan hoa don, chuyen booking sang confirmed va gui email (mock) cho khach.
+# Admin xac nhan hoa don, chuyen booking sang confirmed va gui email cho khach.
 @router.patch("/{booking_id}/confirm")
 def confirm_booking(
     booking_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    data = confirm_booking_action(db, current_user, booking_id)
+    data = confirm_booking_action(db, current_user, booking_id, background_tasks)
     return ok(data, "Xac nhan don dat phong thanh cong, da gui email thong bao toi khach")
 
 

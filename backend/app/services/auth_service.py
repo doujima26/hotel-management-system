@@ -1,6 +1,6 @@
 import secrets
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -25,11 +25,27 @@ from app.schemas.auth import (
     VerifyAccountRequest,
     VerifyAccountResponse,
 )
+from app.services.email_service import (
+    is_email_configured,
+    queue_email,
+    send_account_verify_otp,
+    send_password_reset_otp,
+)
 from app.services.password_reset_store import create_otp, delete_otp, verify_otp
+
+# So phut hieu luc cua OTP.
+_OTP_EXPIRES_MINUTES = 10
+
+
+# Tra ve OTP kem trong response chi khi chua cau hinh SMTP. Da gui duoc mail thi
+# phai giau di, neu khong bat ky ai cung goi duoc endpoint voi email nguoi khac
+# de lay ma dat lai mat khau cua ho.
+def _otp_tra_ve(otp_code: str) -> str | None:
+    return None if is_email_configured() else otp_code
 
 
 # Xu ly nghiep vu dang ky tai khoan.
-def register_user(db: Session, payload: RegisterRequest):
+def register_user(db: Session, payload: RegisterRequest, background_tasks: BackgroundTasks | None = None):
     existing = get_user_by_email(db, payload.email)
     if existing:
         raise HTTPException(
@@ -48,9 +64,10 @@ def register_user(db: Session, payload: RegisterRequest):
         is_verified=False,
     )
     otp_code = f"{secrets.randbelow(1_000_000):06d}"
-    create_otp(payload.email, otp_code, expires_minutes=10, purpose="verify")
+    create_otp(payload.email, otp_code, expires_minutes=_OTP_EXPIRES_MINUTES, purpose="verify")
+    queue_email(background_tasks, send_account_verify_otp, payload.email, otp_code, _OTP_EXPIRES_MINUTES)
     user_data = UserPublicResponse.model_validate(user).model_dump()
-    return RegisterResponse(**user_data, otp_mock=otp_code).model_dump(mode="json")
+    return RegisterResponse(**user_data, otp_mock=_otp_tra_ve(otp_code)).model_dump(mode="json")
 
 
 # Xu ly nghiep vu dang nhap va cap token.
@@ -123,15 +140,16 @@ def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
     return ChangePasswordResponse(user_id=user.id).model_dump(mode="json")
 
 
-# Tao OTP mock cho luong quen mat khau.
-def forgot_password(db: Session, payload: ForgotPasswordRequest):
+# Tao OTP cho luong quen mat khau va gui qua email.
+def forgot_password(db: Session, payload: ForgotPasswordRequest, background_tasks: BackgroundTasks | None = None):
     user = get_user_by_email(db, payload.email)
     if not user:
         return ForgotPasswordResponse(email=payload.email, otp_mock=None).model_dump(mode="json")
 
     otp_code = f"{secrets.randbelow(1_000_000):06d}"
-    create_otp(payload.email, otp_code, expires_minutes=10, purpose="reset")
-    return ForgotPasswordResponse(email=payload.email, otp_mock=otp_code).model_dump(mode="json")
+    create_otp(payload.email, otp_code, expires_minutes=_OTP_EXPIRES_MINUTES, purpose="reset")
+    queue_email(background_tasks, send_password_reset_otp, payload.email, otp_code, _OTP_EXPIRES_MINUTES)
+    return ForgotPasswordResponse(email=payload.email, otp_mock=_otp_tra_ve(otp_code)).model_dump(mode="json")
 
 
 # Dat lai mat khau bang OTP da cap.
@@ -166,8 +184,8 @@ def reset_password(db: Session, payload: ResetPasswordRequest):
     return ResetPasswordResponse(user_id=user.id).model_dump(mode="json")
 
 
-# Tao OTP mock cho luong xac thuc tai khoan sau dang ky.
-def send_verify_otp(db: Session, payload: SendVerifyOtpRequest):
+# Tao OTP cho luong xac thuc tai khoan sau dang ky va gui qua email.
+def send_verify_otp(db: Session, payload: SendVerifyOtpRequest, background_tasks: BackgroundTasks | None = None):
     user = get_user_by_email(db, payload.email)
     if not user:
         return SendVerifyOtpResponse(email=payload.email, otp_mock=None).model_dump(mode="json")
@@ -176,8 +194,11 @@ def send_verify_otp(db: Session, payload: SendVerifyOtpRequest):
         return SendVerifyOtpResponse(email=payload.email, otp_mock=None, is_verified=True).model_dump(mode="json")
 
     otp_code = f"{secrets.randbelow(1_000_000):06d}"
-    create_otp(payload.email, otp_code, expires_minutes=10, purpose="verify")
-    return SendVerifyOtpResponse(email=payload.email, otp_mock=otp_code, is_verified=False).model_dump(mode="json")
+    create_otp(payload.email, otp_code, expires_minutes=_OTP_EXPIRES_MINUTES, purpose="verify")
+    queue_email(background_tasks, send_account_verify_otp, payload.email, otp_code, _OTP_EXPIRES_MINUTES)
+    return SendVerifyOtpResponse(
+        email=payload.email, otp_mock=_otp_tra_ve(otp_code), is_verified=False
+    ).model_dump(mode="json")
 
 
 # Xac thuc tai khoan va cap nhat is_verified khi OTP hop le.

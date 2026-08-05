@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -33,10 +33,11 @@ router = APIRouter(prefix="/staff", tags=["staff"])
 @router.post("")
 def create_staff(
     payload: CreateStaffRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    data = create_staff_action(db, current_user, payload)
+    data = create_staff_action(db, current_user, payload, background_tasks)
     return ok(data, "Tao nhan vien thanh cong")
 
 
