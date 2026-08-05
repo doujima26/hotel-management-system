@@ -1,11 +1,14 @@
 import secrets
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from decimal import ROUND_CEILING, Decimal
+from urllib.parse import urlencode
 
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentStatus, UserRole
+from app.core.config import settings
+from app.core.enums import BookingStatus, DiscountType, HotelStatus, PaymentMethod, PaymentStatus, UserRole
 from app.core.timeutils import business_today
 from app.models.entities import Booking, BookingRoom, BookingService, Payment, Promotion, User
 from app.repositories.booking_repository import (
@@ -19,6 +22,7 @@ from app.repositories.booking_repository import (
     list_booking_services,
     list_bookings_by_hotel,
     list_bookings_by_user,
+    list_expired_unpaid_bookings,
 )
 from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
@@ -29,6 +33,7 @@ from app.repositories.room_repository import (
 )
 from app.repositories.user_repository import get_user_by_id
 from app.schemas.bookings import (
+    BankTransferResponse,
     BookingResponse,
     BookingRoomItem,
     BookingRoomResponse,
@@ -53,11 +58,20 @@ _CANCELLABLE_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
 
 
 
-# Sinh ma booking dang BK-YYYYMMDD-xxxxxx.
+# Bang chu cai sinh ma booking: bo 0/O va 1/I vi khach doi khi phai tu go lai ma
+# vao noi dung chuyen khoan thay vi quet QR.
+_BOOKING_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+_BOOKING_CODE_LENGTH = 8
+
+
+# Sinh ma booking dang BK + 8 ky tu ngau nhien (vi du BKA3F92C7K). Ma nay dong
+# thoi la ma thanh toan dat trong noi dung chuyen khoan de SePay boc tach ra,
+# nen phai dung dinh dang da cau hinh ben SePay: tien to chu + hau to chu/so,
+# khong dau gach ngang. Dung ky tu ngau nhien thay vi ngay thang + so tang dan
+# de khong ai doan duoc ma don cua nguoi khac.
 def _generate_booking_code() -> str:
-    today = date.today()
-    suffix = f"{secrets.randbelow(1_000_000):06d}"
-    return f"BK-{today:%Y%m%d}-{suffix}"
+    suffix = "".join(secrets.choice(_BOOKING_CODE_ALPHABET) for _ in range(_BOOKING_CODE_LENGTH))
+    return f"BK{suffix}"
 
 
 # Chuyen booking va cac dong phong thanh du lieu tra ve - tu lay them thong tin
@@ -310,15 +324,46 @@ def _build_booking(
     return booking, rooms
 
 
-# Xu ly dat phong va thanh toan trong CUNG 1 giao dich: hoac tao duoc ca don,
-# thanh toan va hoa don, hoac khong ghi gi. Nho vay khong sinh ra don cho thanh
-# toan nam lai trong he thong khi buoc thanh toan hong giua chung.
+# Dung thong tin de khach quet ma QR chuyen khoan cho 1 don.
+def _thong_tin_chuyen_khoan(booking: Booking) -> BankTransferResponse:
+    so_tien = int(Decimal(booking.total_amount).quantize(Decimal(1), rounding=ROUND_CEILING))
+    tham_so = urlencode(
+        {
+            "acc": settings.sepay_account_number,
+            "bank": settings.sepay_bank,
+            "amount": so_tien,
+            "des": booking.booking_code,
+        }
+    )
+    return BankTransferResponse(
+        payment_code=booking.booking_code,
+        amount=so_tien,
+        account_number=settings.sepay_account_number,
+        bank=settings.sepay_bank,
+        qr_url=f"{settings.sepay_qr_base_url}?{tham_so}",
+        expires_at=booking.created_at + timedelta(minutes=settings.sepay_hold_minutes),
+    )
+
+
+# Xu ly dat phong. Hai nhanh khac han nhau tuy phuong thuc thanh toan:
+#
+# - Thanh toan mock (momo/zalopay/credit_card): tien coi nhu tra ngay, nen don,
+#   thanh toan va hoa don duoc tao trong CUNG 1 giao dich - hoac co ca ba, hoac
+#   khong ghi gi.
+#
+# - Chuyen khoan (bank_transfer): chi tao don va giu phong, vi tien chi that su
+#   ve sau khi khach mo app ngan hang, viec do keo dai bao lau khong biet truoc.
+#   Thanh toan va hoa don sinh ra khi webhook SePay bao tien da ve. Don khong
+#   duoc tra tien trong han giu cho se tu huy.
 def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
+    cho_chuyen_khoan = payload.payment_method == PaymentMethod.BANK_TRANSFER
+    payment = invoice = None
     try:
         booking, rooms = _build_booking(db, current_user, payload)
-        # Can id cua booking de gan vao thanh toan va hoa don.
-        db.flush()
-        payment, invoice = build_payment_with_invoice(db, booking, current_user, payload.payment_method)
+        if not cho_chuyen_khoan:
+            # Can id cua booking de gan vao thanh toan va hoa don.
+            db.flush()
+            payment, invoice = build_payment_with_invoice(db, booking, current_user, payload.payment_method)
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -328,18 +373,55 @@ def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
         ) from exc
 
     db.refresh(booking)
-    db.refresh(payment)
-    db.refresh(invoice)
+    if payment is not None:
+        db.refresh(payment)
+        db.refresh(invoice)
 
     return CheckoutResponse(
         booking=serialize_booking(db, booking, rooms, list_booking_services(db, booking.id)),
-        payment=PaymentResponse.model_validate(payment),
-        invoice=InvoiceResponse.model_validate(invoice),
+        payment=PaymentResponse.model_validate(payment) if payment else None,
+        invoice=InvoiceResponse.model_validate(invoice) if invoice else None,
+        bank_transfer=_thong_tin_chuyen_khoan(booking) if cho_chuyen_khoan else None,
     ).model_dump(mode="json")
+
+
+# Ly do ghi vao don bi he thong tu huy khi khach khong chuyen khoan kip.
+_LY_DO_QUA_HAN = "Qua han chuyen khoan, he thong tu huy don"
+
+
+# Huy cac don cho chuyen khoan da qua han giu cho.
+#
+# He thong khong chay tac vu nen, nen viec don dep lam ngay truoc khi liet ke
+# don: phong da duoc nha ra tu truoc (dieu kien tinh trong SQL), day chi la buoc
+# dua trang thai don ve dung thuc te de khach khong thay don treo mai o "cho
+# thanh toan". Trang thai cancelled la dut khoat, nho vay webhook toi muon biet
+# duoc minh roi vao nhanh khong khop.
+#
+# cancelled_by de trong: don do he thong huy, khong phai nguoi nao huy.
+def huy_don_qua_han(db: Session) -> int:
+    bookings = list_expired_unpaid_bookings(db)
+    if not bookings:
+        return 0
+
+    for booking in bookings:
+        booking.status = BookingStatus.CANCELLED
+        booking.cancellation_reason = _LY_DO_QUA_HAN
+        booking.cancelled_at = datetime.now(timezone.utc)
+        db.add(booking)
+        # Tra lai luot dung khuyen mai, giong het luong huy don thong thuong.
+        if booking.promotion_id is not None:
+            promotion = get_promotion_by_id_for_update(db, booking.promotion_id)
+            if promotion and promotion.used_count > 0:
+                promotion.used_count -= 1
+                db.add(promotion)
+
+    db.commit()
+    return len(bookings)
 
 
 # Xu ly lay danh sach booking cua nguoi dung hien tai.
 def list_my_bookings(db: Session, current_user: User) -> list[dict]:
+    huy_don_qua_han(db)
     bookings = list_bookings_by_user(db, current_user.id)
     return [
         serialize_booking(db, booking, list_booking_rooms(db, booking.id), list_booking_services(db, booking.id))
@@ -377,6 +459,7 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
 
 # Xu ly Admin/Staff xem danh sach booking cua khach san minh, co the loc theo trang thai.
 def list_hotel_bookings(db: Session, current_user: User, status_filter: BookingStatus | None) -> list[dict]:
+    huy_don_qua_han(db)
     hotel = get_operational_hotel(db, current_user)
     bookings = list_bookings_by_hotel(db, hotel.id, status_filter)
     return [

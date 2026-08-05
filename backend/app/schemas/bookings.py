@@ -93,9 +93,29 @@ class BookingResponse(BaseModel):
     services: list[BookingServiceResponse] = []
 
 
-# Schema du lieu tra ve cua luong dat phong gop 1 giao dich: du ca don, thanh
-# toan va hoa don de man hinh hoan tat hien duoc ngay, khong phai goi them.
+# Schema thong tin de khach quet ma QR chuyen khoan. Chi co khi chon phuong
+# thuc bank_transfer.
+class BankTransferResponse(BaseModel):
+    # Noi dung chuyen khoan khach phai giu nguyen - chinh la booking_code, SePay
+    # boc chuoi nay ra de biet tien cua don nao.
+    payment_code: str
+    amount: int
+    account_number: str
+    bank: str
+    qr_url: str
+    # Moc het han giu phong; qua moc nay don tu huy va phong duoc ban lai.
+    expires_at: datetime
+
+
+# Schema du lieu tra ve cua luong dat phong.
+#
+# Voi cac phuong thuc thanh toan mock: don, thanh toan va hoa don duoc tao trong
+# cung 1 giao dich nen tra ve day du, man hinh hoan tat hien duoc ngay.
+#
+# Voi bank_transfer: chi co don, kem thong tin QR. Thanh toan va hoa don chi
+# sinh ra khi ngan hang bao tien da ve (webhook SePay).
 class CheckoutResponse(BaseModel):
     booking: BookingResponse
-    payment: PaymentResponse
-    invoice: InvoiceResponse
+    payment: PaymentResponse | None = None
+    invoice: InvoiceResponse | None = None
+    bank_transfer: BankTransferResponse | None = None
