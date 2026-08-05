@@ -51,16 +51,7 @@ function ProfileSection({ me }: { me: User }) {
           <h1 className="text-2xl font-bold">Thông tin cá nhân</h1>
           <p className="mt-1 text-sm text-muted-foreground">Cập nhật thông tin của bạn dùng khi đặt phòng.</p>
         </div>
-        <div className="size-16 shrink-0 overflow-hidden rounded-full border bg-muted">
-          {me.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={me.avatar_url} alt={me.full_name} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-              {me.full_name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+        <AvatarPreview url={me.avatar_url} name={me.full_name} className="size-16 text-xl" />
       </div>
 
       <div className="mt-4 divide-y rounded-xl border">
@@ -80,15 +71,118 @@ function ProfileSection({ me }: { me: User }) {
           minLength={9}
           onSave={(value) => saveField({ phone: value })}
         />
-        <EditableRow
-          label="Ảnh đại diện"
-          value={me.avatar_url ?? ""}
-          placeholder="Tải ảnh lên hoặc dán đường dẫn ảnh"
+        <AvatarRow
+          url={me.avatar_url}
+          name={me.full_name}
           onSave={(value) => saveField({ avatar_url: value })}
-          isImage
         />
       </div>
     </section>
+  );
+}
+
+// Anh dai dien hinh tron, chua co anh thi hien chu cai dau cua ho ten.
+function AvatarPreview({ url, name, className }: { url: string | null; name: string; className: string }) {
+  return (
+    <div className={`shrink-0 overflow-hidden rounded-full border bg-muted ${className}`}>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={name} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center font-semibold text-muted-foreground">
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Dong anh dai dien: xem anh -> bam "Chinh sua" -> tai anh tu may hoac dan
+// duong dan -> Luu/Huy. O che do xem chi hien anh va trang thai, khong hien
+// duong dan tep.
+function AvatarRow({
+  url,
+  name,
+  onSave,
+}: {
+  url: string | null;
+  name: string;
+  onSave: (value: string | null) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [link, setLink] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEdit() {
+    setLink("");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function luuAnh(value: string | null) {
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(value);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:gap-4">
+      <span className="pt-1.5 text-sm text-muted-foreground sm:w-40 sm:shrink-0">Ảnh đại diện</span>
+
+      {editing ? (
+        <div className="flex flex-1 flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <AvatarPreview url={url} name={name} className="size-14 text-lg" />
+            <ImageUploadField label="Tải ảnh từ máy" disabled={saving} onUploaded={(value) => luuAnh(value)} />
+          </div>
+          <div className="flex gap-2">
+            <Label htmlFor="avatar-link" className="sr-only">
+              Đường dẫn ảnh
+            </Label>
+            <Input
+              id="avatar-link"
+              value={link}
+              placeholder="Hoặc dán đường dẫn ảnh https://..."
+              onChange={(e) => setLink(e.target.value)}
+            />
+            <Button size="sm" onClick={() => luuAnh(link.trim())} disabled={saving || !link.trim()}>
+              {saving ? "Đang lưu..." : "Lưu"}
+            </Button>
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex gap-2">
+            {url && (
+              <Button size="sm" variant="ghost" onClick={() => luuAnh(null)} disabled={saving}>
+                Xóa ảnh
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
+              Hủy
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-1 items-center gap-3">
+            <AvatarPreview url={url} name={name} className="size-9 text-sm" />
+            <span className={`text-sm ${url ? "" : "text-muted-foreground"}`}>
+              {url ? "Đã có ảnh đại diện" : "Chưa có ảnh đại diện"}
+            </span>
+          </div>
+          <button type="button" onClick={startEdit} className="text-sm font-medium text-primary hover:underline">
+            Chỉnh sửa
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -118,14 +212,12 @@ function EditableRow({
   value,
   placeholder,
   minLength = 0,
-  isImage = false,
   onSave,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   minLength?: number;
-  isImage?: boolean;
   onSave: (value: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -161,17 +253,6 @@ function EditableRow({
           <Label htmlFor={`field-${label}`} className="sr-only">
             {label}
           </Label>
-          {isImage && (
-            <ImageUploadField
-              label="Tải ảnh từ máy"
-              disabled={saving}
-              onUploaded={async (url) => {
-                setDraft(url);
-                await onSave(url);
-                setEditing(false);
-              }}
-            />
-          )}
           <Input
             id={`field-${label}`}
             value={draft}
@@ -190,15 +271,9 @@ function EditableRow({
         </div>
       ) : (
         <>
-          <div className="flex flex-1 items-center gap-3">
-            {isImage && value && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="" className="size-9 rounded-full border object-cover" />
-            )}
-            <span className={`text-sm ${value ? "" : "text-muted-foreground"} ${isImage && value ? "break-all" : ""}`}>
-              {value || placeholder || "Chưa cập nhật"}
-            </span>
-          </div>
+          <span className={`flex-1 text-sm ${value ? "" : "text-muted-foreground"}`}>
+            {value || placeholder || "Chưa cập nhật"}
+          </span>
           <button type="button" onClick={startEdit} className="text-sm font-medium text-primary hover:underline">
             Chỉnh sửa
           </button>

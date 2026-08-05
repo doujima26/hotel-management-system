@@ -4,7 +4,7 @@ import type { User } from "@/types/models";
 export interface UpdateProfilePayload {
   full_name?: string;
   phone?: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
 }
 
 export const usersApi = {
