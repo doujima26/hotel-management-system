@@ -354,6 +354,20 @@ def get_room_by_id(db: Session, room_id: int) -> Room | None:
     return db.query(Room).filter(Room.id == room_id).first()
 
 
+# Lay phong vat ly va khoa ca loai phong cha, THU TU room_types -> rooms. Dung
+# cho moi thao tac lam doi so phong ban duoc (tat phong, xoa phong, khoa lich,
+# dat bao tri) de chung xep hang cung cho voi luong dat phong - luong do khoa
+# room_types roi dem tu bang rooms/room_blocks ma khong khoa 2 bang nay.
+# Doc room lan dau khong can khoa vi room_type_id cua 1 phong khong doi duoc.
+# Moi noi deu phai giu dung thu tu nay, dao lai la co the deadlock.
+def get_room_by_id_locking_room_type(db: Session, room_id: int) -> Room | None:
+    room = get_room_by_id(db, room_id)
+    if not room:
+        return None
+    get_room_type_by_id_for_update(db, room.room_type_id)
+    return get_room_by_id_for_update(db, room_id)
+
+
 # Luu thay doi phong vat ly (dung cho sua so phong/tang/tat mo is_active).
 def save_room(db: Session, room: Room) -> Room:
     db.add(room)

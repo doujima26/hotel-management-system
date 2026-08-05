@@ -50,7 +50,7 @@ from app.repositories.room_repository import (
     get_hotel_by_id,
     get_overlapping_room_blocks,
     get_room_block_by_id,
-    get_room_by_id_for_update,
+    get_room_by_id_locking_room_type,
     get_room_type_amenity_link,
     get_room_type_by_id,
     get_room_type_by_id_for_update,
@@ -315,10 +315,11 @@ def list_rooms(db: Session, current_user: User, room_type_id: int) -> dict:
     ).model_dump(mode="json")
 
 
-# Xu ly sua phong vat ly (so phong/tang/tat mo is_active). Khoa row vi co the
-# doi is_active - tranh dua voi check-in dang gan phong cung luc.
+# Xu ly sua phong vat ly (so phong/tang/tat mo is_active). Khoa ca loai phong
+# cha vi tat is_active lam giam so phong ban duoc - tranh dua voi luong dat
+# phong dang dem phong trong cung luc.
 def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRoomRequest) -> dict:
-    room = get_room_by_id_for_update(db, room_id)
+    room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
 
@@ -350,7 +351,7 @@ def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRo
 # Xu ly xoa cung phong vat ly - chi cho phep khi phong nay chua tung duoc gan
 # cho khach check-in (FK RESTRICT tren booking_room_units se chan neu da tung dung).
 def delete_room(db: Session, current_user: User, room_id: int) -> dict:
-    room = get_room_by_id_for_update(db, room_id)
+    room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
 
@@ -1015,7 +1016,7 @@ def create_room_block(db: Session, current_user: User, payload: CreateRoomBlockR
     if payload.end_date < payload.start_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
 
-    room = get_room_by_id_for_update(db, payload.room_id)
+    room = get_room_by_id_locking_room_type(db, payload.room_id)
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
     room_type = get_room_type_by_id(db, room.room_type_id)
@@ -1044,7 +1045,7 @@ def remove_room_block(db: Session, current_user: User, block_id: int) -> dict:
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khoa lich khong ton tai")
 
-    room = get_room_by_id_for_update(db, block.room_id)
+    room = get_room_by_id_locking_room_type(db, block.room_id)
     room_type = get_room_type_by_id(db, room.room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
 

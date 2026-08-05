@@ -18,6 +18,7 @@ from app.repositories.room_repository import (
     get_active_room_blocks_for_hotel,
     get_room_blocks_for_stay,
     get_room_by_id_for_update,
+    get_room_by_id_locking_room_type,
     list_rooms_with_type_by_hotel,
 )
 from app.repositories.staff_repository import get_staff_member_by_user_id
@@ -222,10 +223,12 @@ def _get_staff_room(db: Session, staff, room_id: int):
 
 # Lay phong vat ly va kiem tra thuoc dung khach san dang van hanh - dung chung
 # cho ca Admin va Staff (khac _get_staff_room chi danh cho Staff), ap dung cho
-# 2 hanh dong dat/go bao tri ma Admin cung duoc phep thao tac.
+# 2 hanh dong dat/go bao tri ma Admin cung duoc phep thao tac. Khoa ca loai
+# phong cha vi bao tri lam doi so phong ban duoc, khac voi _get_staff_room chi
+# doi giua CLEANING va AVAILABLE - hai trang thai deu van ban duoc.
 def _get_operational_room(db: Session, current_user: User, room_id: int):
     hotel = get_operational_hotel(db, current_user)
-    room = get_room_by_id_for_update(db, room_id)
+    room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
     if room.hotel_id != hotel.id:
