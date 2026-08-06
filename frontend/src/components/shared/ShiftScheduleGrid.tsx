@@ -46,14 +46,14 @@ export const SHIFT_BANDS: { type: ShiftType; range: string }[] = [
 const BAND_MIN = DAY_TOTAL_MIN / SHIFT_BANDS.length;
 
 // "HH:MM:SS" -> so phut ke tu moc 06:00 (0..1439).
-function toOffsetMin(time: string): number {
+export function toOffsetMin(time: string): number {
   const [hour, minute] = time.split(":").map(Number);
   return (hour * 60 + minute - DAY_START_MIN + DAY_TOTAL_MIN) % DAY_TOTAL_MIN;
 }
 
 // Vi tri + do dai cua 1 ca tren truc doc. Ca qua nua dem (gio ket thuc <= gio bat
 // dau) duoc cong them 1 ngay; neu van vuot khoi khung 24h thi cat va danh dau.
-function shiftGeometry(shift: StaffScheduleCalendarShift) {
+export function shiftGeometry(shift: StaffScheduleCalendarShift) {
   const top = toOffsetMin(shift.start_time);
   const end = toOffsetMin(shift.end_time);
   let length = end - top;
@@ -75,7 +75,7 @@ export interface PlacedShift {
 
 // Xep the vao cac "lan" doc trong 1 cot ngay: the nao trung khung gio voi the
 // dang chiem lan thi day sang lan ke tiep, de khong the nao de len the nao.
-function assignLanes(items: PlacedShift[]): number {
+export function assignLanes(items: PlacedShift[]): number {
   const laneEnds: number[] = [];
   for (const item of [...items].sort((a, b) => a.top - b.top || a.length - b.length)) {
     let lane = laneEnds.findIndex((end) => end <= item.top);
