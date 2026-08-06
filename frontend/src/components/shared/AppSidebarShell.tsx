@@ -68,7 +68,11 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
 
   return (
     <div className="flex min-h-svh flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:w-60 md:border-r md:border-b-0">
+      {/* Tren desktop: dinh vao khung nhin va cao dung 1 man hinh. Khong co
+          md:h-svh thi sidebar cao bang noi dung ben phai, nen khoi dang xuat
+          (mt-auto) bi day xuong tan day trang - trang dai bao nhieu phai cuon
+          bay nhieu moi thay. */}
+      <aside className="flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-svh md:w-60 md:self-start md:border-r md:border-b-0">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-col">
             <Link href="/" className="truncate text-sm font-semibold">
@@ -80,7 +84,9 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
             <LogOut className="size-4" />
           </Button>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible md:px-3">
+        {/* min-h-0 la bat buoc: khong co no thi flex item khong co nho hon noi
+            dung, nen menu dai se tran ra ngoai thay vi cuon trong sidebar. */}
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:px-3">
           {isGrouped(items)
             ? items.map((group) => (
                 <div
@@ -100,7 +106,7 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
               ))
             : items.map((item) => <SidebarLink key={item.href} item={item} activeHref={activeHref} />)}
         </nav>
-        <div className="mt-auto hidden border-t border-sidebar-border p-3 md:block">
+        <div className="mt-auto hidden shrink-0 border-t border-sidebar-border p-3 md:block">
           <p className="truncate text-sm text-sidebar-foreground/80">{user?.full_name}</p>
           <Button variant="ghost" size="sm" className="mt-2 w-full justify-start gap-2 px-2" onClick={handleLogout}>
             <LogOut className="size-4" />
