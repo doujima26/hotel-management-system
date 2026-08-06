@@ -18,6 +18,7 @@ import { ApiError } from "@/types/api";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { Review } from "@/types/models";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
+import { BankTransferPanel } from "@/components/shared/BankTransferPanel";
 
 const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -66,6 +67,17 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
     enabled: Boolean(booking && booking.status !== "pending"),
     retry: false,
   });
+
+  // Don dang cho chuyen khoan thi lay lai thong tin QR. Backend tra 400 khi don
+  // da tra tien hoac da qua han, nen khong retry - hong o day nghia la khong con
+  // gi de hien, khong phai loi tam thoi.
+  const paymentInstructionsQuery = useQuery({
+    queryKey: ["booking-payment-instructions", id],
+    queryFn: () => bookingsApi.getPaymentInstructions(id),
+    enabled: Boolean(booking && booking.status === "pending" && booking.payment_status !== "completed"),
+    retry: false,
+  });
+  const paymentInstructions = paymentInstructionsQuery.data;
 
   const cancellable = booking && (booking.status === "pending" || booking.status === "confirmed");
 
@@ -156,6 +168,17 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       <Link href="/bookings" className="text-sm text-muted-foreground hover:text-foreground">
         &larr; Danh sách booking
       </Link>
+
+      {/* Don cho chuyen khoan: hien lai ma QR ngay dau trang, vi phong dang bi
+          giu va khach chi con vai phut de tra tien. */}
+      {paymentInstructions && (
+        <BankTransferPanel
+          bookingId={booking.id}
+          bookingCode={booking.booking_code}
+          hotelId={booking.hotel_id}
+          info={paymentInstructions}
+        />
+      )}
 
       <Card>
         <CardHeader>

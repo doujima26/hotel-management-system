@@ -23,6 +23,7 @@ from app.repositories.booking_repository import (
     list_bookings_by_hotel,
     list_bookings_by_user,
     list_expired_unpaid_bookings,
+    han_giu_cho_cutoff,
 )
 from app.repositories.hotel_repository import get_hotel_by_id, get_hotel_service_by_id, get_promotion_by_id_for_update
 from app.repositories.payment_repository import get_invoice_by_booking_id, get_payment_by_booking_id
@@ -412,6 +413,39 @@ def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
         invoice=InvoiceResponse.model_validate(invoice) if invoice else None,
         bank_transfer=_thong_tin_chuyen_khoan(booking) if cho_chuyen_khoan else None,
     ).model_dump(mode="json")
+
+
+# Xu ly khach lay lai thong tin chuyen khoan cua 1 don dang cho tra tien.
+#
+# Man hinh QR chi ton tai trong bo nho trinh duyet sau khi dat phong xong: tai
+# lai trang hoac dong tab la mat. Trong khi do don van dang giu phong. Endpoint
+# nay la duong quay lai, de khach mo lai ma QR tu trang chi tiet don.
+def get_payment_instructions(db: Session, current_user: User, booking_id: int) -> dict:
+    booking = get_booking_by_id(db, booking_id)
+    if not booking:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking khong ton tai")
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ban chi duoc xem booking cua minh",
+        )
+    if booking.status != BookingStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Don khong con cho thanh toan",
+        )
+    if get_payment_by_booking_id(db, booking.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Don da duoc thanh toan",
+        )
+    if booking.created_at < han_giu_cho_cutoff():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Don da qua han giu cho {settings.sepay_hold_minutes} phut, vui long dat lai",
+        )
+
+    return _thong_tin_chuyen_khoan(booking).model_dump(mode="json")
 
 
 # Ly do ghi vao don bi he thong tu huy khi khach khong chuyen khoan kip.

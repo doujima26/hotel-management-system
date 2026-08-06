@@ -64,6 +64,9 @@ export const bookingsApi = {
   listMine: () => apiFetch<Booking[]>("/bookings", { auth: true }),
   getDetail: (id: number) => apiFetch<Booking>(`/bookings/${id}`, { auth: true }),
   getInvoice: (id: number) => apiFetch<Invoice>(`/bookings/${id}/invoice`, { auth: true }),
+  // Lay lai thong tin chuyen khoan cua don dang cho tra tien.
+  getPaymentInstructions: (id: number) =>
+    apiFetch<BankTransferInfo>(`/bookings/${id}/payment-instructions`, { auth: true }),
   cancel: (id: number, payload: CancelBookingPayload) =>
     apiFetch<Booking>(`/bookings/${id}/cancel`, { method: "PATCH", body: payload, auth: true }),
 

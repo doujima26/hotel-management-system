@@ -14,6 +14,7 @@ from app.services.booking_service import (
     checkout as checkout_action,
     confirm_booking as confirm_booking_action,
     get_booking_detail as get_booking_detail_action,
+    get_payment_instructions as get_payment_instructions_action,
     list_hotel_bookings as list_hotel_bookings_action,
     list_my_bookings as list_my_bookings_action,
     mark_booking_no_show as mark_booking_no_show_action,
@@ -118,6 +119,19 @@ def get_booking_invoice(
 ):
     data = get_invoice_by_booking_action(db, current_user, booking_id)
     return ok(data, "Hoa don booking")
+
+
+# Khach lay lai thong tin chuyen khoan cua don dang cho tra tien - man hinh QR
+# chi ton tai trong bo nho trinh duyet nen tai lai trang la mat, trong khi don
+# van dang giu phong.
+@router.get("/{booking_id}/payment-instructions")
+def get_booking_payment_instructions(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.USER)),
+):
+    data = get_payment_instructions_action(db, current_user, booking_id)
+    return ok(data, "Thong tin chuyen khoan")
 
 
 # Khach tu huy booking cua minh (con cach gio nhan phong toi thieu 24h).

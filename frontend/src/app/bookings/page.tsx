@@ -29,6 +29,12 @@ const TABS: { value: TabValue; label: string }[] = [
   { value: "cancelled", label: "Đã hủy" },
 ];
 
+// Don da tao nhung tien chua ve - khach can quay lai man hinh QR de tra tien.
+function choThanhToan(booking: Booking): boolean {
+  return booking.status === "pending" && booking.payment_status !== "completed";
+}
+
+
 function matchesTab(booking: Booking, tab: TabValue, today: string): boolean {
   switch (tab) {
     case "upcoming":
@@ -131,7 +137,16 @@ function BookingsList() {
                       {booking.hotel_name}
                     </CardTitle>
                     <div className="flex flex-wrap gap-2">
-                      <BookingStatusBadge status={booking.status} />
+                      {/* Don cho chuyen khoan doi nhan rieng: "Cho xac nhan" khien
+                          khach tuong khach san dang duyet, trong khi thuc te he
+                          thong dang cho TIEN cua ho va phong chi duoc giu 15 phut. */}
+                      {choThanhToan(booking) ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                          Chờ thanh toán
+                        </span>
+                      ) : (
+                        <BookingStatusBadge status={booking.status} />
+                      )}
                       {booking.payment_status && <PaymentStatusBadge status={booking.payment_status} />}
                     </div>
                   </div>
@@ -159,7 +174,12 @@ function BookingsList() {
                       )}
                     </span>
                   </div>
-                  <span className="font-semibold">{formatMoney(booking.total_amount)}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-semibold">{formatMoney(booking.total_amount)}</span>
+                    {choThanhToan(booking) && (
+                      <span className="text-xs font-medium text-primary">Bấm để tiếp tục thanh toán &rarr;</span>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </Link>
