@@ -29,11 +29,17 @@ Thumbs.db
 # test files
 backend/tests/
 
-# Cau hinh cong cu local va file sinh ra khi chay - khong phai code cua app
-.claude/
-skills-lock.json
-design.md
-DESIGN.md
-.hallmark/
-
-
+backend/database/backups/
+backend/uploads/
+frontend/e2e/
+frontend/e2e-report/
+backend/.coverage
+backend/pytest.ini
+.gitignore
+frontend/playwright.config.ts
+frontend/vitest.config.mts
+frontend/src/components/shared/ShiftScheduleGrid.test.ts
+frontend/src/lib/utils/date.test.ts
+frontend/src/lib/utils/format.test.ts
+frontend/src/lib/utils/hotelStatus.test.ts
+frontend/test-results/.last-run.json
