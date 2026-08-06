@@ -280,15 +280,32 @@ function PayoutDialog({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="payout_amount">Số tiền đã chuyển</Label>
-            <Input
-              id="payout_amount"
-              type="number"
-              min={1}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="payout_amount"
+                type="number"
+                min={1}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              {/* Phan lon truong hop la tra tron so dang no; go tay so co 7-9 chu
+                  so rat de sai mot chu so ma khong ai nhan ra. */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => target && setAmount(String(target.outstanding))}
+                disabled={saving}
+              >
+                Trả hết
+              </Button>
+            </div>
             {target && soTien > target.outstanding && (
               <p className="text-sm text-destructive">Vượt quá công nợ {formatMoney(target.outstanding)}</p>
+            )}
+            {target && soTien > 0 && soTien < target.outstanding && (
+              <p className="text-sm text-muted-foreground">
+                Còn lại sau đợt này: {formatMoney(target.outstanding - soTien)}
+              </p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
