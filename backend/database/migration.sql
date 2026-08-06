@@ -89,8 +89,13 @@ CREATE TABLE hotels (
     cancellation_policy TEXT,
     children_policy   TEXT,
     pets_allowed      BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Tỷ lệ hoa hồng nền tảng hưởng trên mỗi đơn, do Super Admin đặt. Chỉ áp cho
+    -- đơn MỚI; đơn đã tạo giữ tỷ lệ đã chụp trong bảng bookings.
+    commission_rate   DECIMAL(5, 2) NOT NULL DEFAULT 10.00,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT ck_hotels_commission_rate CHECK (commission_rate >= 0 AND commission_rate <= 100)
 );
 
 COMMENT ON TABLE hotels IS '1 Admin = 1 Hotel (UNIQUE owner_id). Cần Super Admin duyệt.';
@@ -358,9 +363,20 @@ CREATE TABLE bookings (
     cancelled_by         BIGINT REFERENCES users(id),
     promotion_id         BIGINT REFERENCES promotions(id),
     special_requests     TEXT,
+    -- Hoa hồng nền tảng, CHỤP LẠI lúc tạo đơn giống cách booking_rooms chụp giá
+    -- phòng. Chỉ lưu tỷ lệ ở bảng hotels rồi nhân ngược thì mỗi lần Super Admin
+    -- đổi tỷ lệ sẽ làm sai lệch toàn bộ công nợ của đơn cũ.
+    commission_rate      DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    commission_amount    DECIMAL(12, 2) NOT NULL DEFAULT 0,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CHECK (check_out_date > check_in_date)
+    CHECK (check_out_date > check_in_date),
+
+    CONSTRAINT ck_bookings_commission CHECK (
+        commission_rate >= 0 AND commission_rate <= 100
+        AND commission_amount >= 0
+        AND commission_amount <= total_amount
+    )
 );
 
 -- -------------------------------------------------------
@@ -573,6 +589,72 @@ CREATE TABLE admin_action_logs (
 
 COMMENT ON TABLE admin_action_logs IS 'Nhat ky duyet/tu choi/tam dung khach san va khoa/mo tai khoan. Rollback: DROP TABLE admin_action_logs;';
 
+-- -------------------------------------------------------
+-- 24. hotel_payouts - Các đợt nền tảng chi trả tiền cho khách sạn
+-- Hệ thống thu tiền theo mô hình thương nhân: khách chuyển khoản vào 1 tài khoản
+-- duy nhất của nền tảng, nền tảng giữ hộ rồi chi trả lại sau khi trừ hoa hồng.
+-- Việc chuyển tiền thật làm ngoài hệ thống; bảng này chỉ ghi sổ để tính công nợ.
+-- -------------------------------------------------------
+CREATE TABLE hotel_payouts (
+    id           BIGSERIAL PRIMARY KEY,
+    hotel_id     BIGINT NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
+    amount       DECIMAL(12, 2) NOT NULL CHECK (amount > 0),
+    period_from  DATE,
+    period_to    DATE,
+    reference    VARCHAR(255),
+    note         TEXT,
+    created_by   BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT ck_hotel_payouts_period CHECK (
+        period_from IS NULL OR period_to IS NULL OR period_to >= period_from
+    )
+);
+
+COMMENT ON TABLE hotel_payouts IS 'Cong no = tong (tien don - hoa hong) cua don da thu tien, tru tong cac dot chi tra. Rollback: DROP TABLE hotel_payouts;';
+
+-- -------------------------------------------------------
+-- 25. sepay_transactions - Nhật ký giao dịch chuyển khoản SePay báo về
+-- Giữ hai vai trò:
+--   1. Chống trùng. SePay gửi lại webhook tới 7 lần nếu server trả lỗi, và quản
+--      trị viên còn bấm gửi lại tay được. UNIQUE trên sepay_id khiến lần ghi thứ
+--      hai thất bại, nhờ đó 1 lần chuyển khoản không thể sinh ra 2 thanh toán.
+--   2. Lưu cả giao dịch KHÔNG khớp được đơn. Tiền đã vào tài khoản thì không từ
+--      chối được: khách chuyển muộn sau khi đơn đã hủy, chuyển thiếu tiền, hoặc
+--      gõ sai nội dung. Không ghi lại thì mất dấu tiền của khách.
+-- -------------------------------------------------------
+CREATE TABLE sepay_transactions (
+    id                BIGSERIAL PRIMARY KEY,
+    sepay_id          BIGINT NOT NULL UNIQUE,
+    payment_code      VARCHAR(20),
+    booking_id        BIGINT REFERENCES bookings(id) ON DELETE RESTRICT,
+    payment_id        BIGINT REFERENCES payments(id) ON DELETE RESTRICT,
+    transfer_amount   BIGINT NOT NULL CHECK (transfer_amount > 0),
+    gateway           VARCHAR(50) NOT NULL,
+    account_number    VARCHAR(50) NOT NULL,
+    content           TEXT NOT NULL,
+    reference_code    VARCHAR(100),
+    transaction_date  TIMESTAMPTZ NOT NULL,
+    status            VARCHAR(20) NOT NULL DEFAULT 'unmatched',
+    note              TEXT,
+    raw_payload       JSONB NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT ck_sepay_transactions_status
+        CHECK (status IN ('matched', 'unmatched', 'refunded')),
+
+    -- Đã khớp thì bắt buộc có cả đơn lẫn thanh toán; chưa khớp thì không được có
+    -- cái nào - tránh trạng thái nửa vời khó lần.
+    CONSTRAINT ck_sepay_transactions_matched
+        CHECK (
+            (status = 'matched' AND booking_id IS NOT NULL AND payment_id IS NOT NULL)
+            OR (status <> 'matched' AND payment_id IS NULL)
+        )
+);
+
+COMMENT ON TABLE sepay_transactions IS 'Nhat ky giao dich chuyen khoan. Rollback: DROP TABLE sepay_transactions;';
+
 
 
 -- ============================================================
@@ -596,6 +678,13 @@ CREATE INDEX idx_rooms_room_type ON rooms(room_type_id);
 -- Nhật ký quản trị: luôn xem mới nhất trước, và lọc theo đối tượng bị tác động
 CREATE INDEX idx_admin_action_logs_created ON admin_action_logs(created_at DESC);
 CREATE INDEX idx_admin_action_logs_target ON admin_action_logs(target_type, target_id);
+
+-- Đối soát công nợ: cộng tổng đã chi trả cho từng khách sạn
+CREATE INDEX idx_hotel_payouts_hotel ON hotel_payouts(hotel_id, created_at DESC);
+
+-- Giao dịch SePay: màn hình đối soát lọc theo trạng thái, và tra ngược từ đơn
+CREATE INDEX idx_sepay_transactions_status ON sepay_transactions(status, transaction_date DESC);
+CREATE INDEX idx_sepay_transactions_booking ON sepay_transactions(booking_id);
 
 -- Loại phòng theo giá
 CREATE INDEX idx_room_types_hotel_price ON room_types(hotel_id, base_price);
@@ -681,6 +770,9 @@ CREATE TRIGGER trg_promotions_updated_at
 
 CREATE TRIGGER trg_pricing_rules_updated_at
     BEFORE UPDATE ON pricing_rules FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+
+CREATE TRIGGER trg_sepay_transactions_updated_at
+    BEFORE UPDATE ON sepay_transactions FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
 
 -- -------------------------------------------------------
 -- Trigger: Cập nhật avg_rating & total_reviews khi có review mới
