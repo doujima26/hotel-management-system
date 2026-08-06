@@ -17,16 +17,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/types/api";
 import type { HotelSettlement } from "@/types/models";
+
+// Loc theo tinh trang cong no - viec can lam khac han nhau o moi nhom.
+type BoLoc = "all" | "outstanding" | "settled" | "overpaid";
+
+const BO_LOC: { value: BoLoc; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "outstanding", label: "Còn nợ" },
+  { value: "settled", label: "Đã tất toán" },
+  { value: "overpaid", label: "Đã trả dư" },
+];
+
+function khopBoLoc(item: HotelSettlement, loc: BoLoc): boolean {
+  if (loc === "outstanding") return item.outstanding > 0;
+  if (loc === "settled") return item.outstanding === 0;
+  if (loc === "overpaid") return item.outstanding < 0;
+  return true;
+}
 
 export default function SettlementsPage() {
   const queryClient = useQueryClient();
   const [payoutTarget, setPayoutTarget] = useState<HotelSettlement | null>(null);
   const [rateTarget, setRateTarget] = useState<HotelSettlement | null>(null);
   const [historyTarget, setHistoryTarget] = useState<HotelSettlement | null>(null);
+  const [boLoc, setBoLoc] = useState<BoLoc>("all");
+  const [tuKhoa, setTuKhoa] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["settlements"],
@@ -37,8 +57,15 @@ export default function SettlementsPage() {
     await queryClient.invalidateQueries({ queryKey: ["settlements"] });
   }
 
+  // Hai so tong tinh tren TOAN BO khach san, khong theo bo loc - day la buc tranh
+  // tai chinh cua nen tang, loc di thi con so mat y nghia.
   const tongConNo = (data ?? []).reduce((sum, item) => sum + item.outstanding, 0);
   const tongHoaHong = (data ?? []).reduce((sum, item) => sum + item.total_commission, 0);
+
+  const tu = tuKhoa.trim().toLowerCase();
+  const danhSach = (data ?? []).filter(
+    (item) => khopBoLoc(item, boLoc) && (!tu || item.hotel_name.toLowerCase().includes(tu)),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,6 +74,10 @@ export default function SettlementsPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Nền tảng thu tiền của khách rồi trừ hoa hồng, phần còn lại là tiền của khách sạn. Việc chuyển
           khoản thực hiện ngoài hệ thống, sau đó ghi nhận lại ở đây để trừ công nợ.
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Hoa hồng chỉ tính trên <strong className="text-foreground">tiền phòng sau khuyến mãi</strong>;
+          tiền dịch vụ khách sạn tự cung cấp được trả về đủ cho khách sạn.
         </p>
       </div>
 
@@ -74,9 +105,39 @@ export default function SettlementsPage() {
             </Card>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap gap-2">
+              {BO_LOC.map((muc) => {
+                const soLuong = (data ?? []).filter((item) => khopBoLoc(item, muc.value)).length;
+                const dangChon = boLoc === muc.value;
+                return (
+                  <button
+                    key={muc.value}
+                    type="button"
+                    onClick={() => setBoLoc(muc.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                      dangChon
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:bg-muted",
+                    )}
+                  >
+                    {muc.label} <span className="opacity-70">{soLuong}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Input
+              value={tuKhoa}
+              onChange={(e) => setTuKhoa(e.target.value)}
+              placeholder="Tìm theo tên khách sạn"
+              className="max-w-xs"
+            />
+          </div>
+
           <div className="overflow-x-auto rounded-xl border">
             <table className="w-full min-w-[880px] text-sm">
-              <thead className="bg-muted/50 text-left">
+              <thead className="bg-primary text-left text-primary-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Khách sạn</th>
                   <th className="px-4 py-3 text-right font-medium">Hoa hồng</th>
@@ -88,7 +149,14 @@ export default function SettlementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {data.map((item) => (
+                {danhSach.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                      Không có khách sạn nào khớp bộ lọc.
+                    </td>
+                  </tr>
+                )}
+                {danhSach.map((item) => (
                   <tr key={item.hotel_id}>
                     <td className="px-4 py-3 font-medium">{item.hotel_name}</td>
                     <td className="px-4 py-3 text-right">{item.commission_rate}%</td>
@@ -305,8 +373,9 @@ function CommissionDialog({
           <DialogDescription>
             {target && (
               <>
-                {target.hotel_name} — hiện tại {target.commission_rate}%. Tỷ lệ mới chỉ áp cho đơn đặt{" "}
-                <strong>sau</strong> thời điểm đổi; đơn đã có giữ nguyên tỷ lệ cũ.
+                {target.hotel_name} — hiện tại {target.commission_rate}%, tính trên tiền phòng sau khuyến
+                mãi (không tính tiền dịch vụ). Tỷ lệ mới chỉ áp cho đơn đặt <strong>sau</strong> thời điểm
+                đổi; đơn đã có giữ nguyên tỷ lệ cũ.
               </>
             )}
           </DialogDescription>

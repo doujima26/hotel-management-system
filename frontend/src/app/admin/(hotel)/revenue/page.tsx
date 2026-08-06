@@ -203,8 +203,9 @@ function SettlementCard() {
       <CardHeader>
         <CardTitle>Đối soát với nền tảng</CardTitle>
         <CardDescription>
-          Khách thanh toán về tài khoản nền tảng. Sau khi trừ hoa hồng {data.commission_rate}%, phần còn lại
-          được chuyển trả cho khách sạn.
+          Khách thanh toán về tài khoản nền tảng. Sau khi trừ hoa hồng {data.commission_rate}% tính trên
+          tiền phòng sau khuyến mãi, phần còn lại được chuyển trả cho khách sạn. Tiền dịch vụ khách sạn tự
+          cung cấp không bị trừ hoa hồng.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
