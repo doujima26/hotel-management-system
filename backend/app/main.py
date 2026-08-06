@@ -23,3 +23,12 @@ app.mount(UPLOAD_URL_PREFIX, StaticFiles(directory=_upload_dir), name="uploads")
 def health():
     # Kiem tra trang thai song cua backend.
     return ok({'status': 'ok'}, 'Backend dang hoat dong')
+
+@app.get("/")
+def root():
+    return {
+        "message": "Hotel Management System API",
+        "status": "running",
+        "docs": "/docs",
+        "health": "/health",
+    }
