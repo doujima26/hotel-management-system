@@ -95,6 +95,7 @@ export function HotelSearchForm({
           value={checkOut}
           onChange={setCheckOut}
           onInvalid={handleCheckOutInvalid}
+          rangeStart={checkIn}
         />
       </div>
       <div className="flex flex-col gap-1.5">

@@ -35,6 +35,10 @@ interface DateFieldProps {
   className?: string;
   onInvalid?: React.FormEventHandler<HTMLInputElement>;
   "aria-label"?: string;
+  // Ngay moc (vd ngay nhan phong) de to dam dai ngay tu moc toi ngay dang ren
+  // chuot toi/da chon trong lich - giup thay ro dang chon bao nhieu dem, giong
+  // Booking.com. Chi dung cho o "ngay tra", o "ngay nhan" khong truyen prop nay.
+  rangeStart?: string;
 }
 
 // O chon 1 ngay dung lich rieng hien thi tieng Viet, thay the <input
@@ -57,12 +61,18 @@ export function DateField({
   className,
   onInvalid,
   "aria-label": ariaLabel,
+  rangeStart,
 }: DateFieldProps) {
   const [open, setOpen] = React.useState(false);
+  const [hoveredDate, setHoveredDate] = React.useState<Date | undefined>(undefined);
   const hiddenInputRef = React.useRef<HTMLInputElement>(null);
   const selected = parseDateString(value);
   const minDate = parseDateString(min);
   const maxDate = parseDateString(max);
+  const anchorDate = parseDateString(rangeStart);
+  // Dai ngay dang xem: uu tien ngay dang ren chuot toi, chua ren thi lay ngay
+  // da chon - de dai to dam con hien ngay ca khi chuot da roi khoi lich.
+  const previewEnd = hoveredDate ?? selected;
 
   // Xoa thong bao loi tuy chinh (neu co) moi lan gia tri doi, giong hanh vi
   // cua input goc - khong thi customValidity cu bam mai du gia tri sau do da
@@ -112,12 +122,31 @@ export function DateField({
           <Calendar
             mode="single"
             selected={selected}
-            defaultMonth={selected ?? minDate}
+            defaultMonth={selected ?? anchorDate ?? minDate}
             onSelect={(date) => {
               if (date) handleValueChange(toDateString(date));
               setOpen(false);
             }}
+            onDayMouseEnter={(date) => setHoveredDate(date)}
+            onDayMouseLeave={() => setHoveredDate(undefined)}
             disabled={(date) => Boolean((minDate && date < minDate) || (maxDate && date > maxDate))}
+            modifiers={
+              anchorDate
+                ? {
+                    rangeAnchor: anchorDate,
+                    rangeBand: (date) => {
+                      if (!previewEnd) return false;
+                      const from = anchorDate < previewEnd ? anchorDate : previewEnd;
+                      const to = anchorDate < previewEnd ? previewEnd : anchorDate;
+                      return date > from && date < to;
+                    },
+                  }
+                : undefined
+            }
+            modifiersClassNames={{
+              rangeAnchor: "[&>button]:ring-2 [&>button]:ring-primary [&>button]:ring-inset",
+              rangeBand: "bg-muted [&>button]:font-bold [&>button]:rounded-none",
+            }}
           />
         </PopoverContent>
       </Popover>

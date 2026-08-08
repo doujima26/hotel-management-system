@@ -69,6 +69,7 @@ export function HotelDetailSearchForm({
           value={checkOut}
           onChange={setCheckOut}
           onInvalid={handleCheckOutInvalid}
+          rangeStart={checkIn}
           required
         />
       </div>

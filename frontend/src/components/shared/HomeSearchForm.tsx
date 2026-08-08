@@ -96,6 +96,7 @@ export function HomeSearchForm() {
           value={checkOut}
           onChange={setCheckOut}
           onInvalid={handleCheckOutInvalid}
+          rangeStart={checkIn}
           className={UNDERLINE_INPUT_CLASS}
         />
       </div>
