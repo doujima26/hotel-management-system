@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/types/api";
-import { registerSchema, type RegisterFormValues } from "@/lib/validation/auth";
+import { registerSchema, verifyOtpSchema, type RegisterFormValues, type VerifyOtpFormValues } from "@/lib/validation/auth";
 
 type Step = "register" | "verify";
 
@@ -21,9 +21,7 @@ export default function AdminRegisterPage() {
   const [step, setStep] = useState<Step>("register");
   const [email, setEmail] = useState("");
   const [otpMock, setOtpMock] = useState("");
-  const [otp, setOtp] = useState("");
   const [verifyError, setVerifyError] = useState<string | null>(null);
-  const [verifyLoading, setVerifyLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
   const {
@@ -31,6 +29,13 @@ export default function AdminRegisterPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({ resolver: zodResolver(registerSchema) });
+
+  const {
+    register: registerVerify,
+    handleSubmit: handleSubmitVerify,
+    setValue: setVerifyValue,
+    formState: { errors: verifyErrors, isSubmitting: verifyLoading },
+  } = useForm<VerifyOtpFormValues>({ resolver: zodResolver(verifyOtpSchema) });
 
   async function onSubmit(values: RegisterFormValues) {
     try {
@@ -42,7 +47,7 @@ export default function AdminRegisterPage() {
       });
       setEmail(values.email);
       setOtpMock(result.otp_mock ?? "");
-      setOtp(result.otp_mock ?? "");
+      setVerifyValue("otp", result.otp_mock ?? "");
       setStep("verify");
       toast.success("Đăng ký thành công. Vui lòng xác thực OTP.");
     } catch (err) {
@@ -50,18 +55,14 @@ export default function AdminRegisterPage() {
     }
   }
 
-  async function handleVerify(e: React.FormEvent) {
-    e.preventDefault();
+  async function onVerify(values: VerifyOtpFormValues) {
     setVerifyError(null);
-    setVerifyLoading(true);
     try {
-      await authApi.verifyAccount({ email, otp });
+      await authApi.verifyAccount({ email, otp: values.otp });
       toast.success("Xác thực thành công. Vui lòng đăng nhập.");
       router.push("/login");
     } catch (err) {
       setVerifyError(err instanceof ApiError ? err.message : "Xác thực thất bại");
-    } finally {
-      setVerifyLoading(false);
     }
   }
 
@@ -71,7 +72,7 @@ export default function AdminRegisterPage() {
       const result = await authApi.sendVerifyOtp({ email });
       if (result.otp_mock) {
         setOtpMock(result.otp_mock);
-        setOtp(result.otp_mock);
+        setVerifyValue("otp", result.otp_mock);
         toast.success("Đã gửi lại mã OTP");
       } else {
         toast.success("Tài khoản đã được xác thực trước đó");
@@ -97,10 +98,17 @@ export default function AdminRegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleVerify} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmitVerify(onVerify)} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="otp">Mã OTP</Label>
-                <Input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} />
+                <Label htmlFor="otp">Mã OTP (gồm 6 chữ số)</Label>
+                <Input
+                  id="otp"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="Ví dụ: 123456"
+                  {...registerVerify("otp")}
+                />
+                {verifyErrors.otp && <p className="text-sm text-destructive">{verifyErrors.otp.message}</p>}
                 {otpMock && <p className="text-xs text-muted-foreground">Mã demo: {otpMock}</p>}
               </div>
               {verifyError && <p className="text-sm text-destructive">{verifyError}</p>}

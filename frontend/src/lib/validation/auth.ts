@@ -29,3 +29,47 @@ export const loginSchema = z.object({
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
+
+// OTP backend luon sinh dung 6 chu so (xem secrets.randbelow(1_000_000):06d).
+export const otpField = z
+  .string()
+  .min(1, "Vui lòng nhập mã OTP")
+  .regex(/^\d{6}$/, "Mã OTP gồm đúng 6 chữ số");
+
+export const verifyOtpSchema = z.object({
+  otp: otpField,
+});
+
+export type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Email không hợp lệ"),
+});
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    otp: otpField,
+    new_password: z.string().min(8, "Mật khẩu tối thiểu 8 ký tự").max(128),
+    confirm_password: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Xác nhận mật khẩu không khớp",
+    path: ["confirm_password"],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
+    new_password: z.string().min(8, "Mật khẩu tối thiểu 8 ký tự").max(128),
+    confirm_password: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Xác nhận mật khẩu không khớp",
+    path: ["confirm_password"],
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
