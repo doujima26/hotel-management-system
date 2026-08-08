@@ -69,9 +69,7 @@ function LoginForm() {
     }
   }
 
-  // Uu tien thong bao rieng theo tung ma loi nghiep vu (sai mat khau, tai khoan
-  // bi khoa); loi khac (mat ket noi mang, loi khong luong truoc) roi vao
-  // getErrorMessage o nhanh else.
+  // Uu tien thong bao rieng theo ma loi nghiep vu, con lai dung getErrorMessage.
   async function onSubmit(values: LoginFormValues) {
     try {
       await dangNhapVaDieuHuong(values);

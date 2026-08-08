@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -41,6 +41,16 @@ export function Navbar() {
     router.push("/");
   }
 
+  // Bam "Dang nhap"/"Dang ky" khi dang dung ngay trang do
+  // khong doi URL nen Next khong remount lai form - phai tai
+  // lai trang de reset ve dung form goc.
+  function handleSamePageAuthClick(href: string) {
+    return (e: ReactMouseEvent) => {
+      e.preventDefault();
+      window.location.href = href;
+    };
+  }
+
   const isAdminShell = pathname.startsWith("/admin") && pathname !== "/admin/register";
   if (isAdminShell || APP_SHELL_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return null;
@@ -60,12 +70,14 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
+                  onClick={pathname === "/login" ? handleSamePageAuthClick("/login") : undefined}
                   className={cn(buttonVariants({ size: "sm" }), "rounded-full bg-white text-primary hover:bg-white/90")}
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   href="/register"
+                  onClick={pathname === "/register" ? handleSamePageAuthClick("/register") : undefined}
                   className={cn(buttonVariants({ size: "sm" }), "rounded-full bg-white text-primary hover:bg-white/90")}
                 >
                   Đăng ký
