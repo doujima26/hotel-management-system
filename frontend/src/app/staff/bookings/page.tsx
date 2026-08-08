@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type BookingStatus } from "@/types/enums";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
@@ -74,7 +74,7 @@ export default function StaffBookingsPage() {
       toast.success("Check-out thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Check-out thất bại");
+      setActionError(getErrorMessage(err, "Check-out thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -90,7 +90,7 @@ export default function StaffBookingsPage() {
       toast.success("Đã đánh dấu đơn không đến");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
+      setActionError(getErrorMessage(err, "Đánh dấu không đến thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -156,7 +156,7 @@ export default function StaffBookingsPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách đơn đặt phòng"}
+          {getErrorMessage(error, "Không thể tải danh sách đơn đặt phòng")}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}

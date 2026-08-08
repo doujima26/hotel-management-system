@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/utils/format";
 import { addMonthsToDateString, firstDayOfMonthString, lastDayOfMonthString, todayDateString } from "@/lib/utils/date";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { RoomType, RoomTypeRateDay } from "@/types/models";
 
 type GridCell =
@@ -80,7 +80,7 @@ export function RateCalendarSection({
       setEditingDate(null);
       await refresh();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : "Cập nhật giá thất bại");
+      setRowError(getErrorMessage(err, "Cập nhật giá thất bại"));
     } finally {
       setEditBusy(false);
     }
@@ -93,7 +93,7 @@ export function RateCalendarSection({
       toast.success("Đã xóa giá sửa tay, ngày này quay về theo quy tắc");
       await refresh();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setRowError(getErrorMessage(err, "Xóa thất bại"));
     }
   }
 
@@ -109,7 +109,7 @@ export function RateCalendarSection({
       );
       await refresh();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : "Xóa hàng loạt thất bại");
+      setRowError(getErrorMessage(err, "Xóa hàng loạt thất bại"));
     } finally {
       setClearBusy(false);
     }
@@ -192,7 +192,7 @@ export function RateCalendarSection({
       {id === null && <p className="text-muted-foreground">Khách sạn chưa có loại phòng nào để xem lịch giá.</p>}
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
-        <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : "Không thể tải lịch giá"}</p>
+        <p className="text-sm text-destructive">{getErrorMessage(error, "Không thể tải lịch giá")}</p>
       )}
       {rowError && <p className="text-sm text-destructive">{rowError}</p>}
 

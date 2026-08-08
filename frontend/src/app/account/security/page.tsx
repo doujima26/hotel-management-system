@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { changePasswordSchema, type ChangePasswordFormValues } from "@/lib/validation/auth";
 
 export default function AccountSecurityPage() {
@@ -50,7 +50,7 @@ function SecuritySection() {
       router.replace("/login");
       return;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đổi mật khẩu thất bại");
+      setError(getErrorMessage(err, "Đổi mật khẩu thất bại"));
     }
   }
 

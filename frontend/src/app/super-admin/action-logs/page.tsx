@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 const TARGET_TABS: { value: "all" | "hotel" | "user"; label: string }[] = [
   { value: "all", label: "Tất cả" },
@@ -76,7 +76,7 @@ export default function SuperAdminActionLogsPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải nhật ký"}
+          {getErrorMessage(error, "Không thể tải nhật ký")}
         </p>
       )}
 

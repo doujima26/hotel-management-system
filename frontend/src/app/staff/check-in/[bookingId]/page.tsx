@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { bookingsApi } from "@/lib/api/bookings";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 interface CheckInPageProps {
   params: Promise<{ bookingId: string }>;
@@ -74,7 +74,7 @@ export default function StaffCheckInPage({ params }: CheckInPageProps) {
   if (bookingQuery.error || !booking) {
     return (
       <p className="px-4 py-12 text-center text-destructive">
-        {bookingQuery.error instanceof ApiError ? bookingQuery.error.message : "Không tìm thấy booking"}
+        {getErrorMessage(bookingQuery.error, "Không tìm thấy booking")}
       </p>
     );
   }
@@ -109,7 +109,7 @@ export default function StaffCheckInPage({ params }: CheckInPageProps) {
       toast.success("Check-in thành công");
       router.push("/staff/bookings");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Check-in thất bại");
+      setFormError(getErrorMessage(err, "Check-in thất bại"));
     } finally {
       setSubmitting(false);
     }

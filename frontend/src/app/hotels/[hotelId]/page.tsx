@@ -12,7 +12,7 @@ import { formatDate, formatMonthYear, formatMoney, getRatingLabel } from "@/lib/
 import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
 import { reviewsApi } from "@/lib/api/reviews";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { Review } from "@/types/models";
 
@@ -45,7 +45,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
   } catch (err) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-center text-destructive">
-        {err instanceof ApiError ? err.message : "Không tìm thấy khách sạn"}
+        {getErrorMessage(err, "Không tìm thấy khách sạn")}
       </div>
     );
   }
@@ -62,7 +62,7 @@ export default async function HotelDetailPage({ params, searchParams }: HotelDet
         num_guests: numGuests ? Number(numGuests) : undefined,
       });
     } catch (err) {
-      availabilityError = err instanceof ApiError ? err.message : "Không thể tải tình trạng phòng trống";
+      availabilityError = getErrorMessage(err, "Không thể tải tình trạng phòng trống");
     }
   }
 

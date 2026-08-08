@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadsApi } from "@/lib/api/uploads";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 interface ImageUploadFieldProps {
   // Duoc goi kem duong dan anh sau khi tai len xong.
@@ -29,7 +29,7 @@ export function ImageUploadField({ onUploaded, label = "Tải ảnh lên", disab
       const result = await uploadsApi.uploadImage(file);
       await onUploaded(result.url);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Tải ảnh lên thất bại");
+      setError(getErrorMessage(err, "Tải ảnh lên thất bại"));
     } finally {
       setUploading(false);
       // Xoa gia tri de chon lai dung file vua roi van kich hoat onChange.

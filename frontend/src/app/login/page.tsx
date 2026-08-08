@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
 import { applyLoginResult } from "@/lib/auth/session";
-import { ApiError } from "@/types/api";
+import { ApiError, getErrorMessage } from "@/types/api";
 import { loginSchema, verifyOtpSchema, type LoginFormValues, type VerifyOtpFormValues } from "@/lib/validation/auth";
 
 export default function LoginPage() {
@@ -69,9 +69,9 @@ function LoginForm() {
     }
   }
 
-  // Tu viet lai thong bao theo tung ma loi thay vi hien nguyen van err.message
-  // tu backend - cac chuoi detail phia backend theo quy uoc khong dau, hien
-  // thang cho nguoi dung se mat dau.
+  // Uu tien thong bao rieng theo tung ma loi nghiep vu (sai mat khau, tai khoan
+  // bi khoa); loi khac (mat ket noi mang, loi khong luong truoc) roi vao
+  // getErrorMessage o nhanh else.
   async function onSubmit(values: LoginFormValues) {
     try {
       await dangNhapVaDieuHuong(values);
@@ -85,7 +85,7 @@ function LoginForm() {
       } else if (err instanceof ApiError && err.status === 403) {
         toast.error("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.");
       } else {
-        toast.error("Đăng nhập thất bại. Vui lòng thử lại.");
+        toast.error(getErrorMessage(err, "Đăng nhập thất bại. Vui lòng thử lại."));
       }
     }
   }
@@ -99,7 +99,7 @@ function LoginForm() {
       await authApi.verifyAccount({ email: pendingLogin.email, otp: values.otp });
       await dangNhapVaDieuHuong(pendingLogin);
     } catch (err) {
-      setVerifyError(err instanceof ApiError ? err.message : "Xác thực thất bại");
+      setVerifyError(getErrorMessage(err, "Xác thực thất bại"));
     }
   }
 
@@ -112,7 +112,7 @@ function LoginForm() {
       setVerifyValue("otp", result.otp_mock ?? "");
       toast.success("Đã gửi lại mã OTP");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gửi lại mã OTP thất bại");
+      toast.error(getErrorMessage(err, "Gửi lại mã OTP thất bại"));
     } finally {
       setResending(false);
     }

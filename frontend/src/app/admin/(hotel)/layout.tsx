@@ -8,7 +8,7 @@ import { AppSidebarShell, type SidebarGroup, type SidebarItem } from "@/componen
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import { hotelsApi } from "@/lib/api/hotels";
 import { bookingsApi } from "@/lib/api/bookings";
-import { ApiError } from "@/types/api";
+import { ApiError, getErrorMessage } from "@/types/api";
 import type { HotelStatus } from "@/types/enums";
 import type { AdminHotel } from "@/types/models";
 
@@ -160,7 +160,7 @@ function AdminHotelGate({ children }: { children: React.ReactNode }) {
   if (error) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 text-center text-destructive">
-        {error instanceof ApiError ? error.message : "Không thể tải thông tin khách sạn"}
+        {getErrorMessage(error, "Không thể tải thông tin khách sạn")}
       </div>
     );
   }

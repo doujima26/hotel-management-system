@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { dashboardApi } from "@/lib/api/dashboard";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 // Bieu do dung recharts, mau lay tu token thiet ke he thong qua CSS variable.
 const tooltipContentStyle = {
@@ -78,7 +78,7 @@ export default function SuperAdminOverviewPage() {
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        {error instanceof ApiError ? error.message : "Không thể tải tổng quan nền tảng"}
+        {getErrorMessage(error, "Không thể tải tổng quan nền tảng")}
       </p>
     );
   }

@@ -20,7 +20,7 @@ import { RoomStatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/format";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { ROOM_STATUS_LABELS, type RoomStatus } from "@/types/enums";
 import type { RoomStatusItem } from "@/types/models";
 
@@ -119,7 +119,7 @@ export function RoomStatusBoard({
       toast.success(`Đã đánh dấu phòng ${room.room_number} dọn xong`);
       await refresh();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusyRoomId(null);
     }
@@ -133,7 +133,7 @@ export function RoomStatusBoard({
       toast.success(`Đã hoàn tất bảo trì phòng ${room.room_number}`);
       await refresh();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusyRoomId(null);
     }
@@ -143,7 +143,7 @@ export function RoomStatusBoard({
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        {error instanceof ApiError ? error.message : "Không thể tải sơ đồ phòng"}
+        {getErrorMessage(error, "Không thể tải sơ đồ phòng")}
       </p>
     );
   }
@@ -281,7 +281,7 @@ function SetMaintenanceDialog({
       await onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Đặt bảo trì thất bại");
+      setError(getErrorMessage(err, "Đặt bảo trì thất bại"));
     } finally {
       setSubmitting(false);
     }

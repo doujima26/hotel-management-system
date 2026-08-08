@@ -21,7 +21,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { HotelSettlement } from "@/types/models";
 
 // Loc theo tinh trang cong no - viec can lam khac han nhau o moi nhom.
@@ -85,7 +85,7 @@ export default function SettlementsPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải dữ liệu đối soát"}
+          {getErrorMessage(error, "Không thể tải dữ liệu đối soát")}
         </p>
       )}
 
@@ -255,7 +255,7 @@ function PayoutDialog({
       await onSaved();
       handleClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Ghi nhận thất bại");
+      setError(getErrorMessage(err, "Ghi nhận thất bại"));
     } finally {
       setSaving(false);
     }
@@ -374,7 +374,7 @@ function CommissionDialog({
       await onSaved();
       handleOpenChange(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSaving(false);
     }

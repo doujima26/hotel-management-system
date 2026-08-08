@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { hotelsApi } from "@/lib/api/hotels";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { Amenity } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 
@@ -155,7 +155,7 @@ export default function AdminAmenitiesPage() {
       }
       await queryClient.invalidateQueries({ queryKey: ["hotel-amenities", hotel.id] });
     } catch (err) {
-      setHotelAmenityError(err instanceof ApiError ? err.message : "Thao tác thất bại");
+      setHotelAmenityError(getErrorMessage(err, "Thao tác thất bại"));
     } finally {
       setBusyKey(null);
     }
@@ -172,7 +172,7 @@ export default function AdminAmenitiesPage() {
       }
       await queryClient.invalidateQueries({ queryKey: ["room-type-amenities", roomTypeId] });
     } catch (err) {
-      setRoomAmenityError(err instanceof ApiError ? err.message : "Thao tác thất bại");
+      setRoomAmenityError(getErrorMessage(err, "Thao tác thất bại"));
     } finally {
       setBusyKey(null);
     }

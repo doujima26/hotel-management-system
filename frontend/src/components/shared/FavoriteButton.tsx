@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { favoritesApi } from "@/lib/api/favorites";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 interface FavoriteButtonProps {
   hotelId: number;
@@ -53,7 +53,7 @@ export function FavoriteButton({ hotelId, variant = "button" }: FavoriteButtonPr
       }
       await queryClient.invalidateQueries({ queryKey: ["my-favorites"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Thao tác thất bại");
+      toast.error(getErrorMessage(err, "Thao tác thất bại"));
     } finally {
       setSubmitting(false);
     }

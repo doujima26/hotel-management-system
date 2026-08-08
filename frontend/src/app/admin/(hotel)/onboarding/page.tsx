@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { hotelsApi } from "@/lib/api/hotels";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { phoneField } from "@/lib/validation/auth";
 
 const onboardingSchema = z.object({
@@ -55,7 +55,7 @@ export default function AdminOnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
       router.push("/admin/dashboard");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Đăng ký khách sạn thất bại");
+      setFormError(getErrorMessage(err, "Đăng ký khách sạn thất bại"));
     }
   }
 

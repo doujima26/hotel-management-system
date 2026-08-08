@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api/auth";
 import { usersApi, type UpdateProfilePayload } from "@/lib/api/users";
 import { useAuthStore } from "@/lib/auth/store";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { User } from "@/types/models";
 
 export default function AccountPage() {
@@ -127,7 +127,7 @@ function AvatarRow({
       await onSave(value);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSaving(false);
     }
@@ -238,7 +238,7 @@ function EditableRow({
       await onSave(draft.trim());
       setEditing(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSaving(false);
     }

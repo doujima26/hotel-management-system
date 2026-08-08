@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
 import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { hotelsApi } from "@/lib/api/hotels";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { phoneField } from "@/lib/validation/auth";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
 import { canEditListing, useAdminHotel } from "../layout";
@@ -86,7 +86,7 @@ export default function AdminHotelProfilePage() {
       setEditing(false);
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setFormError(getErrorMessage(err, "Cập nhật thất bại"));
     }
   }
 
@@ -245,7 +245,7 @@ function HotelPolicySection() {
       setEditing(false);
       await queryClient.invalidateQueries({ queryKey: ["my-hotel"] });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSaving(false);
     }
@@ -366,7 +366,7 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
       toast.success("Thêm ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Thêm ảnh thất bại");
+      setActionError(getErrorMessage(err, "Thêm ảnh thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -378,7 +378,7 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
       await hotelsApi.setPrimaryImage(imageId);
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     }
   }
 
@@ -389,7 +389,7 @@ function HotelImagesSection({ approved }: { approved: boolean }) {
       toast.success("Xóa ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-images"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Xóa ảnh thất bại");
+      setActionError(getErrorMessage(err, "Xóa ảnh thất bại"));
     }
   }
 

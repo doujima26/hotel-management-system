@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { bookingsApi } from "@/lib/api/bookings";
 import { reviewsApi } from "@/lib/api/reviews";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { Review } from "@/types/models";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
@@ -91,7 +91,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       queryClient.invalidateQueries({ queryKey: ["booking-detail", id] });
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
     } catch (err) {
-      setCancelError(err instanceof ApiError ? err.message : "Hủy booking thất bại");
+      setCancelError(getErrorMessage(err, "Hủy booking thất bại"));
     } finally {
       setCancelling(false);
     }
@@ -106,7 +106,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       toast.success("Đánh giá thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
     } catch (err) {
-      setReviewError(err instanceof ApiError ? err.message : "Đánh giá thất bại");
+      setReviewError(getErrorMessage(err, "Đánh giá thất bại"));
     } finally {
       setReviewSubmitting(false);
     }
@@ -122,7 +122,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
       setEditingReview(false);
     } catch (err) {
-      setReviewError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setReviewError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setReviewSubmitting(false);
     }
@@ -137,7 +137,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
       toast.success("Đã xóa đánh giá");
       await queryClient.invalidateQueries({ queryKey: ["hotel-reviews", booking.hotel_id] });
     } catch (err) {
-      setReviewError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setReviewError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setReviewSubmitting(false);
     }
@@ -156,7 +156,7 @@ function BookingDetailContent({ params }: BookingDetailPageProps) {
   if (bookingQuery.error || !booking) {
     return (
       <p className="px-4 py-12 text-center text-destructive">
-        {bookingQuery.error instanceof ApiError ? bookingQuery.error.message : "Không tìm thấy booking"}
+        {getErrorMessage(bookingQuery.error, "Không tìm thấy booking")}
       </p>
     );
   }

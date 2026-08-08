@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { revenueApi } from "@/lib/api/revenue";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { DailyRevenuePoint, RevenueByRoomTypeItem } from "@/types/revenue";
 
 // Trang Doanh thu - tach doc lap hoan toan khoi trang Dashboard (khong dung
@@ -282,7 +282,7 @@ export default function AdminRevenuePage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải dữ liệu doanh thu"}
+          {getErrorMessage(error, "Không thể tải dữ liệu doanh thu")}
         </p>
       )}
 

@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { type HotelStatus } from "@/types/enums";
 import type { AdminHotelListItem } from "@/types/models";
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
@@ -115,7 +115,7 @@ function SuperAdminHotelsContent() {
       toast.success("Cập nhật trạng thái khách sạn thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-hotels"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusyHotelId(null);
     }
@@ -219,7 +219,7 @@ function SuperAdminHotelsContent() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách khách sạn"}
+          {getErrorMessage(error, "Không thể tải danh sách khách sạn")}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}

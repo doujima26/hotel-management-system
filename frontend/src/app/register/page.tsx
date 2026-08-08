@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { registerSchema, verifyOtpSchema, type RegisterFormValues, type VerifyOtpFormValues } from "@/lib/validation/auth";
 
 type Step = "register" | "verify";
@@ -51,7 +51,7 @@ export default function RegisterPage() {
       setStep("verify");
       toast.success("Đăng ký thành công. Vui lòng xác thực OTP.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Đăng ký thất bại");
+      toast.error(getErrorMessage(err, "Đăng ký thất bại"));
     }
   }
 
@@ -62,7 +62,7 @@ export default function RegisterPage() {
       toast.success("Xác thực thành công. Vui lòng đăng nhập.");
       router.push("/login");
     } catch (err) {
-      setVerifyError(err instanceof ApiError ? err.message : "Xác thực thất bại");
+      setVerifyError(getErrorMessage(err, "Xác thực thất bại"));
     }
   }
 
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         toast.success("Tài khoản đã được xác thực trước đó");
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gửi lại mã OTP thất bại");
+      toast.error(getErrorMessage(err, "Gửi lại mã OTP thất bại"));
     } finally {
       setResending(false);
     }

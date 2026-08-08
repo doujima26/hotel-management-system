@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { dashboardApi } from "@/lib/api/dashboard";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { DailyTrendPoint, RoomStatusOverview, StaffShiftItem } from "@/types/models";
 
 // Dashboard - tong quan van hanh HOM NAY (Lop 2 trong tai lieu thiet ke), tach
@@ -187,7 +187,7 @@ export default function AdminDashboardPage() {
 
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
-        <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : "Không thể tải dashboard"}</p>
+        <p className="text-sm text-destructive">{getErrorMessage(error, "Không thể tải dashboard")}</p>
       )}
 
       {data && (

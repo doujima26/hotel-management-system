@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { staffApi } from "@/lib/api/staff";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { CreateStaffResult, StaffMember } from "@/types/models";
 
 // Bam vao 1 dong trong bang de nap thong tin len form ben tren sua - chi con 2
@@ -98,7 +98,7 @@ export default function AdminStaffPage() {
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo nhân viên thất bại");
+      setFormError(getErrorMessage(err, "Tạo nhân viên thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +114,7 @@ export default function AdminStaffPage() {
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setFormError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +131,7 @@ export default function AdminStaffPage() {
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setFormError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -282,7 +282,7 @@ export default function AdminStaffPage() {
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
-            {error instanceof ApiError ? error.message : "Không thể tải danh sách nhân viên"}
+            {getErrorMessage(error, "Không thể tải danh sách nhân viên")}
           </p>
         )}
 

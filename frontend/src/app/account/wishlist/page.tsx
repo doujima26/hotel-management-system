@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { favoritesApi } from "@/lib/api/favorites";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 export default function WishlistPage() {
   return (
@@ -37,7 +37,7 @@ function WishlistContent() {
       toast.success("Đã bỏ yêu thích");
       await queryClient.invalidateQueries({ queryKey: ["my-favorites"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Bỏ yêu thích thất bại");
+      toast.error(getErrorMessage(err, "Bỏ yêu thích thất bại"));
     }
   }
 
@@ -47,7 +47,7 @@ function WishlistContent() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách yêu thích"}
+          {getErrorMessage(error, "Không thể tải danh sách yêu thích")}
         </p>
       )}
       <div className="flex flex-col gap-3">

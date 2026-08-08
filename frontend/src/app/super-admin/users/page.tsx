@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { UserRole } from "@/types/enums";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -79,7 +79,7 @@ export default function SuperAdminUsersPage() {
       toast.success(nextActive ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản");
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusyUserId(null);
     }
@@ -146,7 +146,7 @@ export default function SuperAdminUsersPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách người dùng"}
+          {getErrorMessage(error, "Không thể tải danh sách người dùng")}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}

@@ -14,7 +14,7 @@ import {
 import { formatDate } from "@/lib/utils/format";
 import { addDaysToDateString, startOfWeekString, todayDateString } from "@/lib/utils/date";
 import { staffApi } from "@/lib/api/staff";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 
 // Xem theo tuan, dung khung voi trang xep lich cua quan ly.
 const WINDOW_DAYS = 7;
@@ -84,7 +84,7 @@ export default function StaffSchedulePage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải lịch làm việc"}
+          {getErrorMessage(error, "Không thể tải lịch làm việc")}
         </p>
       )}
 

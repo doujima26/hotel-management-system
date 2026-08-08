@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { UserRole } from "@/types/enums";
 
 interface PageProps {
@@ -53,7 +53,7 @@ export default function SuperAdminUserDetailPage({ params }: PageProps) {
       await queryClient.invalidateQueries({ queryKey: ["admin-user-detail", id] });
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusy(false);
     }
@@ -63,7 +63,7 @@ export default function SuperAdminUserDetailPage({ params }: PageProps) {
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        {error instanceof ApiError ? error.message : "Không thể tải hồ sơ người dùng"}
+        {getErrorMessage(error, "Không thể tải hồ sơ người dùng")}
       </p>
     );
   }

@@ -21,7 +21,7 @@ import { AMENITY_ICON_NAMES, AmenityIcon } from "@/components/shared/AmenityIcon
 import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { AMENITY_SCOPE_LABELS, type AmenityScope } from "@/types/enums";
 import type { Amenity, AmenityCategory } from "@/types/models";
 
@@ -158,7 +158,7 @@ export default function SuperAdminAmenitiesPage() {
       setCategoryIcon("");
       await queryClient.invalidateQueries({ queryKey: ["amenity-categories"] });
     } catch (err) {
-      setCategoryError(err instanceof ApiError ? err.message : "Tạo danh mục thất bại");
+      setCategoryError(getErrorMessage(err, "Tạo danh mục thất bại"));
     } finally {
       setCategorySubmitting(false);
     }
@@ -172,7 +172,7 @@ export default function SuperAdminAmenitiesPage() {
       toast.success("Xóa danh mục thành công");
       await queryClient.invalidateQueries({ queryKey: ["amenity-categories"] });
     } catch (err) {
-      setCategoryError(err instanceof ApiError ? err.message : "Xóa danh mục thất bại");
+      setCategoryError(getErrorMessage(err, "Xóa danh mục thất bại"));
     } finally {
       setCategoryBusyId(null);
     }
@@ -189,7 +189,7 @@ export default function SuperAdminAmenitiesPage() {
       await queryClient.invalidateQueries({ queryKey: ["super-admin-amenities", scope] });
       setEditingCategory(null);
     } catch (err) {
-      setCategoryError(err instanceof ApiError ? err.message : "Cập nhật danh mục thất bại");
+      setCategoryError(getErrorMessage(err, "Cập nhật danh mục thất bại"));
     } finally {
       setCategoryBusyId(null);
     }
@@ -209,7 +209,7 @@ export default function SuperAdminAmenitiesPage() {
       setCategoryId("");
       await queryClient.invalidateQueries({ queryKey: ["super-admin-amenities", scope] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo tiện nghi thất bại");
+      setFormError(getErrorMessage(err, "Tạo tiện nghi thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -223,7 +223,7 @@ export default function SuperAdminAmenitiesPage() {
       toast.success("Xóa tiện nghi thành công");
       await queryClient.invalidateQueries({ queryKey: ["super-admin-amenities", scope] });
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Xóa tiện nghi thất bại");
+      setDeleteError(getErrorMessage(err, "Xóa tiện nghi thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -242,7 +242,7 @@ export default function SuperAdminAmenitiesPage() {
       await queryClient.invalidateQueries({ queryKey: ["super-admin-amenities", scope] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -376,7 +376,7 @@ export default function SuperAdminAmenitiesPage() {
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
-            {error instanceof ApiError ? error.message : "Không thể tải danh sách tiện nghi"}
+            {getErrorMessage(error, "Không thể tải danh sách tiện nghi")}
           </p>
         )}
         {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

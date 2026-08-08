@@ -22,7 +22,7 @@ import { DateField } from "@/components/shared/DateField";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { roomsApi, type PricingRulePayload } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { DiscountType, PricingRecurrence } from "@/types/enums";
 import type { PricingRule, RoomType } from "@/types/models";
 import { canEditListing, canOperate, listingLockMessage, useAdminHotel } from "../layout";
@@ -147,7 +147,7 @@ function PricingPageContent() {
       await roomsApi.updatePricingRule(rule.id, { is_active: !rule.is_active });
       await refresh();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      toast.error(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -161,7 +161,7 @@ function PricingPageContent() {
       toast.success("Xóa quy tắc giá thành công");
       await refresh();
     } catch (err) {
-      setListError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setListError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -198,7 +198,7 @@ function PricingPageContent() {
           {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Không thể tải danh sách quy tắc giá"}
+              {getErrorMessage(error, "Không thể tải danh sách quy tắc giá")}
             </p>
           )}
           {listError && <p className="text-sm text-destructive">{listError}</p>}
@@ -424,7 +424,7 @@ function PricingRuleForm({
       await onSubmit(toPayload(form));
       if (!rule) setForm(toFormState(null));
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Lưu quy tắc giá thất bại");
+      setFormError(getErrorMessage(err, "Lưu quy tắc giá thất bại"));
     } finally {
       setSubmitting(false);
     }

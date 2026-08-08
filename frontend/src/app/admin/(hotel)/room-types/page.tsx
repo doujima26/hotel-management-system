@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { formatBedConfig, formatMoney } from "@/lib/utils/format";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { RoomType } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -174,7 +174,7 @@ export default function AdminRoomTypesPage() {
       await roomsApi.updateRoomType(roomType.id, { is_active: !roomType.is_active });
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      toast.error(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setToggleBusyId(null);
     }
@@ -188,7 +188,7 @@ export default function AdminRoomTypesPage() {
       toast.success("Xóa loại phòng thành công");
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setDeleteError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -214,7 +214,7 @@ export default function AdminRoomTypesPage() {
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -245,7 +245,7 @@ export default function AdminRoomTypesPage() {
       setAreaSqm("");
       await queryClient.invalidateQueries({ queryKey: ["room-types", hotel.id] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo loại phòng thất bại");
+      setFormError(getErrorMessage(err, "Tạo loại phòng thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -339,7 +339,7 @@ export default function AdminRoomTypesPage() {
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
-            {error instanceof ApiError ? error.message : "Không thể tải danh sách loại phòng"}
+            {getErrorMessage(error, "Không thể tải danh sách loại phòng")}
           </p>
         )}
         {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

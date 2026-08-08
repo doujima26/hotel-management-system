@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatBedConfig, formatMoney, getRatingLabel } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
 import { HotelSortSelect } from "@/components/shared/HotelSortSelect";
 import { HotelFilterSidebar } from "@/components/shared/HotelFilterSidebar";
@@ -97,8 +97,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   if (searchResult.status === "fulfilled") {
     result = searchResult.value;
   } else {
-    errorMessage =
-      searchResult.reason instanceof ApiError ? searchResult.reason.message : "Không thể tải danh sách khách sạn";
+    errorMessage = getErrorMessage(searchResult.reason, "Không thể tải danh sách khách sạn");
   }
   if (facetsResult.status === "fulfilled") {
     facets = facetsResult.value;

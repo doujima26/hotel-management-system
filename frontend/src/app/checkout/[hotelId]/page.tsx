@@ -15,7 +15,7 @@ import { apiFetch } from "@/lib/api/client";
 import { bookingsApi, type BankTransferInfo } from "@/lib/api/bookings";
 import { BankTransferPanel } from "@/components/shared/BankTransferPanel";
 import { useAuth } from "@/hooks/useAuth";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/enums";
 import type {
   Booking,
@@ -213,7 +213,7 @@ function CheckoutContent({ params, searchParams }: CheckoutPageProps) {
         toast.success("Đặt phòng thành công!");
       }
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Đặt phòng thất bại");
+      setFormError(getErrorMessage(err, "Đặt phòng thất bại"));
     } finally {
       setPayingLoading(false);
     }

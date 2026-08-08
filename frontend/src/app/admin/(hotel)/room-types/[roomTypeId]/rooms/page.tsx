@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { RoomItem } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../../../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -63,7 +63,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       await roomsApi.updateRoom(room.id, { is_active: !room.is_active });
       await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
     } catch (err) {
-      setToggleError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setToggleError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setToggleBusyId(null);
     }
@@ -77,7 +77,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       toast.success("Xóa phòng thành công");
       await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
     } catch (err) {
-      setToggleError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setToggleError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -96,7 +96,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -116,7 +116,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
       setFloor("");
       await queryClient.invalidateQueries({ queryKey: ["rooms", id] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo phòng thất bại");
+      setFormError(getErrorMessage(err, "Tạo phòng thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +168,7 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
           <p className="text-sm text-destructive">
-            {error instanceof ApiError ? error.message : "Không thể tải danh sách phòng"}
+            {getErrorMessage(error, "Không thể tải danh sách phòng")}
           </p>
         )}
         {toggleError && <p className="text-sm text-destructive">{toggleError}</p>}
@@ -302,7 +302,7 @@ function RoomTypeImagesSection({ roomTypeId }: { roomTypeId: number }) {
       toast.success("Thêm ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["room-type-images", roomTypeId] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Thêm ảnh thất bại");
+      setActionError(getErrorMessage(err, "Thêm ảnh thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -314,7 +314,7 @@ function RoomTypeImagesSection({ roomTypeId }: { roomTypeId: number }) {
       await roomsApi.setPrimaryRoomTypeImage(roomTypeId, imageId);
       await queryClient.invalidateQueries({ queryKey: ["room-type-images", roomTypeId] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     }
   }
 
@@ -325,7 +325,7 @@ function RoomTypeImagesSection({ roomTypeId }: { roomTypeId: number }) {
       toast.success("Xóa ảnh thành công");
       await queryClient.invalidateQueries({ queryKey: ["room-type-images", roomTypeId] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Xóa ảnh thất bại");
+      setActionError(getErrorMessage(err, "Xóa ảnh thất bại"));
     }
   }
 

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import {
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
       setStep("reset");
       toast.success("Nếu email tồn tại, mã OTP đã được gửi");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Gửi yêu cầu thất bại");
+      setFormError(getErrorMessage(err, "Gửi yêu cầu thất bại"));
     }
   }
 
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
       toast.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập.");
       router.push("/login");
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Đặt lại mật khẩu thất bại");
+      setFormError(getErrorMessage(err, "Đặt lại mật khẩu thất bại"));
     }
   }
 

@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatBedConfig, formatDate, formatMoney, formatPercent } from "@/lib/utils/format";
 import { adminApi } from "@/lib/api/admin";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import { HotelStatusBadge } from "@/components/shared/StatusBadge";
 import type { AdminHotelDetail } from "@/types/models";
@@ -73,7 +73,7 @@ export default function SuperAdminHotelDetailPage({ params }: PageProps) {
       await queryClient.invalidateQueries({ queryKey: ["admin-hotel-detail", id] });
       await queryClient.invalidateQueries({ queryKey: ["admin-hotels"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setActionError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setBusy(false);
     }
@@ -88,7 +88,7 @@ export default function SuperAdminHotelDetailPage({ params }: PageProps) {
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        {error instanceof ApiError ? error.message : "Không thể tải hồ sơ khách sạn"}
+        {getErrorMessage(error, "Không thể tải hồ sơ khách sạn")}
       </p>
     );
   }

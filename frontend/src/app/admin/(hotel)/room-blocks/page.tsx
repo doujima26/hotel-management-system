@@ -12,7 +12,7 @@ import { DateField } from "@/components/shared/DateField";
 import { formatDate } from "@/lib/utils/format";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { canEditListing, canOperate, useAdminHotel } from "../layout";
 
@@ -69,7 +69,7 @@ export default function AdminRoomBlocksPage() {
       setReason("");
       await queryClient.invalidateQueries({ queryKey: ["room-blocks"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo khóa lịch thất bại");
+      setFormError(getErrorMessage(err, "Tạo khóa lịch thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +82,7 @@ export default function AdminRoomBlocksPage() {
       toast.success("Đã hủy khóa lịch");
       await queryClient.invalidateQueries({ queryKey: ["room-blocks"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Hủy khóa lịch thất bại");
+      toast.error(getErrorMessage(err, "Hủy khóa lịch thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -159,7 +159,7 @@ export default function AdminRoomBlocksPage() {
         <h2 className="text-lg font-semibold">Danh sách khóa lịch hiện có</h2>
         {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
         {error && (
-          <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : "Không thể tải danh sách khóa lịch"}</p>
+          <p className="text-sm text-destructive">{getErrorMessage(error, "Không thể tải danh sách khóa lịch")}</p>
         )}
         {blocks?.map((block) => (
           <Card key={block.id}>

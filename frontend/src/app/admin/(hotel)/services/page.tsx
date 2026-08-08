@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { HotelServiceItem } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -63,7 +63,7 @@ export default function AdminServicesPage() {
       setUnit("");
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo dịch vụ thất bại");
+      setFormError(getErrorMessage(err, "Tạo dịch vụ thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +74,7 @@ export default function AdminServicesPage() {
       await hotelsApi.updateService(service.id, { is_active: !service.is_active });
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      toast.error(getErrorMessage(err, "Cập nhật thất bại"));
     }
   }
 
@@ -86,7 +86,7 @@ export default function AdminServicesPage() {
       toast.success("Xóa dịch vụ thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setDeleteError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -114,7 +114,7 @@ export default function AdminServicesPage() {
       await queryClient.invalidateQueries({ queryKey: ["hotel-services"] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -161,7 +161,7 @@ export default function AdminServicesPage() {
           {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Không thể tải danh sách dịch vụ"}
+              {getErrorMessage(error, "Không thể tải danh sách dịch vụ")}
             </p>
           )}
           {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

@@ -27,7 +27,7 @@ import {
 } from "@/components/shared/ShiftScheduleGrid";
 import { cn } from "@/lib/utils";
 import { staffApi } from "@/lib/api/staff";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import type { ShiftType } from "@/types/enums";
 import { canOperate, useAdminHotel } from "../../layout";
@@ -101,7 +101,7 @@ export default function AdminStaffSchedulePage() {
       await queryClient.invalidateQueries({ queryKey: ["staff-schedule-calendar", startDate, endDate] });
       setCreateOpen(false);
     } catch (err) {
-      setCreateError(err instanceof ApiError ? err.message : "Xếp ca thất bại");
+      setCreateError(getErrorMessage(err, "Xếp ca thất bại"));
     } finally {
       setCreateSubmitting(false);
     }
@@ -130,7 +130,7 @@ export default function AdminStaffSchedulePage() {
       await queryClient.invalidateQueries({ queryKey: ["staff-schedule-calendar", startDate, endDate] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -145,7 +145,7 @@ export default function AdminStaffSchedulePage() {
       await queryClient.invalidateQueries({ queryKey: ["staff-schedule-calendar", startDate, endDate] });
       setEditing(null);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Xóa ca thất bại");
+      toast.error(getErrorMessage(err, "Xóa ca thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -204,7 +204,7 @@ export default function AdminStaffSchedulePage() {
       {isLoading && <p className="text-muted-foreground">Đang tải…</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải lịch làm việc"}
+          {getErrorMessage(error, "Không thể tải lịch làm việc")}
         </p>
       )}
 

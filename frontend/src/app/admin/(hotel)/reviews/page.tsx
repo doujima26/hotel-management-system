@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatDate, getRatingLabel } from "@/lib/utils/format";
 import { reviewsApi } from "@/lib/api/reviews";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { RoomTypeReviewBreakdown, RoomTypeReviewBreakdownItem } from "@/types/models";
 import { canOperate, useAdminHotel } from "../layout";
 
@@ -202,7 +202,7 @@ export default function AdminReviewsPage() {
           {breakdown.isLoading && <p className="text-sm text-muted-foreground">Đang tải...</p>}
           {breakdown.error && (
             <p className="text-sm text-destructive">
-              {breakdown.error instanceof ApiError ? breakdown.error.message : "Không thể tải phân bố đánh giá"}
+              {getErrorMessage(breakdown.error, "Không thể tải phân bố đánh giá")}
             </p>
           )}
           {breakdown.data && <RoomTypeRatingRanking data={breakdown.data} />}
@@ -241,7 +241,7 @@ export default function AdminReviewsPage() {
           {isLoading && <p className="text-sm text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Không thể tải danh sách đánh giá"}
+              {getErrorMessage(error, "Không thể tải danh sách đánh giá")}
             </p>
           )}
 

@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { DateField } from "@/components/shared/DateField";
 import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import { canOperate, useAdminHotel } from "../layout";
 
@@ -84,7 +84,7 @@ export default function AdminCalendarPage() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải lịch phòng"}
+          {getErrorMessage(error, "Không thể tải lịch phòng")}
         </p>
       )}
 

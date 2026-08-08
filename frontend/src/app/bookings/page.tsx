@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { Booking } from "@/types/models";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
 
@@ -120,7 +120,7 @@ function BookingsList() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách booking"}
+          {getErrorMessage(error, "Không thể tải danh sách booking")}
         </p>
       )}
 

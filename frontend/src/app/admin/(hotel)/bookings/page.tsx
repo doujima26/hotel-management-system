@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { todayDateString } from "@/lib/utils/date";
 import { bookingsApi } from "@/lib/api/bookings";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { Booking } from "@/types/models";
 import { PAYMENT_METHOD_LABELS, type BookingStatus } from "@/types/enums";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/StatusBadge";
@@ -117,7 +117,7 @@ function AdminBookingsContent() {
       toast.success("Xác nhận đơn thành công, đã gửi email cho khách");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Xác nhận thất bại");
+      setActionError(getErrorMessage(err, "Xác nhận thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -137,7 +137,7 @@ function AdminBookingsContent() {
       toast.success("Hủy đơn thành công");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Hủy đơn thất bại");
+      setActionError(getErrorMessage(err, "Hủy đơn thất bại"));
     } finally {
       setBusyId(null);
       setCancelTarget(null);
@@ -155,7 +155,7 @@ function AdminBookingsContent() {
       toast.success("Đã đánh dấu đơn không đến");
       await queryClient.invalidateQueries({ queryKey: ["hotel-bookings"] });
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Đánh dấu không đến thất bại");
+      setActionError(getErrorMessage(err, "Đánh dấu không đến thất bại"));
     } finally {
       setBusyId(null);
     }
@@ -185,7 +185,7 @@ function AdminBookingsContent() {
       {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
       {error && (
         <p className="text-sm text-destructive">
-          {error instanceof ApiError ? error.message : "Không thể tải danh sách đơn đặt phòng"}
+          {getErrorMessage(error, "Không thể tải danh sách đơn đặt phòng")}
         </p>
       )}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}

@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DateField } from "@/components/shared/DateField";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
-import { ApiError } from "@/types/api";
+import { getErrorMessage } from "@/types/api";
 import type { DiscountType } from "@/types/enums";
 import type { Promotion } from "@/types/models";
 import { canEditListing, listingLockMessage, useAdminHotel } from "../layout";
@@ -77,7 +77,7 @@ export default function AdminPromotionsPage() {
       setEndDate("");
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Tạo khuyến mãi thất bại");
+      setFormError(getErrorMessage(err, "Tạo khuyến mãi thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -88,7 +88,7 @@ export default function AdminPromotionsPage() {
       await hotelsApi.updatePromotion(promotion.id, { is_active: !promotion.is_active });
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      toast.error(getErrorMessage(err, "Cập nhật thất bại"));
     }
   }
 
@@ -100,7 +100,7 @@ export default function AdminPromotionsPage() {
       toast.success("Xóa khuyến mãi thành công");
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Xóa thất bại");
+      setDeleteError(getErrorMessage(err, "Xóa thất bại"));
     } finally {
       setDeleteBusyId(null);
     }
@@ -121,7 +121,7 @@ export default function AdminPromotionsPage() {
       await queryClient.invalidateQueries({ queryKey: ["promotions"] });
       setEditing(null);
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Cập nhật thất bại");
+      setEditError(getErrorMessage(err, "Cập nhật thất bại"));
     } finally {
       setEditSubmitting(false);
     }
@@ -198,7 +198,7 @@ export default function AdminPromotionsPage() {
           {isLoading && <p className="text-muted-foreground">Đang tải...</p>}
           {error && (
             <p className="text-sm text-destructive">
-              {error instanceof ApiError ? error.message : "Không thể tải danh sách khuyến mãi"}
+              {getErrorMessage(error, "Không thể tải danh sách khuyến mãi")}
             </p>
           )}
           {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
