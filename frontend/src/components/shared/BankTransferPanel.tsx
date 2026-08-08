@@ -95,8 +95,15 @@ export function BankTransferPanel({ bookingId, bookingCode, hotelId, info }: Ban
         </strong>
       </p>
 
+      {/* referrerPolicy="no-referrer": dich vu tao anh QR chan theo Referer,
+          khong gui Referer thi moi tai duoc anh tren domain that. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={info.qr_url} alt="Mã QR chuyển khoản" className="size-64 rounded-lg border object-contain" />
+      <img
+        src={info.qr_url}
+        alt="Mã QR chuyển khoản"
+        referrerPolicy="no-referrer"
+        className="size-64 rounded-lg border object-contain"
+      />
 
       <dl className="w-full max-w-sm text-left text-sm">
         <div className="flex justify-between border-b py-2">
