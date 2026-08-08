@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Slider } from "@base-ui/react/slider";
 import { Star } from "lucide-react";
 import { formatMoney } from "@/lib/utils/format";
@@ -23,6 +23,29 @@ const RATING_OPTIONS = [
 
 const STAR_OPTIONS = [5, 4, 3, 2, 1];
 
+// Dong bo state cuc bo theo prop khi prop that su doi (URL doi tu ben ngoai:
+// Xoa tat ca, doi thanh pho, back/forward) - chinh state ngay trong luc render
+// thay vi qua useEffect, dung mau "adjusting state when a prop changes" cua
+// React de tranh render thua. So sanh theo isEqual (khong phai tham chieu) vi
+// component cha tao mang moi moi lan render du gia tri khong doi.
+function useSyncedState<T>(
+  propValue: T,
+  isEqual: (a: T, b: T) => boolean = Object.is,
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState(propValue);
+  const [prevProp, setPrevProp] = useState(propValue);
+  if (!isEqual(propValue, prevProp)) {
+    setPrevProp(propValue);
+    setValue(propValue);
+  }
+  return [value, setValue];
+}
+
+// So sanh 2 mang chon loc khong phan biet thu tu (toggle co the doi vi tri).
+function sameItems<T>(a: T[], b: T[]): boolean {
+  return a.length === b.length && a.every((item) => b.includes(item));
+}
+
 interface HotelFilterSidebarProps {
   facets: HotelSearchFilters;
   // Cac param luon giu lai khi doi bo loc (city, check_in, sort...).
@@ -38,21 +61,15 @@ interface HotelFilterSidebarProps {
   hasPromotion: boolean;
 }
 
-interface NavigateOverrides {
-  stars?: number[];
-  districts?: string[];
-  amenities?: string[];
-  roomAmenities?: string[];
-  services?: string[];
-  minRating?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  hasPromotion?: boolean;
-}
+// Gop nhieu lan tich lien tiep thanh 1 lan tim, tranh reload ket qua sau moi
+// cai tich rieng le.
+const DEBOUNCE_MS = 500;
 
-// Sidebar loc ket qua tim kiem - client component vi dieu huong URL. Trang thai
-// bo loc lay truc tiep tu URL (qua prop), moi thay doi build lai URL va push,
-// reset ve trang 1 (khong dua "page" vao baseParams).
+// Sidebar loc ket qua tim kiem - client component vi dieu huong URL. Cac o tich
+// (sao, quan, tien nghi, dich vu, diem danh gia, uu dai) giu 1 ban sao trang
+// thai cuc bo de phan hoi ngay khi bam, con dieu huong URL thuc su thi gom lai
+// sau DEBOUNCE_MS ke tu lan tich cuoi. Rieng gia keo xong la tim ngay (khong
+// can gom, vi tha tay chuot da la 1 hanh dong ro rang).
 export function HotelFilterSidebar({
   facets,
   baseParams,
@@ -66,22 +83,23 @@ export function HotelFilterSidebar({
   maxPrice,
   hasPromotion,
 }: HotelFilterSidebarProps) {
-  const { navigate: pushHref } = useSearchTransition();
+  const { navigate: pushHref, isPending } = useSearchTransition();
   const [priceRange, setPriceRange] = useState<number[]>([
     minPrice ? Number(minPrice) : PRICE_MIN,
     maxPrice ? Number(maxPrice) : PRICE_MAX,
   ]);
 
-  function navigate(overrides: NavigateOverrides) {
-    const stars = overrides.stars ?? selectedStars;
-    const districts = overrides.districts ?? selectedDistricts;
-    const amenities = overrides.amenities ?? selectedAmenities;
-    const roomAmenities = overrides.roomAmenities ?? selectedRoomAmenities;
-    const services = overrides.services ?? selectedServices;
-    const rating = overrides.minRating ?? minRating;
+  const [stars, setStars] = useSyncedState(selectedStars, sameItems);
+  const [districts, setDistricts] = useSyncedState(selectedDistricts, sameItems);
+  const [amenities, setAmenities] = useSyncedState(selectedAmenities, sameItems);
+  const [roomAmenities, setRoomAmenities] = useSyncedState(selectedRoomAmenities, sameItems);
+  const [services, setServices] = useSyncedState(selectedServices, sameItems);
+  const [rating, setRating] = useSyncedState(minRating);
+  const [promo, setPromo] = useSyncedState(hasPromotion);
+
+  function buildHref(overrides: { minPrice?: string; maxPrice?: string } = {}) {
     const priceMin = overrides.minPrice ?? minPrice;
     const priceMax = overrides.maxPrice ?? maxPrice;
-    const promo = overrides.hasPromotion ?? hasPromotion;
 
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(baseParams)) {
@@ -98,8 +116,33 @@ export function HotelFilterSidebar({
     if (promo) params.set("has_promotion", "true");
 
     const query = params.toString();
-    pushHref(query ? `/hotels?${query}` : "/hotels");
+    return query ? `/hotels?${query}` : "/hotels";
   }
+
+  // Bo qua lan chay dau (mount) - chi gom va dieu huong khi cac o tich thuc su
+  // doi do nguoi dung bam. Neu dang co 1 lan dieu huong khac chay (isPending),
+  // khong gui chong len - doi no xong, effect nay tu chay lai (isPending doi
+  // thanh false cung nam trong dependency). So voi lastSentHref de biet co gi
+  // thuc su moi khong gui - tranh vong lap gui lai chinh URL vua gui xong moi
+  // khi isPending tat.
+  const isFirstRender = useRef(true);
+  const lastSentHref = useRef<string | null>(null);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      lastSentHref.current = buildHref();
+      return;
+    }
+    if (isPending) return;
+    const timer = setTimeout(() => {
+      const href = buildHref();
+      if (href === lastSentHref.current) return;
+      lastSentHref.current = href;
+      pushHref(href);
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stars, districts, amenities, roomAmenities, services, rating, promo, isPending]);
 
   function toggle<T>(list: T[], value: T): T[] {
     return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -109,10 +152,25 @@ export function HotelFilterSidebar({
   // max_price (khong gioi han tren).
   function commitPrice(range: number[]) {
     const [low, high] = range;
-    navigate({
+    const href = buildHref({
       minPrice: low > PRICE_MIN ? String(low) : "",
       maxPrice: high < PRICE_MAX ? String(high) : "",
     });
+    lastSentHref.current = href;
+    pushHref(href);
+  }
+
+  function clearAll() {
+    setStars([]);
+    setDistricts([]);
+    setAmenities([]);
+    setRoomAmenities([]);
+    setServices([]);
+    setRating("");
+    setPromo(false);
+    const href = `/hotels?${new URLSearchParams(baseParams).toString()}`;
+    lastSentHref.current = href;
+    pushHref(href);
   }
 
   const hasActiveFilter =
@@ -131,11 +189,7 @@ export function HotelFilterSidebar({
       <div className="flex items-center justify-between">
         <p className="font-semibold">Lọc theo</p>
         {hasActiveFilter && (
-          <button
-            type="button"
-            onClick={() => pushHref(`/hotels?${new URLSearchParams(baseParams).toString()}`)}
-            className="text-xs text-primary hover:underline"
-          >
+          <button type="button" onClick={clearAll} className="text-xs text-primary hover:underline">
             Xóa tất cả
           </button>
         )}
@@ -182,8 +236,8 @@ export function HotelFilterSidebar({
             <input
               type="checkbox"
               className="size-4 accent-primary"
-              checked={selectedStars.includes(n)}
-              onChange={() => navigate({ stars: toggle(selectedStars, n) })}
+              checked={stars.includes(n)}
+              onChange={() => setStars(toggle(stars, n))}
             />
             <span className="flex items-center gap-0.5">
               {Array.from({ length: n }).map((_, i) => (
@@ -202,8 +256,8 @@ export function HotelFilterSidebar({
             <input
               type="checkbox"
               className="size-4 accent-primary"
-              checked={minRating === opt.value}
-              onChange={() => navigate({ minRating: minRating === opt.value ? "" : opt.value })}
+              checked={rating === opt.value}
+              onChange={() => setRating(rating === opt.value ? "" : opt.value)}
             />
             {opt.label}
           </label>
@@ -219,8 +273,8 @@ export function HotelFilterSidebar({
               <input
                 type="checkbox"
                 className="size-4 accent-primary"
-                checked={selectedDistricts.includes(district)}
-                onChange={() => navigate({ districts: toggle(selectedDistricts, district) })}
+                checked={districts.includes(district)}
+                onChange={() => setDistricts(toggle(districts, district))}
               />
               {district}
             </label>
@@ -238,8 +292,8 @@ export function HotelFilterSidebar({
                 <input
                   type="checkbox"
                   className="size-4 accent-primary"
-                  checked={selectedAmenities.includes(amenity.name)}
-                  onChange={() => navigate({ amenities: toggle(selectedAmenities, amenity.name) })}
+                  checked={amenities.includes(amenity.name)}
+                  onChange={() => setAmenities(toggle(amenities, amenity.name))}
                 />
                 {amenity.name}
               </span>
@@ -259,8 +313,8 @@ export function HotelFilterSidebar({
                 <input
                   type="checkbox"
                   className="size-4 accent-primary"
-                  checked={selectedRoomAmenities.includes(amenity.name)}
-                  onChange={() => navigate({ roomAmenities: toggle(selectedRoomAmenities, amenity.name) })}
+                  checked={roomAmenities.includes(amenity.name)}
+                  onChange={() => setRoomAmenities(toggle(roomAmenities, amenity.name))}
                 />
                 {amenity.name}
               </span>
@@ -279,8 +333,8 @@ export function HotelFilterSidebar({
               <input
                 type="checkbox"
                 className="size-4 accent-primary"
-                checked={selectedServices.includes(service)}
-                onChange={() => navigate({ services: toggle(selectedServices, service) })}
+                checked={services.includes(service)}
+                onChange={() => setServices(toggle(services, service))}
               />
               {service}
             </label>
@@ -295,8 +349,8 @@ export function HotelFilterSidebar({
           <input
             type="checkbox"
             className="size-4 accent-primary"
-            checked={hasPromotion}
-            onChange={() => navigate({ hasPromotion: !hasPromotion })}
+            checked={promo}
+            onChange={() => setPromo(!promo)}
           />
           Đang có khuyến mãi
         </label>
