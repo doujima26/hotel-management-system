@@ -74,13 +74,20 @@ function AutocompleteClear({
 function AutocompletePopup({
   className,
   children,
+  side = "bottom",
   sideOffset = 4,
+  collisionAvoidance = { side: "none" },
   ...props
 }: AutocompletePrimitive.Popup.Props &
-  Pick<AutocompletePrimitive.Positioner.Props, "sideOffset">) {
+  Pick<AutocompletePrimitive.Positioner.Props, "side" | "sideOffset" | "collisionAvoidance">) {
   return (
     <AutocompletePrimitive.Portal>
-      <AutocompletePrimitive.Positioner sideOffset={sideOffset} className="isolate z-50">
+      <AutocompletePrimitive.Positioner
+        side={side}
+        sideOffset={sideOffset}
+        collisionAvoidance={collisionAvoidance}
+        className="isolate z-50"
+      >
         <AutocompletePrimitive.Popup
           data-slot="autocomplete-popup"
           className={cn(

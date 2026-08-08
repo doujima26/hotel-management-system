@@ -43,3 +43,4 @@ frontend/src/lib/utils/date.test.ts
 frontend/src/lib/utils/format.test.ts
 frontend/src/lib/utils/hotelStatus.test.ts
 frontend/test-results/.last-run.json
+.claude

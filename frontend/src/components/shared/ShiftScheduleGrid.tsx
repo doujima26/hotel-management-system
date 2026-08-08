@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { ShiftType } from "@/types/enums";
 import type { StaffScheduleCalendar, StaffScheduleCalendarShift } from "@/types/models";
 
-const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
 // Ngay lam viec cua khach san chay 06:00 -> 06:00 hom sau, chia dung 3 ca 8 tieng:
 // Sang 06-14, Chieu 14-22, Dem 22-06. Lay 06:00 lam moc 0 cua truc doc.
