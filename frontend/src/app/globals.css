@@ -188,6 +188,9 @@
   }
   html {
     @apply font-sans;
+    /* Tang co chu tong the ~6% so voi mac dinh trinh duyet (16px) - moi don vi
+       rem cua Tailwind (chu, khoang cach, kich thuoc) an theo ty le nay. */
+    font-size: 17px;
   }
   /* Chan cuon ngang o moi be ngang man hinh. Dung clip chu khong phai hidden -
      hidden se pha vo position: sticky cua header bang va sidebar. */

@@ -75,7 +75,7 @@ export function AppSidebarShell({ title, items, header, children }: AppSidebarSh
       <aside className="flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-svh md:w-60 md:self-start md:border-r md:border-b-0">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-col">
-            <Link href="/" className="truncate text-sm font-semibold">
+            <Link href="/" className="truncate text-base font-extrabold">
               Hotel Booking
             </Link>
             <span className="truncate text-xs text-sidebar-foreground/60">{title}</span>

@@ -49,7 +49,7 @@ export function Navbar() {
   return (
     <header className="bg-primary text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight text-white">
+        <Link href="/" className="shrink-0 text-xl font-extrabold tracking-tight text-white">
           Hotel Booking
         </Link>
         <div className="flex shrink-0 items-center gap-2">
