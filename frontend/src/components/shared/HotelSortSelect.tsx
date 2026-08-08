@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSearchTransition } from "@/components/shared/SearchTransition";
 
 // Danh sach cach sap xep, gia tri phai khop enum HotelSortOption cua backend.
 const SORT_OPTIONS = [
@@ -26,7 +26,7 @@ interface HotelSortSelectProps {
 // Dropdown sap xep ket qua tim kiem - client component vi can dieu huong URL,
 // giu nguyen cac filter khac va reset ve trang 1 khi doi cach sap xep.
 export function HotelSortSelect({ value, preserved }: HotelSortSelectProps) {
-  const router = useRouter();
+  const { navigate } = useSearchTransition();
 
   function handleChange(next: string | null) {
     if (!next) return;
@@ -35,7 +35,7 @@ export function HotelSortSelect({ value, preserved }: HotelSortSelectProps) {
       params.set("sort", next);
     }
     const query = params.toString();
-    router.push(query ? `/hotels?${query}` : "/hotels");
+    navigate(query ? `/hotels?${query}` : "/hotels");
   }
 
   return (

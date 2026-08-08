@@ -9,6 +9,7 @@ import { HotelSearchForm } from "@/components/shared/HotelSearchForm";
 import { HotelSortSelect } from "@/components/shared/HotelSortSelect";
 import { HotelFilterSidebar } from "@/components/shared/HotelFilterSidebar";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
+import { SearchTransitionProvider, SearchTransitionPending } from "@/components/shared/SearchTransition";
 import type { HotelSearchFilters } from "@/types/models";
 
 interface HotelsPageProps {
@@ -165,6 +166,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       {result && (
+        <SearchTransitionProvider>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <div className="lg:w-64 lg:shrink-0">
             <HotelFilterSidebar
@@ -182,6 +184,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
             />
           </div>
 
+          <SearchTransitionPending>
           <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">Tìm thấy {result.total} khách sạn</p>
@@ -339,7 +342,9 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
             </div>
           )}
           </div>
+          </SearchTransitionPending>
         </div>
+        </SearchTransitionProvider>
       )}
     </div>
   );

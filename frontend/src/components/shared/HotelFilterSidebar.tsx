@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Slider } from "@base-ui/react/slider";
 import { Star } from "lucide-react";
 import { formatMoney } from "@/lib/utils/format";
+import { useSearchTransition } from "@/components/shared/SearchTransition";
 import type { HotelSearchFilters } from "@/types/models";
 
 // Khoang gia thanh keo ngan sach: 0 -> 20 trieu, buoc 100k. Keo toi 20 trieu
@@ -66,7 +66,7 @@ export function HotelFilterSidebar({
   maxPrice,
   hasPromotion,
 }: HotelFilterSidebarProps) {
-  const router = useRouter();
+  const { navigate: pushHref } = useSearchTransition();
   const [priceRange, setPriceRange] = useState<number[]>([
     minPrice ? Number(minPrice) : PRICE_MIN,
     maxPrice ? Number(maxPrice) : PRICE_MAX,
@@ -98,7 +98,7 @@ export function HotelFilterSidebar({
     if (promo) params.set("has_promotion", "true");
 
     const query = params.toString();
-    router.push(query ? `/hotels?${query}` : "/hotels");
+    pushHref(query ? `/hotels?${query}` : "/hotels");
   }
 
   function toggle<T>(list: T[], value: T): T[] {
@@ -133,7 +133,7 @@ export function HotelFilterSidebar({
         {hasActiveFilter && (
           <button
             type="button"
-            onClick={() => router.push(`/hotels?${new URLSearchParams(baseParams).toString()}`)}
+            onClick={() => pushHref(`/hotels?${new URLSearchParams(baseParams).toString()}`)}
             className="text-xs text-primary hover:underline"
           >
             Xóa tất cả
