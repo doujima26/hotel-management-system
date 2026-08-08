@@ -13,7 +13,7 @@ _PHONE_PATTERN = re.compile(r"^\+?\d{9,11}$")
 def validate_phone(value: str) -> str:
     cleaned = _PHONE_SEPARATORS.sub("", value or "")
     if not cleaned:
-        raise ValueError("Vui long nhap so dien thoai")
+        raise ValueError("Vui lòng nhập số điện thoại")
     if not _PHONE_PATTERN.match(cleaned):
-        raise ValueError("So dien thoai khong hop le, can 9 den 11 chu so")
+        raise ValueError("Số điện thoại không hợp lệ, cần 9 đến 11 chữ số")
     return cleaned

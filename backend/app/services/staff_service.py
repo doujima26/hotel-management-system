@@ -77,7 +77,7 @@ def create_staff(
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email da ton tai",
+            detail="Email đã tồn tại",
         )
 
     temp_password = _generate_temp_password()
@@ -130,12 +130,12 @@ def update_staff(db: Session, current_user: User, staff_id: int, payload: Update
     if not staff:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nhan vien khong ton tai",
+            detail="Nhân viên không tồn tại",
         )
     if staff.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly nhan vien cua khach san minh",
+            detail="Bạn chỉ được quản lý nhân viên của khách sạn mình",
         )
 
     update_data = payload.model_dump(exclude_unset=True)
@@ -159,12 +159,12 @@ def _get_owned_staff_member(db: Session, current_user: User, staff_id: int) -> S
     if not staff:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nhan vien khong ton tai",
+            detail="Nhân viên không tồn tại",
         )
     if staff.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly nhan vien cua khach san minh",
+            detail="Bạn chỉ được quản lý nhân viên của khách sạn mình",
         )
     return staff
 
@@ -176,13 +176,13 @@ def _get_owned_schedule(db: Session, current_user: User, schedule_id: int) -> St
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ca lam viec khong ton tai",
+            detail="Ca làm việc không tồn tại",
         )
     staff = get_staff_member_by_id(db, schedule.staff_id)
     if not staff or staff.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly ca lam viec cua khach san minh",
+            detail="Bạn chỉ được quản lý ca làm việc của khách sạn mình",
         )
     return schedule
 
@@ -197,7 +197,7 @@ def _validate_shift_times(start_time: time, end_time: time) -> None:
     if end_time == start_time:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Gio ket thuc ca khong duoc trung gio bat dau",
+            detail="Giờ kết thúc ca không được trùng giờ bắt đầu",
         )
 
 
@@ -231,7 +231,7 @@ def list_my_schedules(db: Session, current_user: User) -> list[dict]:
     if not staff:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tai khoan chua duoc gan lam nhan vien cua khach san nao",
+            detail="Tài khoản chưa được gán làm nhân viên của khách sạn nào",
         )
     schedules = list_staff_schedules(db, staff.id)
     return [_serialize_schedule(item) for item in schedules]
@@ -272,13 +272,13 @@ def get_staff_schedule_calendar(db: Session, current_user: User, from_date: date
     if to_date < from_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau",
+            detail="Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
         )
     num_days = (to_date - from_date).days + 1
     if num_days > _MAX_SCHEDULE_CALENDAR_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi xem toi da {_MAX_SCHEDULE_CALENDAR_DAYS} ngay moi lan",
+            detail=f"Chỉ xem tối đa {_MAX_SCHEDULE_CALENDAR_DAYS} ngày mỗi lần",
         )
 
     hotel = get_operational_hotel(db, current_user)

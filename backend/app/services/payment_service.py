@@ -211,14 +211,14 @@ def get_payment_detail(db: Session, current_user: User, payment_id: int) -> dict
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Thanh toan khong ton tai",
+            detail="Thanh toán không tồn tại",
         )
 
     booking = get_booking_by_id(db, payment.booking_id)
     if not booking or booking.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xem thanh toan cua minh",
+            detail="Bạn chỉ được xem thanh toán của mình",
         )
 
     return PaymentResponse.model_validate(payment).model_dump(mode="json")
@@ -230,19 +230,19 @@ def get_invoice_by_booking(db: Session, current_user: User, booking_id: int) -> 
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
     if booking.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xem hoa don cua minh",
+            detail="Bạn chỉ được xem hóa đơn của mình",
         )
 
     invoice = get_invoice_by_booking_id(db, booking_id)
     if not invoice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking chua co hoa don",
+            detail="Đơn đặt phòng chưa có hóa đơn",
         )
 
     return InvoiceResponse.model_validate(invoice).model_dump(mode="json")

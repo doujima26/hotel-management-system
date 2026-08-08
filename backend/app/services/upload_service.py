@@ -54,7 +54,7 @@ async def save_uploaded_image(file: UploadFile) -> str:
     if extension is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chi chap nhan anh dinh dang JPG, PNG, GIF hoac WebP",
+            detail="Chỉ chấp nhận ảnh định dạng JPG, PNG, GIF hoặc WebP",
         )
 
     directory = upload_dir()
@@ -76,7 +76,7 @@ async def save_uploaded_image(file: UploadFile) -> str:
                 if written > max_bytes:
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=f"Anh vuot qua gioi han {settings.max_upload_size_mb} MB",
+                        detail=f"Ảnh vượt quá giới hạn {settings.max_upload_size_mb} MB",
                     )
                 output.write(chunk)
     except Exception:

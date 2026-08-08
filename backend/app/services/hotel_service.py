@@ -145,17 +145,17 @@ def get_approved_admin_hotel(db: Session, current_user: User) -> Hotel:
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin chua dang ky khach san",
+            detail="Admin chưa đăng ký khách sạn",
         )
     if hotel.status == HotelStatus.SUSPENDED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san dang bi tam dung, khong thuc hien duoc thao tac nay",
+            detail="Khách sạn đang bị tạm dừng, không thực hiện được thao tác này",
         )
     if hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san chua duoc duyet de van hanh",
+            detail="Khách sạn chưa được duyệt để vận hành",
         )
     return hotel
 
@@ -171,12 +171,12 @@ def get_operating_admin_hotel(db: Session, current_user: User) -> Hotel:
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin chua dang ky khach san",
+            detail="Admin chưa đăng ký khách sạn",
         )
     if hotel.status not in _OPERATING_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san chua duoc duyet de van hanh",
+            detail="Khách sạn chưa được duyệt để vận hành",
         )
     return hotel
 
@@ -190,19 +190,19 @@ def get_operational_hotel(db: Session, current_user: User) -> Hotel:
         if not staff:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tai khoan chua duoc gan lam nhan vien cua khach san nao",
+                detail="Tài khoản chưa được gán làm nhân viên của khách sạn nào",
             )
         hotel = get_hotel_by_id(db, staff.hotel_id)
         if not hotel:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Khach san khong ton tai",
+                detail="Khách sạn không tồn tại",
             )
         # Ap dung cung dieu kien trang thai nhu voi chu khach san.
         if hotel.status not in _OPERATING_STATUSES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Khach san chua duoc duyet de van hanh",
+                detail="Khách sạn chưa được duyệt để vận hành",
             )
         return hotel
 
@@ -214,12 +214,12 @@ def validate_promotion_data(discount_type: str, discount_value: float, start_dat
     if end_date < start_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau",
+            detail="Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
         )
     if discount_type == "percentage" and discount_value > 100:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Gia tri giam theo phan tram khong duoc vuot qua 100",
+            detail="Giá trị giảm theo phần trăm không được vượt quá 100",
         )
 
 
@@ -229,7 +229,7 @@ def create_hotel(db: Session, current_user: User, payload: CreateHotelRequest) -
     if existing_hotel:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Admin nay da dang ky khach san",
+            detail="Admin này đã đăng ký khách sạn",
         )
 
     hotel = create_hotel_record(db, current_user.id, payload)
@@ -242,7 +242,7 @@ def get_my_hotel(db: Session, current_user: User) -> dict:
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin chua dang ky khach san",
+            detail="Admin chưa đăng ký khách sạn",
         )
     return serialize_hotel(hotel)
 
@@ -253,7 +253,7 @@ def update_hotel(db: Session, current_user: User, payload: UpdateHotelRequest) -
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin chua dang ky khach san",
+            detail="Admin chưa đăng ký khách sạn",
         )
 
     update_data = payload.model_dump(exclude_unset=True)
@@ -274,7 +274,7 @@ def get_hotel_detail(db: Session, hotel_id: int) -> dict:
     if not hotel or hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai hoac chua duoc duyet",
+            detail="Khách sạn không tồn tại hoặc chưa được duyệt",
         )
 
     images = list_hotel_image_records(db, hotel.id)
@@ -289,17 +289,17 @@ def assign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> di
 
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tiện nghi không tồn tại")
     if amenity.scope != AmenityScope.HOTEL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chi duoc gan tien nghi thuoc danh muc 'Tien nghi' chung vao khach san",
+            detail="Chỉ được gắn tiện nghi thuộc danh mục 'Tiện nghi' chung vào khách sạn",
         )
 
     if get_hotel_amenity_link(db, hotel.id, amenity_id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Tien nghi da duoc gan vao khach san",
+            detail="Tiện nghi đã được gắn vào khách sạn",
         )
 
     create_hotel_amenity_link(db, hotel.id, amenity_id)
@@ -314,7 +314,7 @@ def unassign_hotel_amenity(db: Session, current_user: User, amenity_id: int) -> 
     if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tien nghi chua duoc gan vao khach san nay",
+            detail="Tiện nghi chưa được gắn vào khách sạn này",
         )
 
     delete_hotel_amenity_link(db, link)
@@ -335,7 +335,7 @@ def create_hotel_service(db: Session, current_user: User, payload: CreateHotelSe
     if existing_service:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Dich vu da ton tai trong khach san",
+            detail="Dịch vụ đã tồn tại trong khách sạn",
         )
 
     service = create_hotel_service_record(db, hotel.id, payload)
@@ -361,12 +361,12 @@ def update_hotel_service(
     if not service:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dich vu khong ton tai",
+            detail="Dịch vụ không tồn tại",
         )
     if service.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly dich vu cua khach san minh",
+            detail="Bạn chỉ được quản lý dịch vụ của khách sạn mình",
         )
 
     update_data = payload.model_dump(exclude_unset=True)
@@ -385,19 +385,19 @@ def delete_hotel_service(db: Session, current_user: User, service_id: int) -> di
     if not service:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dich vu khong ton tai",
+            detail="Dịch vụ không tồn tại",
         )
     if service.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly dich vu cua khach san minh",
+            detail="Bạn chỉ được quản lý dịch vụ của khách sạn mình",
         )
 
     usage_count = count_booking_services_by_service(db, service_id)
     if usage_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dich vu nay da tung duoc khach dat, khong the xoa - hay tat (is_active=false) thay vi xoa",
+            detail="Dịch vụ này đã từng được khách đặt, không thể xóa - hãy tắt (is_active=false) thay vì xóa",
         )
 
     delete_hotel_service_record(db, service)
@@ -426,7 +426,7 @@ def list_valid_promotions_for_hotel(db: Session, hotel_id: int) -> list[dict]:
     if not hotel or hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai hoac chua duoc duyet",
+            detail="Khách sạn không tồn tại hoặc chưa được duyệt",
         )
     promotions = list_valid_promotion_records(db, hotel.id, date.today())
     return [serialize_promotion(item) for item in promotions]
@@ -439,7 +439,7 @@ def list_public_hotel_services(db: Session, hotel_id: int) -> list[dict]:
     if not hotel or hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai hoac chua duoc duyet",
+            detail="Khách sạn không tồn tại hoặc chưa được duyệt",
         )
     services = [service for service in list_hotel_service_records(db, hotel_id) if service.is_active]
     return [serialize_hotel_service(service) for service in services]
@@ -724,12 +724,12 @@ def update_promotion(
     if not promotion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khuyen mai khong ton tai",
+            detail="Khuyến mãi không tồn tại",
         )
     if promotion.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly khuyen mai cua khach san minh",
+            detail="Bạn chỉ được quản lý khuyến mãi của khách sạn mình",
         )
 
     update_data = payload.model_dump(exclude_unset=True)
@@ -757,19 +757,19 @@ def delete_promotion(db: Session, current_user: User, promotion_id: int) -> dict
     if not promotion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khuyen mai khong ton tai",
+            detail="Khuyến mãi không tồn tại",
         )
     if promotion.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly khuyen mai cua khach san minh",
+            detail="Bạn chỉ được quản lý khuyến mãi của khách sạn mình",
         )
 
     usage_count = count_bookings_by_promotion_id(db, promotion_id)
     if usage_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khuyen mai nay da tung duoc dung trong booking, khong the xoa - hay tat thay vi xoa",
+            detail="Khuyến mãi này đã từng được dùng trong đơn đặt phòng, không thể xóa - hãy tắt thay vì xóa",
         )
 
     delete_promotion_record(db, promotion)
@@ -800,17 +800,17 @@ def search_hotels(
     if bool(check_in) != bool(check_out):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phai cung cap ca check_in va check_out",
+            detail="Phải cung cấp cả check_in và check_out",
         )
     if check_in and check_out and check_out <= check_in:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay tra phong phai sau ngay nhan phong",
+            detail="Ngày trả phòng phải sau ngày nhận phòng",
         )
     if check_in and check_in < date.today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay nhan phong khong duoc o qua khu",
+            detail="Ngày nhận phòng không được ở quá khứ",
         )
 
     hotels, total = search_hotel_records(
@@ -927,7 +927,7 @@ def get_search_filters(
     if bool(check_in) != bool(check_out):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phai cung cap ca check_in va check_out",
+            detail="Phải cung cấp cả check_in và check_out",
         )
     facets = get_search_facets(
         db,
@@ -960,12 +960,12 @@ def _get_owned_hotel_image(db: Session, current_user: User, image_id: int) -> Ho
     if not image:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Anh khong ton tai",
+            detail="Ảnh không tồn tại",
         )
     if image.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly anh cua khach san minh",
+            detail="Bạn chỉ được quản lý ảnh của khách sạn mình",
         )
     return image
 
@@ -1038,7 +1038,7 @@ def list_my_payouts(db: Session, current_user: User) -> list[dict]:
 def list_hotel_payouts(db: Session, current_user: User, hotel_id: int) -> list[dict]:
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
     return [PayoutResponse.model_validate(item).model_dump(mode="json") for item in list_payouts_by_hotel(db, hotel.id)]
 
 
@@ -1047,7 +1047,7 @@ def list_hotel_payouts(db: Session, current_user: User, hotel_id: int) -> list[d
 def update_commission_rate(db: Session, current_user: User, hotel_id: int, payload: UpdateCommissionRateRequest) -> dict:
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
 
     hotel.commission_rate = payload.commission_rate
     save_hotel(db, hotel)
@@ -1059,7 +1059,7 @@ def update_commission_rate(db: Session, current_user: User, hotel_id: int, paylo
 def create_hotel_payout(db: Session, current_user: User, payload: CreatePayoutRequest) -> dict:
     hotel = get_hotel_by_id(db, payload.hotel_id)
     if not hotel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
 
     # Chan ghi vuot so dang no: ghi thua se lam cong no am va sai so sach.
     tong_don = get_booking_totals_by_hotel(db, [hotel.id])
@@ -1068,7 +1068,7 @@ def create_hotel_payout(db: Session, current_user: User, payload: CreatePayoutRe
     if payload.amount > con_no:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"So tien vuot qua cong no hien tai ({con_no:,.0f} d)",
+            detail=f"Số tiền vượt quá công nợ hiện tại ({con_no:,.0f} đ)",
         )
 
     payout = create_payout_record(

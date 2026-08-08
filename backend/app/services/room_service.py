@@ -160,17 +160,17 @@ def validate_admin_hotel(hotel: Hotel | None, current_user: User, require_approv
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai",
+            detail="Khách sạn không tồn tại",
         )
     if hotel.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly khach san cua minh",
+            detail="Bạn chỉ được quản lý khách sạn của mình",
         )
     if require_approved and hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san chua duoc duyet de van hanh",
+            detail="Khách sạn chưa được duyệt để vận hành",
         )
     return hotel
 
@@ -180,19 +180,19 @@ def validate_room_type_owner(db: Session, room_type: RoomType | None, current_us
     if not room_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Loai phong khong ton tai",
+            detail="Loại phòng không tồn tại",
         )
 
     hotel = get_hotel_by_id(db, room_type.hotel_id)
     if not hotel or hotel.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly khach san cua minh",
+            detail="Bạn chỉ được quản lý khách sạn của mình",
         )
     if require_approved and hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Khach san chua duoc duyet de van hanh",
+            detail="Khách sạn chưa được duyệt để vận hành",
         )
     return hotel
 
@@ -204,7 +204,7 @@ def _validate_bed_config(bed_type: str | None, bed_count: int | None) -> None:
     if bed_count is not None and not bed_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phai chon loai giuong truoc khi nhap so luong giuong",
+            detail="Phải chọn loại giường trước khi nhập số lượng giường",
         )
 
 
@@ -237,7 +237,7 @@ def update_room_type(db: Session, current_user: User, room_type_id: int, payload
         if update_data["total_rooms"] < current_rooms:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Loai phong nay da co {current_rooms} phong vat ly, khong the giam total_rooms xuong thap hon",
+                detail=f"Loại phòng này đã có {current_rooms} phòng vật lý, không thể giảm total_rooms xuống thấp hơn",
             )
 
     # Kiem tra tren gia tri SAU khi cap nhat (field khong gui thi giu gia tri
@@ -267,8 +267,8 @@ def delete_room_type(db: Session, current_user: User, room_type_id: int) -> dict
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Loai phong nay dang co {room_count} phong vat ly va {booking_count} booking lien quan, "
-                "khong the xoa - hay tat (is_active=false) thay vi xoa"
+                f"Loại phòng này đang có {room_count} phòng vật lý và {booking_count} booking liên quan, "
+                "không thể xóa - hãy tắt (is_active=false) thay vì xóa"
             ),
         )
 
@@ -285,7 +285,7 @@ def create_room(db: Session, current_user: User, payload: CreateRoomRequest) -> 
     if current_rooms >= room_type.total_rooms:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Da dat toi da so phong cua loai phong nay",
+            detail="Đã đạt tối đa số phòng của loại phòng này",
         )
 
     try:
@@ -294,7 +294,7 @@ def create_room(db: Session, current_user: User, payload: CreateRoomRequest) -> 
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="So phong nay da ton tai trong khach san",
+            detail="Số phòng này đã tồn tại trong khách sạn",
         ) from exc
 
     return serialize_room(room)
@@ -321,7 +321,7 @@ def list_rooms(db: Session, current_user: User, room_type_id: int) -> dict:
 def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRoomRequest) -> dict:
     room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phòng không tồn tại")
 
     room_type = get_room_type_by_id(db, room.room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
@@ -330,7 +330,7 @@ def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRo
     if update_data.get("is_active") is False and room.status != RoomStatus.AVAILABLE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chi tat duoc phong dang o trang thai available",
+            detail="Chỉ tắt được phòng đang ở trạng thái còn trống",
         )
 
     for field, value in update_data.items():
@@ -342,7 +342,7 @@ def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRo
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="So phong da ton tai trong loai phong nay",
+            detail="Số phòng đã tồn tại trong loại phòng này",
         ) from exc
 
     return serialize_room(room)
@@ -353,7 +353,7 @@ def update_room(db: Session, current_user: User, room_id: int, payload: UpdateRo
 def delete_room(db: Session, current_user: User, room_id: int) -> dict:
     room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phòng không tồn tại")
 
     room_type = get_room_type_by_id(db, room.room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
@@ -362,7 +362,7 @@ def delete_room(db: Session, current_user: User, room_id: int) -> dict:
     if usage_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phong nay da tung duoc gan cho khach check-in, khong the xoa - hay tat thay vi xoa",
+            detail="Phòng này đã từng được gán cho khách check-in, không thể xóa - hãy tắt thay vì xóa",
         )
 
     delete_room_record(db, room)
@@ -374,7 +374,7 @@ def _validate_amenity_category(db: Session, category_id: int | None) -> None:
     if category_id is None:
         return
     if not get_amenity_category_by_id(db, category_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh mục tiện nghi không tồn tại")
 
 
 # Xu ly tao tien nghi moi trong danh muc chung (chi Super Admin).
@@ -386,7 +386,7 @@ def create_amenity(db: Session, payload: CreateAmenityRequest) -> dict:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Tien nghi da ton tai",
+            detail="Tiện nghi đã tồn tại",
         ) from exc
 
     return serialize_amenity(amenity)
@@ -402,7 +402,7 @@ def list_amenities(db: Session, scope: AmenityScope) -> list[dict]:
 def update_amenity(db: Session, amenity_id: int, payload: UpdateAmenityRequest) -> dict:
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tiện nghi không tồn tại")
 
     _validate_amenity_category(db, payload.category_id)
 
@@ -416,7 +416,7 @@ def update_amenity(db: Session, amenity_id: int, payload: UpdateAmenityRequest) 
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Tien nghi da ton tai",
+            detail="Tiện nghi đã tồn tại",
         ) from exc
 
     return serialize_amenity(amenity)
@@ -427,7 +427,7 @@ def update_amenity(db: Session, amenity_id: int, payload: UpdateAmenityRequest) 
 def delete_amenity(db: Session, amenity_id: int) -> dict:
     amenity = get_amenity_by_id(db, amenity_id)
     if not amenity:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tiện nghi không tồn tại")
     delete_amenity_record(db, amenity)
     return DeleteAmenityResponse(id=amenity_id).model_dump(mode="json")
 
@@ -438,7 +438,7 @@ def create_amenity_category(db: Session, payload: CreateAmenityCategoryRequest) 
         category = create_amenity_category_record(db, payload.name.strip(), payload.icon or None)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh muc tien nghi da ton tai") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh mục tiện nghi đã tồn tại") from exc
 
     return serialize_amenity_category(category)
 
@@ -452,7 +452,7 @@ def list_amenity_categories(db: Session) -> list[dict]:
 def update_amenity_category(db: Session, category_id: int, payload: UpdateAmenityCategoryRequest) -> dict:
     category = get_amenity_category_by_id(db, category_id)
     if not category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh mục tiện nghi không tồn tại")
 
     category.name = payload.name.strip()
     category.icon = payload.icon or None
@@ -460,7 +460,7 @@ def update_amenity_category(db: Session, category_id: int, payload: UpdateAmenit
         category = save_amenity_category(db, category)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh muc tien nghi da ton tai") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Danh mục tiện nghi đã tồn tại") from exc
 
     return serialize_amenity_category(category)
 
@@ -471,13 +471,13 @@ def update_amenity_category(db: Session, category_id: int, payload: UpdateAmenit
 def delete_amenity_category(db: Session, category_id: int) -> dict:
     category = get_amenity_category_by_id(db, category_id)
     if not category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh muc tien nghi khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh mục tiện nghi không tồn tại")
 
     usage_count = count_amenities_in_category(db, category_id)
     if usage_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Danh muc dang co {usage_count} tien nghi, hay chuyen sang danh muc khac truoc khi xoa",
+            detail=f"Danh mục đang có {usage_count} tiện nghi, hãy chuyển sang danh mục khác trước khi xóa",
         )
 
     delete_amenity_category_record(db, category)
@@ -493,19 +493,19 @@ def assign_amenity_to_room_type(db: Session, current_user: User, room_type_id: i
     if not amenity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tien nghi khong ton tai",
+            detail="Tiện nghi không tồn tại",
         )
     if amenity.scope != AmenityScope.ROOM:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chi duoc gan tien nghi thuoc danh muc 'Tien nghi phong' vao loai phong",
+            detail="Chỉ được gắn tiện nghi thuộc danh mục 'Tiện nghi phòng' vào loại phòng",
         )
 
     existing_link = get_room_type_amenity_link(db, room_type_id, amenity_id)
     if existing_link:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Tien nghi da duoc gan vao loai phong",
+            detail="Tiện nghi đã được gắn vào loại phòng",
         )
 
     create_room_type_amenity_link(db, room_type_id, amenity_id)
@@ -521,7 +521,7 @@ def unassign_amenity_from_room_type(db: Session, current_user: User, room_type_i
     if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tien nghi chua duoc gan vao loai phong nay",
+            detail="Tiện nghi chưa được gắn vào loại phòng này",
         )
 
     delete_room_type_amenity_link(db, link)
@@ -547,19 +547,19 @@ def get_room_availability(
     if check_out <= check_in:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay tra phong phai sau ngay nhan phong",
+            detail="Ngày trả phòng phải sau ngày nhận phòng",
         )
     if check_in < date.today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay nhan phong khong duoc o qua khu",
+            detail="Ngày nhận phòng không được ở quá khứ",
         )
 
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel or hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai hoac chua duoc duyet",
+            detail="Khách sạn không tồn tại hoặc chưa được duyệt",
         )
 
     rows = list_room_type_availability(db, hotel_id, check_in, check_out, num_guests)
@@ -639,12 +639,12 @@ def _get_owned_room_type_image(db: Session, current_user: User, room_type_id: in
     if not image:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Anh khong ton tai",
+            detail="Ảnh không tồn tại",
         )
     if image.room_type_id != room_type_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anh khong thuoc loai phong nay",
+            detail="Ảnh không thuộc loại phòng này",
         )
     return image
 
@@ -673,13 +673,13 @@ def get_room_calendar(db: Session, current_user: User, from_date: date, to_date:
     if to_date < from_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau",
+            detail="Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
         )
     num_days = (to_date - from_date).days + 1
     if num_days > _MAX_CALENDAR_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi xem toi da {_MAX_CALENDAR_DAYS} ngay moi lan",
+            detail=f"Chỉ xem tối đa {_MAX_CALENDAR_DAYS} ngày mỗi lần",
         )
 
     hotel = get_operational_hotel(db, current_user)
@@ -754,11 +754,11 @@ def get_room_type_rate_calendar(
     room_type = get_room_type_by_id(db, room_type_id)
     validate_room_type_owner(db, room_type, current_user)
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải sau ngày bắt đầu")
     if (to_date - from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi xem toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
+            detail=f"Chỉ xem tối đa {_MAX_RATE_RANGE_DAYS} ngày mỗi lần",
         )
 
     prices = resolve_nightly_prices(db, room_type, from_date, to_date)
@@ -808,7 +808,7 @@ def clear_room_type_rate(db: Session, current_user: User, room_type_id: int, rat
 
     deleted = delete_room_type_rate(db, room_type_id, rate_date)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ngay nay chua co gia ghi de")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ngày này chưa có giá ghi đè")
 
     night = resolve_nightly_prices(db, room_type, rate_date, rate_date)[rate_date]
     return RoomTypeRateDayItem(
@@ -830,11 +830,11 @@ def clear_room_type_rates_in_range(
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
 
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải sau ngày bắt đầu")
     if (to_date - from_date).days + 1 > _MAX_RATE_RANGE_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi xoa toi da {_MAX_RATE_RANGE_DAYS} ngay moi lan",
+            detail=f"Chỉ xóa tối đa {_MAX_RATE_RANGE_DAYS} ngày mỗi lần",
         )
 
     cleared = delete_room_type_rates_in_range(db, room_type_id, from_date, to_date)
@@ -863,25 +863,25 @@ def _validate_pricing_rule_period(rule: PricingRule) -> None:
         if None in (rule.start_month, rule.start_day, rule.end_month, rule.end_day):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Quy tac lap hang nam phai nhap du ngay va thang bat dau, ket thuc",
+                detail="Quy tắc lặp hàng năm phải nhập đủ ngày và tháng bắt đầu, kết thúc",
             )
         for month, day in ((rule.start_month, rule.start_day), (rule.end_month, rule.end_day)):
             if day > _MAX_DAY_IN_MONTH[month]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Thang {month} khong co ngay {day}",
+                    detail=f"Tháng {month} không có ngày {day}",
                 )
         return
 
     if rule.start_date is None or rule.end_date is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Quy tac ap 1 lan phai nhap ngay bat dau va ngay ket thuc",
+            detail="Quy tắc áp 1 lần phải nhập ngày bắt đầu và ngày kết thúc",
         )
     if rule.end_date < rule.start_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay ket thuc phai sau ngay bat dau",
+            detail="Ngày kết thúc phải sau ngày bắt đầu",
         )
 
 
@@ -899,7 +899,7 @@ def _validate_pricing_rule_adjustment(
         if adjustment_value <= -100:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Muc giam theo phan tram khong duoc tu 100% tro len",
+                detail="Mức giảm theo phần trăm không được từ 100% trở lên",
             )
         return
 
@@ -912,7 +912,7 @@ def _validate_pricing_rule_adjustment(
     if base_prices and min(base_prices) + adjustment_value <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Gia sau dieu chinh phai lon hon 0",
+            detail="Giá sau điều chỉnh phải lớn hơn 0",
         )
 
 
@@ -924,7 +924,7 @@ def _validate_pricing_rule_room_type(db: Session, hotel_id: int, room_type_id: i
     if not room_type or room_type.hotel_id != hotel_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Loai phong khong ton tai trong khach san nay",
+            detail="Loại phòng không tồn tại trong khách sạn này",
         )
 
 
@@ -932,11 +932,11 @@ def _validate_pricing_rule_room_type(db: Session, hotel_id: int, room_type_id: i
 def _get_own_pricing_rule(db: Session, hotel_id: int, rule_id: int) -> PricingRule:
     rule = get_pricing_rule_by_id(db, rule_id)
     if not rule:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quy tac gia khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quy tắc giá không tồn tại")
     if rule.hotel_id != hotel_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc quan ly quy tac gia cua khach san minh",
+            detail="Bạn chỉ được quản lý quy tắc giá của khách sạn mình",
         )
     return rule
 
@@ -1014,18 +1014,18 @@ def delete_pricing_rule(db: Session, current_user: User, rule_id: int) -> dict:
 # Xu ly tao khoa lich cho 1 phong vat ly.
 def create_room_block(db: Session, current_user: User, payload: CreateRoomBlockRequest) -> dict:
     if payload.end_date < payload.start_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải sau ngày bắt đầu")
 
     room = get_room_by_id_locking_room_type(db, payload.room_id)
     if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phòng không tồn tại")
     room_type = get_room_type_by_id(db, room.room_type_id)
     validate_room_type_owner(db, room_type, current_user, require_approved=True)
 
     if get_overlapping_room_blocks(db, room.id, payload.start_date, payload.end_date):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Phong nay da co khoa lich khac trong khoang ngay giao nhau",
+            detail="Phòng này đã có khóa lịch khác trong khoảng ngày giao nhau",
         )
 
     block = create_room_block_record(
@@ -1043,7 +1043,7 @@ def create_room_block(db: Session, current_user: User, payload: CreateRoomBlockR
 def remove_room_block(db: Session, current_user: User, block_id: int) -> dict:
     block = get_room_block_by_id(db, block_id)
     if not block:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khoa lich khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khóa lịch không tồn tại")
 
     room = get_room_by_id_locking_room_type(db, block.room_id)
     room_type = get_room_type_by_id(db, room.room_type_id)

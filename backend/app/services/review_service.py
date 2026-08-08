@@ -62,7 +62,7 @@ def _serialize_review_rows(db: Session, rows: list[tuple[Review, User, Booking]]
 def _serialize_single_review(db: Session, review: Review, user: User) -> dict:
     booking = get_booking_by_id(db, review.booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking cua danh gia khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn đặt phòng của đánh giá không tồn tại")
     return _serialize_review(review, user, booking, list_room_type_names_by_booking_ids(db, [booking.id]).get(booking.id, []))
 
 
@@ -71,13 +71,13 @@ def _serialize_single_review(db: Session, review: Review, user: User) -> dict:
 def create_review(db: Session, current_user: User, payload: CreateReviewRequest) -> dict:
     booking = get_booking_by_id(db, payload.booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn đặt phòng không tồn tại")
     if booking.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc danh gia booking cua minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được đánh giá đơn đặt phòng của mình")
     if booking.status != BookingStatus.CHECKED_OUT:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chi duoc danh gia sau khi da tra phong")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chỉ được đánh giá sau khi đã trả phòng")
     if get_review_by_user_and_booking(db, current_user.id, booking.id):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ban da danh gia booking nay roi")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bạn đã đánh giá đơn đặt phòng này rồi")
 
     try:
         review = create_review_record(
@@ -90,7 +90,7 @@ def create_review(db: Session, current_user: User, payload: CreateReviewRequest)
         )
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ban da danh gia booking nay roi") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bạn đã đánh giá đơn đặt phòng này rồi") from exc
 
     room_type_names = list_room_type_names_by_booking_ids(db, [booking.id]).get(booking.id, [])
     return _serialize_review(review, current_user, booking, room_type_names)
@@ -100,7 +100,7 @@ def create_review(db: Session, current_user: User, payload: CreateReviewRequest)
 def list_hotel_reviews(db: Session, hotel_id: int) -> list[dict]:
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
 
     return _serialize_review_rows(db, list_reviews_with_user_and_booking_by_hotel(db, hotel_id))
 
@@ -170,9 +170,9 @@ def get_room_type_review_breakdown_for_admin(db: Session, current_user: User) ->
 def update_review(db: Session, current_user: User, review_id: int, payload: UpdateReviewRequest) -> dict:
     review = get_review_by_id(db, review_id)
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh gia khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đánh giá không tồn tại")
     if review.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc sua danh gia cua minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được sửa đánh giá của mình")
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -186,7 +186,7 @@ def update_review(db: Session, current_user: User, review_id: int, payload: Upda
 def delete_review(db: Session, current_user: User, review_id: int) -> dict:
     review = get_review_by_id(db, review_id)
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Danh gia khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đánh giá không tồn tại")
 
     is_author = review.user_id == current_user.id
     is_hotel_admin = False
@@ -197,7 +197,7 @@ def delete_review(db: Session, current_user: User, review_id: int) -> dict:
     if not is_author and not is_hotel_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xoa danh gia cua minh hoac cua khach san minh quan ly",
+            detail="Bạn chỉ được xóa đánh giá của mình hoặc của khách sạn mình quản lý",
         )
 
     delete_review_record(db, review)

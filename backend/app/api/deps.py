@@ -23,38 +23,38 @@ def get_current_user(
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token khong hop le",
+            detail="Token không hợp lệ",
         ) from exc
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token khong hop le",
+            detail="Token không hợp lệ",
         )
 
     user_id = payload.get("sub")
     if not user_id or not str(user_id).isdigit():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token khong hop le",
+            detail="Token không hợp lệ",
         )
 
     user = get_user_by_id(db, int(user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tai khoan da bi khoa",
+            detail="Tài khoản đã bị khóa",
         )
     # Token cap truoc lan doi mat khau gan nhat (lech "ver") bi tu choi - dam bao
     # doi mat khau thu hoi phien tren MOI thiet bi ngay lap tuc.
     if payload.get("ver") != user.token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Phien dang nhap da het hieu luc, vui long dang nhap lai",
+            detail="Phiên đăng nhập đã hết hiệu lực, vui lòng đăng nhập lại",
         )
     return user
 
@@ -66,7 +66,7 @@ def require_roles(*roles: UserRole):
         if current_user.role not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Ban khong co quyen truy cap",
+                detail="Bạn không có quyền truy cập",
             )
         return current_user
 

@@ -149,19 +149,19 @@ def _apply_promotion(
 ) -> tuple[Promotion, float]:
     promotion = get_promotion_by_id_for_update(db, promotion_id)
     if not promotion:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyen mai khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyến mãi không tồn tại")
     if promotion.hotel_id != hotel_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyen mai khong thuoc khach san nay")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khuyến mãi không thuộc khách sạn này")
     if not promotion.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai da bi tat")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyến mãi đã bị tắt")
     if today < promotion.start_date or today > promotion.end_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai khong con hieu luc")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyến mãi không còn hiệu lực")
     if promotion.usage_limit is not None and promotion.used_count >= promotion.usage_limit:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyen mai da het luot su dung")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khuyến mãi đã hết lượt sử dụng")
     if promotion.min_booking_amount is not None and total_room_price < float(promotion.min_booking_amount):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Don hang toi thieu {float(promotion.min_booking_amount)} moi duoc ap dung khuyen mai nay",
+            detail=f"Đơn hàng tối thiểu {float(promotion.min_booking_amount)} mới được áp dụng khuyến mãi này",
         )
 
     if promotion.discount_type == DiscountType.PERCENTAGE:
@@ -202,19 +202,19 @@ def _build_booking(
     if payload.check_out_date <= payload.check_in_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay tra phong phai sau ngay nhan phong",
+            detail="Ngày trả phòng phải sau ngày nhận phòng",
         )
     if payload.check_in_date < date.today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ngay nhan phong khong duoc o qua khu",
+            detail="Ngày nhận phòng không được ở quá khứ",
         )
 
     hotel = get_hotel_by_id(db, payload.hotel_id)
     if not hotel or hotel.status != HotelStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai hoac chua duoc duyet",
+            detail="Khách sạn không tồn tại hoặc chưa được duyệt",
         )
 
     num_nights = (payload.check_out_date - payload.check_in_date).days
@@ -227,7 +227,7 @@ def _build_booking(
         if not room_type or room_type.hotel_id != hotel.id or not room_type.is_active:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Loai phong {item.room_type_id} khong thuoc khach san nay",
+                detail=f"Loại phòng {item.room_type_id} không thuộc khách sạn này",
             )
 
         booked = get_booked_quantity_for_room_type(db, item.room_type_id, payload.check_in_date, payload.check_out_date)
@@ -242,7 +242,7 @@ def _build_booking(
         if item.quantity > available:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Loai phong {room_type.name} chi con {available} phong trong",
+                detail=f"Loại phòng {room_type.name} chỉ còn {available} phòng trống",
             )
 
         # Gia co the khac nhau tung dem (gia sua tay trong room_type_rates hoac
@@ -274,7 +274,7 @@ def _build_booking(
         if not service or service.hotel_id != hotel.id or not service.is_active:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Dich vu {service_item.service_id} khong thuoc khach san nay",
+                detail=f"Dịch vụ {service_item.service_id} không thuộc khách sạn này",
             )
         unit_price = float(service.price)
         service_subtotal = unit_price * service_item.quantity
@@ -399,7 +399,7 @@ def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Khong the hoan tat dat phong, vui long thu lai",
+            detail="Không thể hoàn tất đặt phòng, vui lòng thử lại",
         ) from exc
 
     db.refresh(booking)
@@ -423,26 +423,26 @@ def checkout(db: Session, current_user: User, payload: CheckoutRequest) -> dict:
 def get_payment_instructions(db: Session, current_user: User, booking_id: int) -> dict:
     booking = get_booking_by_id(db, booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn đặt phòng không tồn tại")
     if booking.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xem booking cua minh",
+            detail="Bạn chỉ được xem đơn đặt phòng của mình",
         )
     if booking.status != BookingStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Don khong con cho thanh toan",
+            detail="Đơn không còn chờ thanh toán",
         )
     if get_payment_by_booking_id(db, booking.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Don da duoc thanh toan",
+            detail="Đơn đã được thanh toán",
         )
     if booking.created_at < han_giu_cho_cutoff():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Don da qua han giu cho {settings.sepay_hold_minutes} phut, vui long dat lai",
+            detail=f"Đơn đã quá hạn giữ chỗ {settings.sepay_hold_minutes} phút, vui lòng đặt lại",
         )
 
     return _thong_tin_chuyen_khoan(booking).model_dump(mode="json")
@@ -499,21 +499,21 @@ def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
 
     if current_user.role == UserRole.USER:
         if booking.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Ban chi duoc xem booking cua minh",
+                detail="Bạn chỉ được xem đơn đặt phòng của mình",
             )
     else:
         hotel = get_operational_hotel(db, current_user)
         if booking.hotel_id != hotel.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Ban chi duoc xem booking cua khach san minh",
+                detail="Bạn chỉ được xem đơn đặt phòng của khách sạn mình",
             )
 
     rooms = list_booking_rooms(db, booking.id)
@@ -541,22 +541,22 @@ def confirm_booking(
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
     if booking.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc xac nhan booking cua khach san minh",
+            detail="Bạn chỉ được xác nhận đơn đặt phòng của khách sạn mình",
         )
     if booking.status != BookingStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking khong o trang thai cho xac nhan",
+            detail="Đơn đặt phòng không ở trạng thái chờ xác nhận",
         )
     if not get_invoice_by_booking_id(db, booking.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking chua thanh toan, khong the xac nhan",
+            detail="Đơn đặt phòng chưa thanh toán, không thể xác nhận",
         )
 
     booking.status = BookingStatus.CONFIRMED
@@ -621,17 +621,17 @@ def cancel_booking(db: Session, current_user: User, booking_id: int, payload: Ca
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
     if booking.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc huy booking cua minh",
+            detail="Bạn chỉ được hủy đơn đặt phòng của mình",
         )
     if booking.status not in _CANCELLABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking khong o trang thai co the huy",
+            detail="Đơn đặt phòng không ở trạng thái có thể hủy",
         )
 
     checkin_start = datetime.combine(booking.check_in_date, time.min)
@@ -639,7 +639,7 @@ def cancel_booking(db: Session, current_user: User, booking_id: int, payload: Ca
     if hours_until_checkin < _MIN_HOURS_BEFORE_CHECKIN_TO_CANCEL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Da qua han huy mien phi, phai huy truoc it nhat 24 gio so voi ngay nhan phong",
+            detail="Đã quá hạn hủy miễn phí, phải hủy trước ít nhất 24 giờ so với ngày nhận phòng",
         )
 
     return _apply_cancellation(db, booking, current_user, payload.cancellation_reason)
@@ -655,17 +655,17 @@ def admin_cancel_booking(db: Session, current_user: User, booking_id: int, paylo
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
     if booking.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc huy booking cua khach san minh",
+            detail="Bạn chỉ được hủy đơn đặt phòng của khách sạn mình",
         )
     if booking.status not in _CANCELLABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking khong o trang thai co the huy",
+            detail="Đơn đặt phòng không ở trạng thái có thể hủy",
         )
 
     return _apply_cancellation(db, booking, current_user, payload.cancellation_reason)
@@ -682,22 +682,22 @@ def mark_booking_no_show(db: Session, current_user: User, booking_id: int) -> di
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Booking khong ton tai",
+            detail="Đơn đặt phòng không tồn tại",
         )
     if booking.hotel_id != hotel.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban chi duoc thao tac booking cua khach san minh",
+            detail="Bạn chỉ được thao tác đơn đặt phòng của khách sạn mình",
         )
     if booking.status != BookingStatus.CONFIRMED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chi danh dau khong den cho booking da xac nhan",
+            detail="Chỉ đánh dấu không đến cho đơn đặt phòng đã xác nhận",
         )
     if business_today() <= booking.check_in_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chua qua ngay nhan phong, chua the danh dau khong den",
+            detail="Chưa qua ngày nhận phòng, chưa thể đánh dấu không đến",
         )
 
     booking.status = BookingStatus.NO_SHOW

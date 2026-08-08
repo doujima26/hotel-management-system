@@ -50,7 +50,7 @@ def register_user(db: Session, payload: RegisterRequest, background_tasks: Backg
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email da ton tai",
+            detail="Email đã tồn tại",
         )
 
     user = create_user(
@@ -76,17 +76,17 @@ def login_user(db: Session, payload: LoginRequest):
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email hoac mat khau khong dung",
+            detail="Email hoặc mật khẩu không đúng",
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tai khoan da bi khoa",
+            detail="Tài khoản đã bị khóa",
         )
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tai khoan chua xac thuc. Vui long xac thuc OTP truoc khi dang nhap",
+            detail="Tài khoản chưa xác thực. Vui lòng xác thực OTP trước khi đăng nhập",
         )
 
     access_token = create_token(
@@ -115,19 +115,19 @@ def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
 
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mat khau hien tai khong dung",
+            detail="Mật khẩu hiện tại không đúng",
         )
 
     if payload.current_password == payload.new_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mat khau moi phai khac mat khau hien tai",
+            detail="Mật khẩu mới phải khác mật khẩu hiện tại",
         )
 
     # Tang token_version de thu hoi TOAN BO phien dang nhap (access + refresh)
@@ -158,19 +158,19 @@ def reset_password(db: Session, payload: ResetPasswordRequest):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
 
     if not verify_otp(payload.email, payload.otp, purpose="reset"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OTP khong hop le hoac da het han",
+            detail="OTP không hợp lệ hoặc đã hết hạn",
         )
 
     if verify_password(payload.new_password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mat khau moi phai khac mat khau hien tai",
+            detail="Mật khẩu mới phải khác mật khẩu hiện tại",
         )
 
     # Dat lai mat khau qua OTP cung phai thu hoi moi phien cu (tranh ke chiem
@@ -207,7 +207,7 @@ def verify_account(db: Session, payload: VerifyAccountRequest):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
 
     if user.is_verified:
@@ -216,7 +216,7 @@ def verify_account(db: Session, payload: VerifyAccountRequest):
     if not verify_otp(payload.email, payload.otp, purpose="verify"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OTP khong hop le hoac da het han",
+            detail="OTP không hợp lệ hoặc đã hết hạn",
         )
 
     user.is_verified = True
@@ -233,7 +233,7 @@ def set_user_active(db: Session, user_id: int, payload: SetUserActiveRequest):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
 
     user.is_active = payload.is_active

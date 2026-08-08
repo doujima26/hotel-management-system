@@ -56,15 +56,15 @@ def _serialize_favorite(
 def add_favorite(db: Session, current_user: User, hotel_id: int) -> dict:
     hotel = get_hotel_by_id(db, hotel_id)
     if not hotel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
     if get_favorite_by_user_and_hotel(db, current_user.id, hotel_id):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Khach san da co trong danh sach yeu thich")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Khách sạn đã có trong danh sách yêu thích")
 
     try:
         favorite = create_favorite_record(db, user_id=current_user.id, hotel_id=hotel_id)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Khach san da co trong danh sach yeu thich") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Khách sạn đã có trong danh sách yêu thích") from exc
 
     return _serialize_favorite(favorite, hotel)
 
@@ -73,7 +73,7 @@ def add_favorite(db: Session, current_user: User, hotel_id: int) -> dict:
 def remove_favorite(db: Session, current_user: User, hotel_id: int) -> dict:
     favorite = get_favorite_by_user_and_hotel(db, current_user.id, hotel_id)
     if not favorite:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong co trong danh sach yeu thich")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không có trong danh sách yêu thích")
 
     delete_favorite_record(db, favorite)
     return {"hotel_id": hotel_id}

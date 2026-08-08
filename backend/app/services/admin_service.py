@@ -153,14 +153,14 @@ def get_hotel_detail_for_admin(db: Session, hotel_id: int) -> dict:
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai",
+            detail="Khách sạn không tồn tại",
         )
 
     owner = get_user_by_id(db, hotel.owner_id)
     if not owner:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khong tim thay chu so huu cua khach san",
+            detail="Không tìm thấy chủ sở hữu của khách sạn",
         )
 
     room_types = list_room_type_records(db, hotel.id)
@@ -282,14 +282,14 @@ def review_hotel(
     if not hotel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khach san khong ton tai",
+            detail="Khách sạn không tồn tại",
         )
 
     new_status = HotelStatus(payload.action)
     if new_status not in _ALLOWED_TRANSITIONS[hotel.status]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Khong the chuyen khach san tu trang thai '{hotel.status}' sang '{new_status}'",
+            detail=f"Không thể chuyển khách sạn từ trạng thái '{hotel.status}' sang '{new_status}'",
         )
 
     reason = (payload.reason or "").strip()
@@ -297,7 +297,7 @@ def review_hotel(
     if new_status == HotelStatus.SUSPENDED and not reason:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phai nhap ly do tam dung khach san",
+            detail="Phải nhập lý do tạm dừng khách sạn",
         )
 
     hotel.status = new_status
@@ -353,12 +353,12 @@ def set_user_active_for_admin(db: Session, actor: User, user_id: int, payload: S
     if not target:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
     if target.role == UserRole.SUPER_ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Khong the khoa hoac mo khoa tai khoan Super Admin",
+            detail="Không thể khóa hoặc mở khóa tài khoản Super Admin",
         )
 
     create_admin_action_log_record(
@@ -483,7 +483,7 @@ def get_user_detail_for_admin(db: Session, user_id: int) -> dict:
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nguoi dung khong ton tai",
+            detail="Người dùng không tồn tại",
         )
 
     staff, staff_hotel = (None, None)

@@ -299,11 +299,11 @@ def _validate_weekdays(value: list[int] | None) -> list[int] | None:
     if value is None:
         return None
     if not value:
-        raise ValueError("Danh sach thu trong tuan khong duoc de rong")
+        raise ValueError("Danh sách thứ trong tuần không được để rỗng")
     if len(set(value)) != len(value):
-        raise ValueError("Danh sach thu trong tuan bi trung gia tri")
+        raise ValueError("Danh sách thứ trong tuần bị trùng giá trị")
     if any(item < 0 or item > 6 for item in value):
-        raise ValueError("Thu trong tuan chi nhan gia tri tu 0 den 6")
+        raise ValueError("Thứ trong tuần chỉ nhận giá trị từ 0 đến 6")
     return sorted(value)
 
 

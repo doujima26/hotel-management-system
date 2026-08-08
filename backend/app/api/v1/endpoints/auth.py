@@ -55,12 +55,12 @@ def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token khong hop le",
+            detail="Refresh token không hợp lệ",
         ) from exc
     if token_payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token khong hop le",
+            detail="Refresh token không hợp lệ",
         )
 
     # Phai kiem tra lai nguoi dung trong DB: tai khoan bi khoa/xoa hoac da doi
@@ -69,24 +69,24 @@ def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     if not subject or not str(subject).isdigit():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token khong hop le",
+            detail="Refresh token không hợp lệ",
         )
 
     user = get_user_by_id(db, int(subject))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token khong hop le",
+            detail="Refresh token không hợp lệ",
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tai khoan da bi khoa",
+            detail="Tài khoản đã bị khóa",
         )
     if token_payload.get("ver") != user.token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Phien dang nhap da het hieu luc, vui long dang nhap lai",
+            detail="Phiên đăng nhập đã hết hiệu lực, vui lòng đăng nhập lại",
         )
 
     access_token = create_token(

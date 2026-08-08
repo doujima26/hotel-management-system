@@ -69,7 +69,7 @@ def _require_staff(db: Session, current_user: User):
     if not staff:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tai khoan chua duoc gan lam nhan vien cua khach san nao",
+            detail="Tài khoản chưa được gán làm nhân viên của khách sạn nào",
         )
     return staff
 
@@ -81,18 +81,18 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
 
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn đặt phòng không tồn tại")
     if booking.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc check-in booking cua khach san minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được check-in đơn đặt phòng của khách sạn mình")
     if booking.status != BookingStatus.CONFIRMED:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking phai o trang thai da xac nhan moi duoc check-in")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đơn đặt phòng phải ở trạng thái đã xác nhận mới được nhận phòng")
     # Chan check-in som ngay: gan phong vat ly ngay tu luc nay se khoa phong do
     # (occupied) den tan luc check-out, chiem oan cho cac booking den truoc do
     # cua cung loai phong. Check-in tre (qua ngay) van duoc phep binh thuong.
     if business_today() < booking.check_in_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chua den ngay nhan phong, khong the check-in truoc han",
+            detail="Chưa đến ngày nhận phòng, không thể check-in trước hạn",
         )
 
     booking_rooms = {br.id: br for br in list_booking_rooms(db, booking.id)}
@@ -104,7 +104,7 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
     if covered_ids != set(booking_rooms.keys()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phai gan phong cho du tat ca cac dong da dat trong booking",
+            detail="Phải gán phòng cho đủ tất cả các dòng đã đặt trong đơn",
         )
 
     assigned_room_ids: set[int] = set()
@@ -114,32 +114,32 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
         if len(item.room_ids) != len(unassigned_units):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Dong booking_room {booking_room.id} can gan du {len(unassigned_units)} phong",
+                detail=f"Dòng booking_room {booking_room.id} cần gán đủ {len(unassigned_units)} phòng",
             )
         if len(set(item.room_ids)) != len(item.room_ids):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Danh sach phong bi trung lap")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Danh sách phòng bị trùng lặp")
 
         for unit, room_id in zip(unassigned_units, item.room_ids):
             if room_id in assigned_room_ids:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khong the gan trung 1 phong cho nhieu suat")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Không thể gán trùng 1 phòng cho nhiều suất")
 
             room = get_room_by_id_for_update(db, room_id)
             if not room or room.room_type_id != booking_room.room_type_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Phong {room_id} khong thuoc dung loai phong da dat",
+                    detail=f"Phòng {room_id} không thuộc đúng loại phòng đã đặt",
                 )
             if not room.is_active or room.status != RoomStatus.AVAILABLE:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Phong {room.room_number} hien khong san sang de nhan phong",
+                    detail=f"Phòng {room.room_number} hiện không sẵn sàng để nhận phòng",
                 )
             overlapping_blocks = get_room_blocks_for_stay(db, room.id, booking.check_in_date, booking.check_out_date)
             if overlapping_blocks:
                 reason = overlapping_blocks[0].reason or "khong ro ly do"
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Phong {room.room_number} dang bi khoa lich ({reason}) trong khoang ngay nay",
+                    detail=f"Phòng {room.room_number} đang bị khóa lịch ({reason}) trong khoảng ngày này",
                 )
             assigned_room_ids.add(room_id)
 
@@ -175,11 +175,11 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
 
     booking = get_booking_by_id_for_update(db, booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đơn đặt phòng không tồn tại")
     if booking.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc check-out booking cua khach san minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được check-out đơn đặt phòng của khách sạn mình")
     if booking.status != BookingStatus.CHECKED_IN:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking phai dang o trang thai checked_in moi duoc check-out")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đơn đặt phòng phải đang ở trạng thái đã nhận phòng mới được trả phòng")
 
     units = list_booking_room_units(db, booking.id)
     for unit in units:
@@ -215,9 +215,9 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
 def _get_staff_room(db: Session, staff, room_id: int):
     room = get_room_by_id_for_update(db, room_id)
     if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phòng không tồn tại")
     if room.hotel_id != staff.hotel_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc thao tac phong cua khach san minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được thao tác phòng của khách sạn mình")
     return room
 
 
@@ -230,9 +230,9 @@ def _get_operational_room(db: Session, current_user: User, room_id: int):
     hotel = get_operational_hotel(db, current_user)
     room = get_room_by_id_locking_room_type(db, room_id)
     if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phong khong ton tai")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phòng không tồn tại")
     if room.hotel_id != hotel.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ban chi duoc thao tac phong cua khach san minh")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được thao tác phòng của khách sạn mình")
     return room
 
 
@@ -261,7 +261,7 @@ def mark_room_cleaned(db: Session, current_user: User, room_id: int) -> dict:
     if room.status != RoomStatus.CLEANING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Phong {room.room_number} khong o trang thai dang don, khong the danh dau da don xong",
+            detail=f"Phòng {room.room_number} không ở trạng thái đang dọn, không thể đánh dấu đã dọn xong",
         )
     return _apply_room_status_change(db, current_user, room, RoomStatus.AVAILABLE, "Da don xong")
 
@@ -274,12 +274,12 @@ def set_room_maintenance(db: Session, current_user: User, room_id: int, payload:
     if room.status == RoomStatus.OCCUPIED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Phong {room.room_number} dang co khach, khong the dat bao tri",
+            detail=f"Phòng {room.room_number} đang có khách, không thể đặt bảo trì",
         )
     if room.status == RoomStatus.MAINTENANCE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Phong {room.room_number} da dang bao tri",
+            detail=f"Phòng {room.room_number} đã đang bảo trì",
         )
     return _apply_room_status_change(db, current_user, room, RoomStatus.MAINTENANCE, payload.reason)
 
@@ -290,6 +290,6 @@ def clear_room_maintenance(db: Session, current_user: User, room_id: int) -> dic
     if room.status != RoomStatus.MAINTENANCE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Phong {room.room_number} khong o trang thai bao tri",
+            detail=f"Phòng {room.room_number} không ở trạng thái bảo trì",
         )
     return _apply_room_status_change(db, current_user, room, RoomStatus.AVAILABLE, "Hoan tat bao tri")

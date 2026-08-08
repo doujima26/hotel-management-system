@@ -97,7 +97,7 @@ def get_hotel_dashboard(db: Session, current_user: User, from_date: date | None,
     hotel = get_operating_admin_hotel(db, current_user)
     from_date, to_date = _default_date_range(from_date, to_date)
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau hoac bang ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải sau hoặc bằng ngày bắt đầu")
 
     return _build_hotel_dashboard(db, hotel.id, from_date, to_date)
 
@@ -106,7 +106,7 @@ def get_hotel_dashboard(db: Session, current_user: User, from_date: date | None,
 def get_platform_dashboard(db: Session, from_date: date | None, to_date: date | None, hotel_id: int | None) -> dict:
     from_date, to_date = _default_date_range(from_date, to_date)
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai sau hoac bang ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải sau hoặc bằng ngày bắt đầu")
 
     total_revenue = get_revenue(db, from_date, to_date)
     total_bookings = count_bookings_created(db, from_date, to_date)
@@ -116,7 +116,7 @@ def get_platform_dashboard(db: Session, from_date: date | None, to_date: date | 
     if hotel_id is not None:
         hotel = get_hotel_by_id(db, hotel_id)
         if not hotel:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khach san khong ton tai")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khách sạn không tồn tại")
         hotel_data = _build_hotel_dashboard(db, hotel_id, from_date, to_date)
 
     return PlatformDashboardResponse(

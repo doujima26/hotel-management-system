@@ -29,7 +29,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 
 # Chuan hoa response khi du lieu dau vao khong hop le (Pydantic validation).
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    body = fail("Du lieu dau vao khong hop le", error_code="VALIDATION_ERROR")
+    body = fail("Dữ liệu đầu vào không hợp lệ", error_code="VALIDATION_ERROR")
     content = jsonable_encoder(body)
     content["errors"] = jsonable_encoder(exc.errors())
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=content)

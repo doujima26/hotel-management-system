@@ -119,11 +119,11 @@ def get_hotel_revenue_dashboard(db: Session, current_user: User, from_date: date
     hotel = get_operating_admin_hotel(db, current_user)
     from_date, to_date = _default_date_range(from_date, to_date)
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngay ket thuc phai lon hon hoac bang ngay bat dau")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu")
     if (to_date - from_date).days + 1 > _MAX_REVENUE_TREND_DAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Chi xem toi da {_MAX_REVENUE_TREND_DAYS} ngay moi lan",
+            detail=f"Chỉ xem tối đa {_MAX_REVENUE_TREND_DAYS} ngày mỗi lần",
         )
 
     current_period = _summarize_period(db, hotel.id, from_date, to_date)
