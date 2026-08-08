@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/components/shared/DateField";
 import { cn } from "@/lib/utils";
 import { roomsApi } from "@/lib/api/rooms";
 import { ApiError } from "@/types/api";
@@ -15,7 +15,7 @@ import { canOperate, useAdminHotel } from "../layout";
 // So ngay hien thi 1 lan tren lich (backend gioi han toi da 62 ngay).
 const WINDOW_DAYS = 14;
 
-const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
 export default function AdminCalendarPage() {
   const hotel = useAdminHotel();
@@ -54,11 +54,10 @@ export default function AdminCalendarPage() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Input
-            type="date"
+          <DateField
             value={startDate}
-            onChange={(event) => {
-              if (event.target.value) setStartDate(event.target.value);
+            onChange={(value) => {
+              if (value) setStartDate(value);
             }}
             aria-label="Ngày bắt đầu xem lịch"
             className="w-40"

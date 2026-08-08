@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent, SyntheticEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/shared/DateField";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 
 const PAST_CHECK_IN_MESSAGE = "Ngày nhận phòng không được ở quá khứ.";
@@ -30,9 +31,7 @@ export function HotelDetailSearchForm({
   const today = todayDateString();
   const minCheckOut = addDaysToDateString(checkIn || today, 1);
 
-  function handleCheckInChange(e: FormEvent<HTMLInputElement>) {
-    e.currentTarget.setCustomValidity("");
-    const value = e.currentTarget.value;
+  function handleCheckInChange(value: string) {
     setCheckIn(value);
     if (checkOut && checkOut <= value) {
       setCheckOut("");
@@ -51,10 +50,9 @@ export function HotelDetailSearchForm({
     <form className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="check_in">Nhận phòng</Label>
-        <Input
+        <DateField
           id="check_in"
           name="check_in"
-          type="date"
           min={today}
           value={checkIn}
           onChange={handleCheckInChange}
@@ -64,16 +62,12 @@ export function HotelDetailSearchForm({
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="check_out">Trả phòng</Label>
-        <Input
+        <DateField
           id="check_out"
           name="check_out"
-          type="date"
           min={minCheckOut}
           value={checkOut}
-          onChange={(e) => {
-            e.currentTarget.setCustomValidity("");
-            setCheckOut(e.currentTarget.value);
-          }}
+          onChange={setCheckOut}
           onInvalid={handleCheckOutInvalid}
           required
         />

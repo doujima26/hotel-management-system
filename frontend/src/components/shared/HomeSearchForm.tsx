@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { FormEvent, SyntheticEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CityAutocomplete } from "@/components/shared/CityAutocomplete";
+import { DateField } from "@/components/shared/DateField";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 
 const UNDERLINE_INPUT_CLASS = "rounded-none border-0 border-b px-0 shadow-none focus-visible:ring-0";
@@ -25,9 +26,7 @@ export function HomeSearchForm() {
   const today = todayDateString();
   const minCheckOut = addDaysToDateString(checkIn || today, 1);
 
-  function handleCheckInChange(e: FormEvent<HTMLInputElement>) {
-    e.currentTarget.setCustomValidity("");
-    const value = e.currentTarget.value;
+  function handleCheckInChange(value: string) {
     setCheckIn(value);
     // Neu ngay tra phong da chon khong con sau ngay nhan phong moi, xoa de
     // bat khach chon lai - tranh loi bat ngo luc bam tim kiem.
@@ -75,10 +74,9 @@ export function HomeSearchForm() {
         <Label htmlFor="check_in" className="text-xs tracking-wide text-muted-foreground uppercase">
           Nhận phòng
         </Label>
-        <Input
+        <DateField
           id="check_in"
           name="check_in"
-          type="date"
           min={today}
           value={checkIn}
           onChange={handleCheckInChange}
@@ -91,16 +89,12 @@ export function HomeSearchForm() {
         <Label htmlFor="check_out" className="text-xs tracking-wide text-muted-foreground uppercase">
           Trả phòng
         </Label>
-        <Input
+        <DateField
           id="check_out"
           name="check_out"
-          type="date"
           min={minCheckOut}
           value={checkOut}
-          onChange={(e) => {
-            e.currentTarget.setCustomValidity("");
-            setCheckOut(e.currentTarget.value);
-          }}
+          onChange={setCheckOut}
           onInvalid={handleCheckOutInvalid}
           className={UNDERLINE_INPUT_CLASS}
         />

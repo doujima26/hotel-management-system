@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/components/shared/DateField";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/utils/format";
@@ -271,11 +271,11 @@ export default function AdminRevenuePage() {
       <div className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="from_date">Từ ngày</Label>
-          <Input id="from_date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <DateField id="from_date" value={fromDate} onChange={setFromDate} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="to_date">Đến ngày</Label>
-          <Input id="to_date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <DateField id="to_date" value={toDate} onChange={setToDate} />
         </div>
       </div>
 

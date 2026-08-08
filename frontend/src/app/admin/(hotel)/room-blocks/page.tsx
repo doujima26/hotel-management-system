@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateField } from "@/components/shared/DateField";
 import { formatDate } from "@/lib/utils/format";
 import { addDaysToDateString, todayDateString } from "@/lib/utils/date";
 import { roomsApi } from "@/lib/api/rooms";
@@ -127,11 +128,11 @@ export default function AdminRoomBlocksPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="block_start">Từ ngày</Label>
-              <Input id="block_start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateField id="block_start" value={startDate} onChange={setStartDate} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="block_end">Đến ngày</Label>
-              <Input id="block_end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <DateField id="block_end" value={endDate} onChange={setEndDate} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="block_reason">Lý do (không bắt buộc)</Label>

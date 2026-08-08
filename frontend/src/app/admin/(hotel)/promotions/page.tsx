@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateField } from "@/components/shared/DateField";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { hotelsApi } from "@/lib/api/hotels";
 import { ApiError } from "@/types/api";
@@ -172,11 +173,11 @@ export default function AdminPromotionsPage() {
               <div />
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="promo_start">Ngày bắt đầu</Label>
-                <Input id="promo_start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <DateField id="promo_start" value={startDate} onChange={setStartDate} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="promo_end">Ngày kết thúc</Label>
-                <Input id="promo_end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <DateField id="promo_end" value={endDate} onChange={setEndDate} />
               </div>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
@@ -300,11 +301,11 @@ function EditPromotionDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="edit_promo_start">Ngày bắt đầu</Label>
-              <Input id="edit_promo_start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateField id="edit_promo_start" value={startDate} onChange={setStartDate} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="edit_promo_end">Ngày kết thúc</Label>
-              <Input id="edit_promo_end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <DateField id="edit_promo_end" value={endDate} onChange={setEndDate} />
             </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}

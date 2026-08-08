@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateField } from "@/components/shared/DateField";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 import { roomsApi, type PricingRulePayload } from "@/lib/api/rooms";
@@ -48,12 +49,12 @@ const DIRECTION_LABELS: Record<AdjustmentDirection, string> = {
 // Thu trong tuan theo quy uoc EXTRACT(DOW) cua PostgreSQL: 0 la chu nhat.
 const WEEKDAY_LABELS: Record<number, string> = {
   0: "CN",
-  1: "T2",
-  2: "T3",
-  3: "T4",
-  4: "T5",
-  5: "T6",
-  6: "T7",
+  1: "Thứ 2",
+  2: "Thứ 3",
+  3: "Thứ 4",
+  4: "Thứ 5",
+  5: "Thứ 6",
+  6: "Thứ 7",
 };
 
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -495,20 +496,18 @@ function PricingRuleForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${idPrefix}_start_date`}>Ngày bắt đầu</Label>
-            <Input
+            <DateField
               id={`${idPrefix}_start_date`}
-              type="date"
               value={form.startDate}
-              onChange={(e) => update("startDate", e.target.value)}
+              onChange={(value) => update("startDate", value)}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${idPrefix}_end_date`}>Ngày kết thúc</Label>
-            <Input
+            <DateField
               id={`${idPrefix}_end_date`}
-              type="date"
               value={form.endDate}
-              onChange={(e) => update("endDate", e.target.value)}
+              onChange={(value) => update("endDate", value)}
             />
           </div>
         </div>

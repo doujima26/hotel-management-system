@@ -14,9 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateField } from "@/components/shared/DateField";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import {
@@ -168,11 +168,10 @@ export default function AdminStaffSchedulePage() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <Input
-              type="date"
+            <DateField
               value={startDate}
-              onChange={(event) => {
-                if (event.target.value) setStartDate(event.target.value);
+              onChange={(value) => {
+                if (value) setStartDate(value);
               }}
               aria-label="Ngày bắt đầu xem lịch làm việc"
               className="w-40"
@@ -259,7 +258,7 @@ export default function AdminStaffSchedulePage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="create_date">Ngày</Label>
-              <Input id="create_date" type="date" value={createDate} onChange={(e) => setCreateDate(e.target.value)} />
+              <DateField id="create_date" value={createDate} onChange={setCreateDate} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="create_shift_type">Ca</Label>
@@ -299,7 +298,7 @@ export default function AdminStaffSchedulePage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="edit_date">Ngày</Label>
-                <Input id="edit_date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                <DateField id="edit_date" value={editDate} onChange={setEditDate} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="edit_shift_type">Ca</Label>

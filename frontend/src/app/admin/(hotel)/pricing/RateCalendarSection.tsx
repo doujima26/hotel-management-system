@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MonthField } from "@/components/shared/MonthField";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/utils/format";
 import { addMonthsToDateString, firstDayOfMonthString, lastDayOfMonthString, todayDateString } from "@/lib/utils/date";
@@ -20,7 +21,7 @@ type GridCell =
   | { kind: "blank"; key: string }
   | { kind: "day"; day: RoomTypeRateDay };
 
-const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
 // Lich gia cua 1 loai phong theo tung thang: xem gia hieu luc, biet gia den tu
 // dau, sua tay tung ngay va xoa gia sua tay hang loat.
@@ -149,11 +150,10 @@ export function RateCalendarSection({
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Input
-            type="month"
+          <MonthField
             value={monthAnchor.slice(0, 7)}
-            onChange={(event) => {
-              if (event.target.value) setMonthAnchor(`${event.target.value}-01`);
+            onChange={(value) => {
+              if (value) setMonthAnchor(`${value}-01`);
             }}
             aria-label="Chọn tháng xem lịch giá"
             className="w-40"

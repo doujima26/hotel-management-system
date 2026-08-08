@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateField } from "@/components/shared/DateField";
 import {
   Dialog,
   DialogContent,
@@ -311,11 +312,11 @@ function PayoutDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="period_from">Kỳ từ (không bắt buộc)</Label>
-              <Input id="period_from" type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
+              <DateField id="period_from" value={periodFrom} onChange={setPeriodFrom} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="period_to">Kỳ đến (không bắt buộc)</Label>
-              <Input id="period_to" type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
+              <DateField id="period_to" value={periodTo} onChange={setPeriodTo} />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
