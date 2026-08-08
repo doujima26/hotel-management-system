@@ -82,6 +82,7 @@ export function CityAutocomplete({
         highlightedValueRef.current = highlightedValue;
       }}
       autoHighlight
+      openOnInputClick
     >
       <AutocompleteInputGroup className={inputGroupClassName} onKeyDownCapture={handleKeyDownCapture}>
         <AutocompleteIcon>
