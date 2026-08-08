@@ -31,6 +31,23 @@ const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   fixed_amount: "Số tiền cố định",
 };
 
+// Doi chieu rang buoc voi PromotionCreate/Update va validate_promotion_data o backend.
+function validatePromotionForm(values: {
+  name: string;
+  discount_type: DiscountType;
+  discount_value: string;
+  start_date: string;
+  end_date: string;
+}): string | null {
+  const name = values.name.trim();
+  if (name.length < 2) return "Tên khuyến mãi tối thiểu 2 ký tự";
+  const value = Number(values.discount_value);
+  if (!(value > 0)) return "Giá trị giảm phải lớn hơn 0";
+  if (values.discount_type === "percentage" && value > 100) return "Giá trị giảm theo phần trăm không được vượt quá 100";
+  if (values.end_date < values.start_date) return "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
+  return null;
+}
+
 export default function AdminPromotionsPage() {
   const hotel = useAdminHotel();
   const approved = canEditListing(hotel.status);
@@ -60,6 +77,17 @@ export default function AdminPromotionsPage() {
   });
 
   async function handleCreate() {
+    const validationError = validatePromotionForm({
+      name,
+      discount_type: discountType,
+      discount_value: discountValue,
+      start_date: startDate,
+      end_date: endDate,
+    });
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
@@ -108,6 +136,11 @@ export default function AdminPromotionsPage() {
 
   async function saveEdit(values: { name: string; discount_value: string; start_date: string; end_date: string }) {
     if (!editing) return;
+    const validationError = validatePromotionForm({ ...values, discount_type: editing.discount_type });
+    if (validationError) {
+      setEditError(validationError);
+      return;
+    }
     setEditError(null);
     setEditSubmitting(true);
     try {

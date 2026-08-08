@@ -144,7 +144,13 @@ export default function AdminRoomTypeRoomsPage({ params }: RoomsPageProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="room_number">Số phòng</Label>
-                <Input id="room_number" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} placeholder="Ví dụ: 101" />
+                <Input
+                  id="room_number"
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  placeholder="Ví dụ: 101"
+                  maxLength={20}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="floor">Tầng</Label>
@@ -257,7 +263,7 @@ function EditRoomDialog({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit_room_number">Số phòng</Label>
-            <Input id="edit_room_number" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} />
+            <Input id="edit_room_number" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} maxLength={20} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit_room_floor">Tầng (không bắt buộc)</Label>

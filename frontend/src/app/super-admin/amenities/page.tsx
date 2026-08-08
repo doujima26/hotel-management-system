@@ -196,6 +196,10 @@ export default function SuperAdminAmenitiesPage() {
   }
 
   async function handleCreate() {
+    if (name.trim().length < 2) {
+      setFormError("Tên tiện nghi tối thiểu 2 ký tự");
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
@@ -231,6 +235,10 @@ export default function SuperAdminAmenitiesPage() {
 
   async function saveEdit(values: { name: string; categoryId: string }) {
     if (!editing) return;
+    if (values.name.trim().length < 2) {
+      setEditError("Tên tiện nghi tối thiểu 2 ký tự");
+      return;
+    }
     setEditError(null);
     setEditSubmitting(true);
     try {
@@ -267,6 +275,7 @@ export default function SuperAdminAmenitiesPage() {
               onChange={(e) => setCategoryName(e.target.value)}
               placeholder="Ví dụ: Giải trí"
               className="sm:max-w-sm"
+              maxLength={50}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -351,7 +360,13 @@ export default function SuperAdminAmenitiesPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="amenity_name">Tên tiện nghi</Label>
-              <Input id="amenity_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Hồ bơi" />
+              <Input
+                id="amenity_name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ví dụ: Hồ bơi"
+                maxLength={100}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="amenity_category">Danh mục</Label>
@@ -468,7 +483,7 @@ function EditCategoryDialog({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit_category_name">Tên danh mục</Label>
-            <Input id="edit_category_name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="edit_category_name" value={name} onChange={(e) => setName(e.target.value)} maxLength={50} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>
@@ -520,7 +535,7 @@ function EditAmenityDialog({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit_amenity_name">Tên tiện nghi</Label>
-            <Input id="edit_amenity_name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="edit_amenity_name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit_amenity_category">Danh mục</Label>

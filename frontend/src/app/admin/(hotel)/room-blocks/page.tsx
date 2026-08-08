@@ -54,6 +54,10 @@ export default function AdminRoomBlocksPage() {
 
   async function handleCreate() {
     if (!selectedRoomId) return;
+    if (endDate < startDate) {
+      setFormError("Ngày kết thúc phải sau ngày bắt đầu");
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {

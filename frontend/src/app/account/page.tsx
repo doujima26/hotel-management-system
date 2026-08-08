@@ -62,13 +62,15 @@ function ProfileSection({ me }: { me: User }) {
           onSave={(value) => saveField({ full_name: value })}
         />
         <EmailRow email={me.email} verified={me.is_verified} />
-        {/* minLength chan luu khi de trong: so dien thoai da bat buoc luc dang
-            ky nen khong cho xoa trang o day. Dinh dang do backend kiem. */}
         <EditableRow
           label="Số điện thoại"
           value={me.phone ?? ""}
           placeholder="Thêm số điện thoại của bạn"
           minLength={9}
+          validate={(value) => {
+            const digits = value.replace(/[\s.\-()]/g, "");
+            return /^\+?\d{9,11}$/.test(digits) ? null : "Số điện thoại không hợp lệ, cần 9 đến 11 chữ số";
+          }}
           onSave={(value) => saveField({ phone: value })}
         />
         <AvatarRow
@@ -212,12 +214,14 @@ function EditableRow({
   value,
   placeholder,
   minLength = 0,
+  validate,
   onSave,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   minLength?: number;
+  validate?: (value: string) => string | null;
   onSave: (value: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -232,10 +236,16 @@ function EditableRow({
   }
 
   async function handleSave() {
+    const trimmed = draft.trim();
+    const validationError = validate?.(trimmed) ?? null;
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await onSave(draft.trim());
+      await onSave(trimmed);
       setEditing(false);
     } catch (err) {
       setError(getErrorMessage(err, "Cập nhật thất bại"));

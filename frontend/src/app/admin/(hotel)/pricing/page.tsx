@@ -389,6 +389,28 @@ function isFormComplete(form: FormState): boolean {
   return Boolean(form.startDate && form.endDate);
 }
 
+// So ngay lon nhat cua tung thang, khop _MAX_DAY_IN_MONTH o backend (room_service.py).
+const MAX_DAY_IN_MONTH: Record<number, number> = {
+  1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31,
+};
+
+// Doi chieu rang buoc voi CreatePricingRuleRequest va _validate_pricing_rule_period o backend.
+function validatePricingRuleForm(form: FormState): string | null {
+  const name = form.name.trim();
+  if (name.length < 2) return "Tên quy tắc tối thiểu 2 ký tự";
+  if (form.recurrence === "yearly") {
+    const startMonth = Number(form.startMonth);
+    const startDay = Number(form.startDay);
+    const endMonth = Number(form.endMonth);
+    const endDay = Number(form.endDay);
+    if (startDay > MAX_DAY_IN_MONTH[startMonth]) return `Tháng ${startMonth} không có ngày ${startDay}`;
+    if (endDay > MAX_DAY_IN_MONTH[endMonth]) return `Tháng ${endMonth} không có ngày ${endDay}`;
+  } else if (form.endDate < form.startDate) {
+    return "Ngày kết thúc phải sau ngày bắt đầu";
+  }
+  return null;
+}
+
 function PricingRuleForm({
   rule,
   roomTypes,
@@ -418,6 +440,11 @@ function PricingRuleForm({
   }
 
   async function handleSubmit() {
+    const validationError = validatePricingRuleForm(form);
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {

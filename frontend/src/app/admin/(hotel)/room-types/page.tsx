@@ -56,6 +56,21 @@ interface RoomTypeFormValues {
   area_sqm: string;
 }
 
+// Doi chieu rang buoc voi RoomTypeCreate/Update o backend (app/schemas/rooms.py).
+function validateRoomTypeForm(values: RoomTypeFormValues): string | null {
+  const name = values.name.trim();
+  if (name.length < 2) return "Tên loại phòng tối thiểu 2 ký tự";
+  if (!(Number(values.base_price) > 0)) return "Giá mỗi đêm phải lớn hơn 0";
+  if (!(Number(values.max_guests) > 0)) return "Số khách tối đa phải lớn hơn 0";
+  if (!(Number(values.total_rooms) > 0)) return "Tổng số phòng phải lớn hơn 0";
+  if (values.area_sqm && !(Number(values.area_sqm) > 0)) return "Diện tích phải lớn hơn 0";
+  if (values.bed_type) {
+    const bedCount = Number(values.bed_count || 1);
+    if (bedCount < 1 || bedCount > 10) return "Số giường mỗi phòng phải từ 1 đến 10";
+  }
+  return null;
+}
+
 // Cap o "loai giuong + so luong". Gop thanh 1 component vi form tao va dialog
 // sua can y nguyen quy tac ghep doi: so luong khong co nghia khi chua chon loai
 // giuong nen bi khoa, va tu dat 1 ngay khi chon loai giuong.
@@ -196,6 +211,11 @@ export default function AdminRoomTypesPage() {
 
   async function saveEdit(values: RoomTypeFormValues) {
     if (!editing) return;
+    const validationError = validateRoomTypeForm(values);
+    if (validationError) {
+      setEditError(validationError);
+      return;
+    }
     setEditError(null);
     setEditSubmitting(true);
     try {
@@ -221,6 +241,19 @@ export default function AdminRoomTypesPage() {
   }
 
   async function handleCreate() {
+    const validationError = validateRoomTypeForm({
+      name,
+      base_price: basePrice,
+      max_guests: maxGuests,
+      total_rooms: totalRooms,
+      bed_type: bedType,
+      bed_count: bedCount,
+      area_sqm: areaSqm,
+    });
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {

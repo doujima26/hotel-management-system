@@ -28,6 +28,24 @@ function sortValue(staff: StaffMember, key: SortKey): string {
   return staff[key].toLowerCase();
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Doi chieu rang buoc voi CreateStaffRequest o backend (app/schemas/staff.py).
+function validateStaffCreate(values: { email: string; full_name: string; position: string }): string | null {
+  if (!EMAIL_PATTERN.test(values.email)) return "Email không hợp lệ";
+  const fullName = values.full_name.trim();
+  if (fullName.length < 2) return "Họ tên tối thiểu 2 ký tự";
+  const position = values.position.trim();
+  if (position.length < 2) return "Chức vụ tối thiểu 2 ký tự";
+  return null;
+}
+
+function validateStaffPosition(position: string): string | null {
+  const trimmed = position.trim();
+  if (trimmed.length < 2) return "Chức vụ tối thiểu 2 ký tự";
+  return null;
+}
+
 export default function AdminStaffPage() {
   const queryClient = useQueryClient();
 
@@ -84,6 +102,11 @@ export default function AdminStaffPage() {
   }
 
   async function handleCreate() {
+    const validationError = validateStaffCreate({ email, full_name: fullName, position });
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
@@ -106,6 +129,11 @@ export default function AdminStaffPage() {
 
   async function handleUpdate() {
     if (!selectedStaff) return;
+    const validationError = validateStaffPosition(position);
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
@@ -232,6 +260,7 @@ export default function AdminStaffPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 disabled={isEditing}
+                maxLength={20}
               />
             </div>
           </div>
