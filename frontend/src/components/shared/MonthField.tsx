@@ -26,10 +26,13 @@ export function MonthField({ id, value, onChange, className, "aria-label": ariaL
   const [open, setOpen] = React.useState(false);
   const [year, month] = value.split("-").map(Number);
   const [viewYear, setViewYear] = React.useState(year || new Date().getFullYear());
+  const [prevYear, setPrevYear] = React.useState(year);
 
-  React.useEffect(() => {
-    if (year) setViewYear(year);
-  }, [year]);
+  // Dua nam dang xem ve dung nam cua gia tri khi prop value doi.
+  if (year && year !== prevYear) {
+    setPrevYear(year);
+    setViewYear(year);
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
