@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
           <CardDescription>Nhập email để nhận mã OTP đặt lại mật khẩu.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmitEmail(handleRequestOtp)} className="flex flex-col gap-4">
+          <form noValidate onSubmit={handleSubmitEmail(handleRequestOtp)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...registerEmail("email")} />

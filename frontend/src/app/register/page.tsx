@@ -133,7 +133,7 @@ export default function RegisterPage() {
           <CardDescription>Tạo tài khoản để tìm kiếm và đặt phòng khách sạn.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="full_name">Họ tên</Label>
               <Input id="full_name" {...register("full_name")} />
