@@ -24,20 +24,11 @@ interface CityAutocompleteProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   inputGroupClassName?: string;
-  // Bao khi nguoi dung "chot" 1 thanh pho (Enter hoac bam chon) - khac voi
-  // onValueChange (ban goi moi lan go phim). Chi truyen prop nay o cac form
-  // tim kiem (khong truyen o form dang ky khach san). Khi co prop nay:
-  // - O nhap thanh "required" that su (native HTML) - bam nut submit hoac Enter
-  //   luc dang trong deu bi trinh duyet chan lai va hien canh bao do, khong
-  //   phu thuoc vao JS tu viet, hoat dong dung voi CA nut bam lan phim Enter.
-  // - Enter luc dang co goi y to sang se tu chon goi y do vao o roi tim kiem
-  //   ngay (khong can Enter lan 2), giong Booking.com.
+  // Bao ra ngoai khi nguoi dung chot 1 thanh pho, chi truyen o form tim kiem.
   onCommit?: (value: string) => void;
 }
 
-// O chon thanh pho kieu Booking.com - go de loc trong danh sach 63 tinh/thanh
-// (VIETNAM_PROVINCES), dung chung cho ca tim kiem cua khach va dang ky khach
-// san cua Admin de chinh ta thanh pho luon dong bo giua 2 phia.
+// O chon thanh pho, go de loc trong danh sach 63 tinh/thanh.
 export function CityAutocomplete({
   id,
   value,
@@ -47,28 +38,36 @@ export function CityAutocomplete({
   onCommit,
 }: CityAutocompleteProps) {
   const highlightedValueRef = useRef<string | undefined>(undefined);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleInvalid(e: SyntheticEvent<HTMLInputElement>) {
     e.currentTarget.setCustomValidity(EMPTY_CITY_MESSAGE);
   }
 
-  // Dung onKeyDownCapture tren div bao ngoai (khong phai onKeyDown tren rieng
-  // input cua Base UI) de dam bao handler nay LUON chay truoc, bat ke Base UI
-  // tu xu ly Enter noi bo the nao - phase capture tren phan tu cha luon chay
-  // truoc phase bubble/target cua phan tu con theo dung chuan DOM event.
+  // Xoa co loi cu khi gia tri o thay doi.
+  function handleValueChange(next: string) {
+    inputRef.current?.setCustomValidity("");
+    onValueChange(next);
+  }
+
+  // Bat phim Enter tren goi y dang to sang de chon thanh pho va tim kiem ngay.
   function handleKeyDownCapture(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key !== "Enter" || !onCommit) return;
 
     const highlighted = highlightedValueRef.current;
     if (!highlighted) {
-      // Khong co goi y nao dang to sang: de trinh duyet tu xu ly binh thuong -
-      // neu o dang trong, thuoc tinh required se tu chan submit va hien canh
-      // bao (qua onInvalid o tren); neu da co chu, submit binh thuong.
+      // Khong co goi y to sang: de trinh duyet tu xu ly.
       return;
     }
 
     e.preventDefault();
     e.stopPropagation();
+    // Dat gia tri vao DOM truoc khi bao ra ngoai.
+    const input = inputRef.current;
+    if (input) {
+      input.value = highlighted;
+      input.setCustomValidity("");
+    }
     onValueChange(highlighted);
     onCommit(highlighted);
   }
@@ -77,7 +76,7 @@ export function CityAutocomplete({
     <Autocomplete
       items={VIETNAM_PROVINCES}
       value={value}
-      onValueChange={onValueChange}
+      onValueChange={handleValueChange}
       onItemHighlighted={(highlightedValue) => {
         highlightedValueRef.current = highlightedValue;
       }}
@@ -89,11 +88,11 @@ export function CityAutocomplete({
           <MapPin />
         </AutocompleteIcon>
         <AutocompleteInput
+          ref={inputRef}
           id={id}
           placeholder={placeholder}
           required={Boolean(onCommit)}
           onInvalid={handleInvalid}
-          onChange={(e) => e.currentTarget.setCustomValidity("")}
         />
         <AutocompleteClear />
       </AutocompleteInputGroup>
