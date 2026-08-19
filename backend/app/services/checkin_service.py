@@ -28,7 +28,7 @@ from app.services.booking_service import serialize_booking
 from app.services.hotel_service import get_operational_hotel
 
 
-# Xu ly lay so do phong (trang thai tat ca phong vat ly) cua khach san Admin/Staff dang van hanh.
+# Xu ly lay so do phong cua khach san Admin/Staff dang van hanh.
 def get_room_status_board(db: Session, current_user: User) -> list[dict]:
     hotel = get_operational_hotel(db, current_user)
     rows = list_rooms_with_type_by_hotel(db, hotel.id)
@@ -86,9 +86,7 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn chỉ được check-in đơn đặt phòng của khách sạn mình")
     if booking.status != BookingStatus.CONFIRMED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đơn đặt phòng phải ở trạng thái đã xác nhận mới được nhận phòng")
-    # Chan check-in som ngay: gan phong vat ly ngay tu luc nay se khoa phong do
-    # (occupied) den tan luc check-out, chiem oan cho cac booking den truoc do
-    # cua cung loai phong. Check-in tre (qua ngay) van duoc phep binh thuong.
+    # Chan check-in truoc ngay nhan phong. Check-in tre van duoc phep.
     if business_today() < booking.check_in_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -169,7 +167,8 @@ def check_in_booking(db: Session, current_user: User, booking_id: int, payload: 
     return serialize_booking(db, booking, rooms)
 
 
-# Xu ly Staff check-out 1 booking: nha lai tat ca phong da gan ve available, booking sang checked_out.
+# Xu ly Staff check-out 1 booking: phong da gan chuyen OCCUPIED -> CLEANING,
+# booking sang checked_out.
 def check_out_booking(db: Session, current_user: User, booking_id: int, payload: CheckOutRequest) -> dict:
     staff = _require_staff(db, current_user)
 
@@ -187,8 +186,7 @@ def check_out_booking(db: Session, current_user: User, booking_id: int, payload:
             continue
         room = get_room_by_id_for_update(db, unit.room_id)
         previous_status = room.status.value
-        # Check-out chuyen ve CLEANING (cho don phong), chua san sang ban ngay -
-        # Staff phai bam "Da don xong" (mark_room_cleaned) de tra ve AVAILABLE.
+        # Chuyen sang CLEANING, ve AVAILABLE khi Staff bam da don xong.
         room.status = RoomStatus.CLEANING
         db.add(room)
         create_room_status_log(
@@ -221,11 +219,8 @@ def _get_staff_room(db: Session, staff, room_id: int):
     return room
 
 
-# Lay phong vat ly va kiem tra thuoc dung khach san dang van hanh - dung chung
-# cho ca Admin va Staff (khac _get_staff_room chi danh cho Staff), ap dung cho
-# 2 hanh dong dat/go bao tri ma Admin cung duoc phep thao tac. Khoa ca loai
-# phong cha vi bao tri lam doi so phong ban duoc, khac voi _get_staff_room chi
-# doi giua CLEANING va AVAILABLE - hai trang thai deu van ban duoc.
+# Lay phong vat ly va kiem tra thuoc dung khach san dang van hanh, dung chung
+# cho Admin va Staff. Khoa ca loai phong cha.
 def _get_operational_room(db: Session, current_user: User, room_id: int):
     hotel = get_operational_hotel(db, current_user)
     room = get_room_by_id_locking_room_type(db, room_id)
@@ -266,9 +261,7 @@ def mark_room_cleaned(db: Session, current_user: User, room_id: int) -> dict:
     return _apply_room_status_change(db, current_user, room, RoomStatus.AVAILABLE, "Da don xong")
 
 
-# Xu ly dat 1 phong vao trang thai bao tri (Admin hoac Staff cua khach san do)
-# - chi cho tu AVAILABLE hoac CLEANING (khong cho tu OCCUPIED, vi khach dang o
-# trong phong).
+# Xu ly dat 1 phong vao trang thai bao tri, chi cho tu AVAILABLE hoac CLEANING.
 def set_room_maintenance(db: Session, current_user: User, room_id: int, payload: SetRoomMaintenanceRequest) -> dict:
     room = _get_operational_room(db, current_user, room_id)
     if room.status == RoomStatus.OCCUPIED:
@@ -284,7 +277,7 @@ def set_room_maintenance(db: Session, current_user: User, room_id: int, payload:
     return _apply_room_status_change(db, current_user, room, RoomStatus.MAINTENANCE, payload.reason)
 
 
-# Xu ly hoan tat bao tri 1 phong (Admin hoac Staff cua khach san do): MAINTENANCE -> AVAILABLE.
+# Xu ly hoan tat bao tri 1 phong: MAINTENANCE -> AVAILABLE.
 def clear_room_maintenance(db: Session, current_user: User, room_id: int) -> dict:
     room = _get_operational_room(db, current_user, room_id)
     if room.status != RoomStatus.MAINTENANCE:
